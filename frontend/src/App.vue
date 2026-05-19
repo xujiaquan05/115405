@@ -1,32 +1,23 @@
-<template>
-  <div>
-    <nav class="navbar">
-      <RouterLink to="/">Dashboard</RouterLink>
-      <RouterLink to="/qa">AI 問答</RouterLink>
-      <RouterLink to="/history">歷史紀錄</RouterLink>
-    </nav>
+<!-- frontend/src/App.vue -->
 
+<script setup>
+import AppNavbar from "./components/AppNavbar.vue";
+</script>
+
+<template>
+  <div class="app-shell">
+    <!-- Note:
+      Navbar dùng chung cho toàn bộ hệ thống.
+      Bên trong có link chuyển giữa Dashboard / QA / History.
+    -->
+    <AppNavbar />
+
+    <!-- Note:
+      RouterView là nơi Vue Router render page tương ứng với URL hiện tại.
+      Ví dụ "/" sẽ render DashboardView.vue.
+    -->
     <main class="main-content">
       <RouterView />
     </main>
   </div>
 </template>
-
-<style>
-.navbar {
-  display: flex;
-  gap: 20px;
-  padding: 16px;
-  border-bottom: 1px solid #ddd;
-}
-
-.navbar a {
-  text-decoration: none;
-  color: #333;
-  font-weight: bold;
-}
-
-.main-content {
-  padding: 24px;
-}
-</style>

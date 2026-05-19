@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from datetime import datetime
 
 from app.core.database import Base
 
@@ -76,6 +77,8 @@ class AnalysisResult(Base):
 
     keyword = Column(String(255), nullable=False)
     analysis_type = Column(String(50), nullable=False)
+
+    days = Column(Integer, nullable=False, default=30)
 
     result_json = Column(JSON, nullable=False)
 
