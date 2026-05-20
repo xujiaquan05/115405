@@ -462,3 +462,43 @@ git add .
 git commit -m "Update project"
 git push origin main
 ```
+
+---
+
+## Phase 6-8 demo checklist
+
+Backend endpoints:
+
+```text
+GET  /api/dashboard/full
+POST /api/crawler/ptt
+WS   /ws/dashboard
+POST /api/qa/ask
+GET  /api/export/articles.xlsx
+```
+
+Frontend pages:
+
+```text
+Dashboard: http://localhost:5173/
+AI Q&A:    http://localhost:5173/qa
+History:   http://localhost:5173/history
+```
+
+Demo flow:
+
+```text
+1. Open Dashboard and search a keyword.
+2. Click Crawl and watch the realtime WebSocket progress panel.
+3. Click Excel to download the current article query result.
+4. Open AI Q&A and ask: 最近玻尿酸有哪些負評？
+5. Check that the answer includes key points, marketing action, and clickable sources.
+```
+
+Quick API test:
+
+```bash
+curl -X POST http://localhost:8000/api/qa/ask ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\":\"最近玻尿酸有哪些負評？\"}"
+```

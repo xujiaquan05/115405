@@ -3,7 +3,7 @@
 <script setup>
 import { useDashboard } from "../composables/useDashboard.js";
 
-const { state, searchDashboard } = useDashboard();
+const { state, searchDashboard, triggerCrawler, exportArticles } = useDashboard();
 
 
 // Note:
@@ -63,6 +63,22 @@ function handleSubmit() {
 
       <button class="primary-button" type="submit">
         搜尋
+      </button>
+      <button
+        class="secondary-button"
+        type="button"
+        :disabled="state.loadingCrawler"
+        @click="triggerCrawler"
+      >
+        {{ state.loadingCrawler ? "Crawling..." : "Crawl" }}
+      </button>
+
+      <button
+        class="secondary-button"
+        type="button"
+        @click="exportArticles"
+      >
+        Excel
       </button>
     </form>
   </section>

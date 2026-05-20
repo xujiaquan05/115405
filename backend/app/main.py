@@ -8,6 +8,10 @@ from app.routers.crawler_router import router as crawler_router
 from app.routers import dashboard
 from app.routers import analysis
 
+from app.routers import websocket
+from app.routers import qa
+from app.routers import export
+
 app = FastAPI(
     title="Medical Beauty Public Opinion Analysis System",
     description="醫美時尚輿情分析系統 API",
@@ -37,6 +41,16 @@ app.include_router(crawler_router) #Phase 2
 app.include_router(dashboard.router) #phase 3
 
 app.include_router(analysis.router) #Phase 4
+
+# Phase 6 WebSocket API
+app.include_router(websocket.router)
+
+# Phase 7 AI Q&A API
+app.include_router(qa.router)
+
+# Phase 8 Excel export API
+app.include_router(export.router)
+
 @app.get("/")
 def root():
     return {

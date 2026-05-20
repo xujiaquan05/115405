@@ -2,11 +2,10 @@ import hashlib
 import random
 import time
 from datetime import datetime
-from typing import Optional
+from typing import Callable, Optional
 
 import requests
 from bs4 import BeautifulSoup
-
 
 class PTTCrawler:
     """
@@ -256,7 +255,8 @@ class PTTCrawler:
     self,
     board: str = "BeautySalon",
     pages: int = 1,
-    start_page: int | None = None
+    start_page: int | None = None,
+    progress_callback: Optional[Callable[[dict], None]] = None
 ):
     
         all_articles = []
@@ -295,6 +295,16 @@ class PTTCrawler:
 
             # Sau khi crawl xong một trang, tìm link "上頁".
             # "上頁" trên PTT nghĩa là trang cũ hơn một bậc.
+            if progress_callback:
+                progress_callback({
+                    "type": "crawler_progress",
+                    "board": board,
+                    "current_page": page + 1,
+                    "total_pages": pages,
+                    "crawled_count": len(all_articles),
+                    "progress": round(((page + 1) / pages) * 100, 2),
+                })
+
             soup = BeautifulSoup(html, "html.parser")
             paging_links = soup.select("div.btn-group-paging a")
 
@@ -314,8 +324,7 @@ class PTTCrawler:
             # Cập nhật URL để vòng lặp kế tiếp crawl trang cũ hơn.
             current_url = previous_page_url
 
-
-            return all_articles
+        return all_articles
         
     def get_latest_page_number(self, board: str) -> int | None:
         """
@@ -360,3 +369,4 @@ class PTTCrawler:
                     return previous_page_number + 1
 
         return None
+    

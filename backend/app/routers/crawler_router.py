@@ -4,6 +4,7 @@ from app.core.database import SessionLocal
 from app.crawlers.ptt_crawler import PTTCrawler
 from app.services.article_service import create_article, get_or_create_platform, get_or_create_board
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
+from app.websocket.manager import websocket_manager
 
 
 router = APIRouter(
@@ -47,14 +48,23 @@ def crawl_ptt_board(
             status="running"
         )
 
+        websocket_manager.broadcast_sync({
+            "type": "crawler_started",
+            "platform": "ptt",
+            "board": board,
+            "pages": pages,
+            "start_page": start_page,
+        })
+
         crawler = PTTCrawler()
 
         # 開始抓資料。
         crawled_articles = crawler.crawl_board(
             board=board,
             pages=pages,
-            start_page=start_page
-)
+            start_page=start_page,
+            progress_callback=websocket_manager.broadcast_sync,
+        )
 
         new_count = 0
         skipped_count = 0
@@ -88,6 +98,25 @@ def crawl_ptt_board(
             skipped_count=skipped_count
         )
 
+        websocket_manager.broadcast_sync({
+            "type": "crawler_completed",
+            "platform": "ptt",
+            "board": board,
+            "pages": pages,
+            "start_page": start_page,
+            "total_crawled": len(crawled_articles),
+            "new_count": new_count,
+            "skipped_count": skipped_count,
+        })
+
+        websocket_manager.broadcast_sync({
+            "type": "stats_updated",
+            "platform": "ptt",
+            "board": board,
+            "new_count": new_count,
+            "skipped_count": skipped_count,
+        })
+
         return {
             "success": True,
             "platform": "ptt",
@@ -108,6 +137,15 @@ def crawl_ptt_board(
                 status="failed",
                 error_message=str(e)
             )
+
+        websocket_manager.broadcast_sync({
+            "type": "crawler_failed",
+            "platform": "ptt",
+            "board": board,
+            "pages": pages,
+            "start_page": start_page,
+            "error": str(e),
+        })
 
         return {
             "success": False,

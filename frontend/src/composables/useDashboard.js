@@ -21,6 +21,7 @@ const state = reactive({
   loadingInsight: false,
 
   errorMessage: "",
+  loadingCrawler: false,
 });
 
 
@@ -138,6 +139,53 @@ export function useDashboard() {
   }
 
 
+  async function triggerCrawler() {
+    state.loadingCrawler = true;
+    state.errorMessage = "";
+
+    try {
+      await api.post("/api/crawler/ptt", null, {
+        params: {
+          board: state.board === "all" ? "BeautySalon" : state.board,
+          pages: 1,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      state.errorMessage = "Crawler trigger failed. Please check backend status.";
+    } finally {
+      state.loadingCrawler = false;
+    }
+  }
+
+
+  async function exportArticles() {
+    state.errorMessage = "";
+
+    try {
+      const response = await api.get("/api/export/articles.xlsx", {
+        params: {
+          keyword: state.keyword,
+          days: state.days,
+          sort_by: state.sortBy,
+        },
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `articles_${state.keyword}_${state.days}d.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      state.errorMessage = "Excel export failed. Please try again later.";
+    }
+  }
+
+
   // Note:
   // computed giúp component không bị lỗi khi dashboardData vẫn đang là null.
   const overview = computed(() => state.dashboardData?.overview || {});
@@ -157,5 +205,7 @@ export function useDashboard() {
     fetchDashboard,
     fetchInsight,
     changeSort,
+    triggerCrawler,
+    exportArticles,
   };
 }
