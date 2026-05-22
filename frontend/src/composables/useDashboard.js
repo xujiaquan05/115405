@@ -1,16 +1,24 @@
 // frontend/src/composables/useDashboard.js
 
-import { reactive, computed } from "vue";
+import { computed, reactive } from "vue";
 import api from "../services/api.js";
 
+export const TARGET_BOARDS = [
+  { name: "facelift", label: "facelift 醫美/整形" },
+  { name: "BeautySalon", label: "BeautySalon 保養" },
+  { name: "MakeUp", label: "MakeUp 彩妝" },
+  { name: "Mix_Match", label: "Mix_Match 穿搭" },
+  { name: "fashion", label: "fashion 時尚" },
+  { name: "Brand", label: "Brand 品牌/精品" },
+  { name: "e-shopping", label: "e-shopping 網購" },
+  { name: "NailSalon", label: "NailSalon 美甲" },
+  { name: "Mancare", label: "Mancare 男性保養" },
+  { name: "teeth_salon", label: "teeth_salon 牙齒美容" },
+];
 
-// Note:
-// Đây là state dùng chung cho toàn bộ Dashboard.
-// Vì đặt bên ngoài function useDashboard(),
-// nên SearchBar.vue và DashboardView.vue sẽ dùng chung cùng một dữ liệu.
 const state = reactive({
   keyword: "玻尿酸",
-  board: "all",
+  selectedBoards: ["facelift", "BeautySalon", "MakeUp"],
   days: 30,
   sortBy: "push_count",
 
@@ -19,82 +27,72 @@ const state = reactive({
 
   loadingDashboard: false,
   loadingInsight: false,
+  loadingCrawler: false,
 
   errorMessage: "",
-  loadingCrawler: false,
 });
 
+function getSelectedBoards() {
+  return state.selectedBoards.length
+    ? state.selectedBoards
+    : TARGET_BOARDS.map((board) => board.name);
+}
+
+function buildParams(extraParams = {}) {
+  const params = new URLSearchParams();
+
+  Object.entries(extraParams).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      params.append(key, value);
+    }
+  });
+
+  getSelectedBoards().forEach((board) => {
+    params.append("boards", board);
+  });
+
+  return params;
+}
 
 export function useDashboard() {
   async function fetchDashboard() {
-    /*
-      Note:
-      Hàm này gọi API Phase 3:
-      GET /api/dashboard/full
-
-      API này trả về:
-      - overview
-      - sentiment
-      - trend
-      - hot_articles
-      - keywords
-    */
-
     state.loadingDashboard = true;
     state.errorMessage = "";
 
     try {
       const response = await api.get("/api/dashboard/full", {
-        params: {
+        params: buildParams({
           keyword: state.keyword,
           days: state.days,
           sort_by: state.sortBy,
-        },
+        }),
       });
 
-      // Note:
-      // Backend trả dữ liệu chính trong response.data.data.
       state.dashboardData = response.data.data;
     } catch (error) {
       console.error(error);
-
-      // Note:
-      // Nếu backend chưa chạy hoặc API lỗi, hiện thông báo trên Dashboard.
       state.errorMessage = "Dashboard API 載入失敗，請確認 backend 是否正在執行。";
     } finally {
       state.loadingDashboard = false;
     }
   }
 
-
   async function fetchInsight() {
-    /*
-      Note:
-      Hàm này gọi API Phase 4:
-      GET /api/analysis/keyword
-
-      API này dùng Gemini để tạo LLM insight.
-      Nếu Gemini hết quota, Dashboard vẫn phải chạy bình thường.
-    */
-
     state.loadingInsight = true;
 
     try {
       const response = await api.get("/api/analysis/keyword", {
-        params: {
+        params: buildParams({
           keyword: state.keyword,
           analysis_type: "overview",
           days: state.days,
           force_refresh: false,
-        },
+        }),
       });
 
       state.insightData = response.data.result?.data || null;
     } catch (error) {
       console.error(error);
-
-      // Note:
-      // Insight là phần phụ trợ, nên nếu lỗi thì không làm hỏng toàn bộ Dashboard.
       state.insightData = {
         summary: "LLM 洞察載入失敗，可能是 Gemini API quota 不足或 backend 尚未啟動。",
         hot_topics: [],
@@ -106,38 +104,15 @@ export function useDashboard() {
     }
   }
 
-
   async function searchDashboard() {
-    /*
-      Note:
-      Hàm này được gọi khi user bấm nút 搜尋.
-
-      Mình cho Dashboard load trước,
-      sau đó mới gọi LLM insight.
-      Vì Gemini có thể chậm hoặc hết quota,
-      không nên để nó chặn toàn bộ Dashboard.
-    */
-
     await fetchDashboard();
     fetchInsight();
   }
 
-
   async function changeSort(sortBy) {
-    /*
-      Note:
-      Khi user đổi排序方式:
-      - push_count
-      - latest
-      - relevance
-
-      Thì chỉ cần gọi lại Dashboard API.
-    */
-
     state.sortBy = sortBy;
     await fetchDashboard();
   }
-
 
   async function triggerCrawler() {
     state.loadingCrawler = true;
@@ -145,10 +120,7 @@ export function useDashboard() {
 
     try {
       await api.post("/api/crawler/ptt", null, {
-        params: {
-          board: state.board === "all" ? "BeautySalon" : state.board,
-          pages: 1,
-        },
+        params: buildParams({ pages: 1 }),
       });
     } catch (error) {
       console.error(error);
@@ -158,17 +130,16 @@ export function useDashboard() {
     }
   }
 
-
   async function exportArticles() {
     state.errorMessage = "";
 
     try {
       const response = await api.get("/api/export/articles.xlsx", {
-        params: {
+        params: buildParams({
           keyword: state.keyword,
           days: state.days,
           sort_by: state.sortBy,
-        },
+        }),
         responseType: "blob",
       });
 
@@ -185,14 +156,12 @@ export function useDashboard() {
     }
   }
 
-
-  // Note:
-  // computed giúp component không bị lỗi khi dashboardData vẫn đang là null.
   const overview = computed(() => state.dashboardData?.overview || {});
   const sentiment = computed(() => state.dashboardData?.sentiment || {});
   const trend = computed(() => state.dashboardData?.trend || []);
   const hotArticles = computed(() => state.dashboardData?.hot_articles || []);
   const keywords = computed(() => state.dashboardData?.keywords || []);
+  const selectedBoards = computed(() => getSelectedBoards());
 
   return {
     state,
@@ -201,6 +170,8 @@ export function useDashboard() {
     trend,
     hotArticles,
     keywords,
+    targetBoards: TARGET_BOARDS,
+    selectedBoards,
     searchDashboard,
     fetchDashboard,
     fetchInsight,

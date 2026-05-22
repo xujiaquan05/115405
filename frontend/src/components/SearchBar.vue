@@ -1,16 +1,27 @@
 <!-- frontend/src/components/SearchBar.vue -->
 
 <script setup>
+import { computed } from "vue";
 import { useDashboard } from "../composables/useDashboard.js";
 
-const { state, searchDashboard, triggerCrawler, exportArticles } = useDashboard();
+const {
+  state,
+  targetBoards,
+  searchDashboard,
+} = useDashboard();
 
+const allBoardsSelected = computed(
+  () => state.selectedBoards.length === targetBoards.length
+);
 
-// Note:
-// Khi user bấm nút search hoặc nhấn Enter,
-// hàm này sẽ gọi API backend để reload dashboard.
 function handleSubmit() {
   searchDashboard();
+}
+
+function toggleAllBoards() {
+  state.selectedBoards = allBoardsSelected.value
+    ? []
+    : targetBoards.map((board) => board.name);
 }
 </script>
 
@@ -18,17 +29,12 @@ function handleSubmit() {
   <section class="card search-card">
     <div>
       <h2 class="section-title">搜尋條件</h2>
-      <p class="section-desc">輸入關鍵字後，系統會查詢 Dashboard 資料與 LLM 洞察。</p>
+      <p class="section-desc">輸入關鍵字後，系統會依照選取看板查詢 Dashboard 資料與 LLM 洞察。</p>
     </div>
 
     <form class="search-form" @submit.prevent="handleSubmit">
       <div class="form-group">
         <label>關鍵字</label>
-
-        <!-- Note:
-          v-model 綁定 state.keyword。
-          按 Enter 會觸發 form submit。
-        -->
         <input
           v-model="state.keyword"
           type="text"
@@ -37,23 +43,7 @@ function handleSubmit() {
       </div>
 
       <div class="form-group">
-        <label>看板</label>
-
-        <!-- Note:
-          board 先做 UI。
-          如果 backend 之後支援 board filter，就可以把它傳給 API。
-        -->
-        <select v-model="state.board">
-          <option value="all">全部版面</option>
-          <option value="BeautySalon">BeautySalon</option>
-          <option value="MakeUp">MakeUp</option>
-          <option value="Skincare">Skincare</option>
-        </select>
-      </div>
-
-      <div class="form-group">
         <label>時間範圍</label>
-
         <select v-model="state.days">
           <option :value="7">近 7 天</option>
           <option :value="30">近 30 天</option>
@@ -64,22 +54,34 @@ function handleSubmit() {
       <button class="primary-button" type="submit">
         搜尋
       </button>
-      <button
-        class="secondary-button"
-        type="button"
-        :disabled="state.loadingCrawler"
-        @click="triggerCrawler"
-      >
-        {{ state.loadingCrawler ? "Crawling..." : "Crawl" }}
-      </button>
-
-      <button
-        class="secondary-button"
-        type="button"
-        @click="exportArticles"
-      >
-        Excel
-      </button>
     </form>
+
+    <div class="board-picker">
+      <div class="board-picker-header">
+        <strong>看板</strong>
+        <button class="text-button" type="button" @click="toggleAllBoards">
+          {{ allBoardsSelected ? "清除全部" : "選取全部" }}
+        </button>
+      </div>
+
+      <div class="board-checkbox-grid">
+        <label
+          v-for="board in targetBoards"
+          :key="board.name"
+          class="board-checkbox"
+        >
+          <input
+            v-model="state.selectedBoards"
+            type="checkbox"
+            :value="board.name"
+          />
+          <span>{{ board.label }}</span>
+        </label>
+      </div>
+
+      <p class="board-hint">
+        已選 {{ state.selectedBoards.length || targetBoards.length }} 個看板；若全部清除，系統會自動視為全選。
+      </p>
+    </div>
   </section>
 </template>

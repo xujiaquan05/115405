@@ -2,9 +2,23 @@
 
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, case, desc
+from sqlalchemy import func, or_, desc
 
-from app.models.database_models import Article
+from app.models.database_models import Article, Board
+
+
+TARGET_BOARDS = [
+    "facelift",
+    "BeautySalon",
+    "MakeUp",
+    "Mix_Match",
+    "fashion",
+    "Brand",
+    "e-shopping",
+    "NailSalon",
+    "Mancare",
+    "teeth_salon",
+]
 
 
 # Danh sách từ khóa liên quan đến醫美 / làm đẹp
@@ -54,6 +68,24 @@ def build_keyword_filter(keyword: str):
     )
 
 
+def normalize_boards(boards: list[str] | None = None) -> list[str]:
+    if not boards:
+        return TARGET_BOARDS
+
+    valid_boards = []
+
+    for board in boards:
+        if board in TARGET_BOARDS and board not in valid_boards:
+            valid_boards.append(board)
+
+    return valid_boards or TARGET_BOARDS
+
+
+def apply_board_filter(query, boards: list[str] | None = None):
+    board_names = normalize_boards(boards)
+    return query.filter(Article.board.has(Board.name.in_(board_names)))
+
+
 def get_date_range(days: int):
     """
     Note:
@@ -70,7 +102,12 @@ def get_date_range(days: int):
     return start_date, end_date
 
 
-def get_overview_metrics(db: Session, keyword: str, days: int = 30) -> dict:
+def get_overview_metrics(
+    db: Session,
+    keyword: str,
+    days: int = 30,
+    boards: list[str] | None = None,
+) -> dict:
     """
     Note:
     Hàm này dùng cho 4 thẻ số liệu tổng quan trên Dashboard.
@@ -99,6 +136,7 @@ def get_overview_metrics(db: Session, keyword: str, days: int = 30) -> dict:
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
     )
+    current_query = apply_board_filter(current_query, boards)
 
     total_articles = current_query.count()
 
@@ -127,8 +165,8 @@ def get_overview_metrics(db: Session, keyword: str, days: int = 30) -> dict:
         .filter(keyword_filter)
         .filter(Article.published_at >= previous_start)
         .filter(Article.published_at < previous_end)
-        .count()
     )
+    previous_count = apply_board_filter(previous_count, boards).count()
 
     # Note:
     # Công thức growth:
@@ -149,10 +187,16 @@ def get_overview_metrics(db: Session, keyword: str, days: int = 30) -> dict:
         "growth_rate": growth_rate,
         "days": days,
         "keyword": keyword,
+        "boards": normalize_boards(boards),
     }
 
 
-def get_sentiment_distribution(db: Session, keyword: str, days: int = 30) -> dict:
+def get_sentiment_distribution(
+    db: Session,
+    keyword: str,
+    days: int = 30,
+    boards: list[str] | None = None,
+) -> dict:
     """
     Note:
     Hàm này tính sentiment bằng phương pháp đơn giản dựa trên push_count.
@@ -175,8 +219,8 @@ def get_sentiment_distribution(db: Session, keyword: str, days: int = 30) -> dic
         .filter(keyword_filter)
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
-        .all()
     )
+    articles = apply_board_filter(articles, boards).all()
 
     total = len(articles)
 
@@ -210,7 +254,12 @@ def get_sentiment_distribution(db: Session, keyword: str, days: int = 30) -> dic
     }
 
 
-def get_daily_trend(db: Session, keyword: str, days: int = 30) -> list[dict]:
+def get_daily_trend(
+    db: Session,
+    keyword: str,
+    days: int = 30,
+    boards: list[str] | None = None,
+) -> list[dict]:
     """
     Note:
     Hàm này dùng cho biểu đồ đường line chart.
@@ -235,8 +284,8 @@ def get_daily_trend(db: Session, keyword: str, days: int = 30) -> list[dict]:
         .filter(Article.published_at <= end_date)
         .group_by(func.date(Article.published_at))
         .order_by(func.date(Article.published_at))
-        .all()
     )
+    results = apply_board_filter(results, boards).all()
 
     trend = []
 
@@ -254,6 +303,7 @@ def get_hot_articles(
     keyword: str,
     days: int = 30,
     sort_by: str = "push_count",
+    boards: list[str] | None = None,
     limit: int = 10,
 ) -> list[dict]:
     """
@@ -278,6 +328,7 @@ def get_hot_articles(
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
     )
+    query = apply_board_filter(query, boards)
 
     # Note:
     # Chọn cách sắp xếp dựa theo sort_by user truyền vào.
@@ -306,8 +357,8 @@ def get_hot_articles(
         result.append({
             "id": article.id,
             "title": article.title,
-            "board": article.board,
-            "author": article.author,
+            "board": article.board.name if article.board else "",
+            "author": article.author.username if article.author else "unknown",
             "push_count": article.push_count,
             "published_at": article.published_at.strftime("%Y-%m-%d %H:%M:%S")
             if article.published_at else None,
@@ -318,7 +369,12 @@ def get_hot_articles(
     return result
 
 
-def get_frequent_keywords(db: Session, keyword: str, days: int = 30) -> list[dict]:
+def get_frequent_keywords(
+    db: Session,
+    keyword: str,
+    days: int = 30,
+    boards: list[str] | None = None,
+) -> list[dict]:
     """
     Note:
     Hàm này thống kê từ khóa醫美 nào xuất hiện nhiều.
@@ -341,8 +397,8 @@ def get_frequent_keywords(db: Session, keyword: str, days: int = 30) -> list[dic
         .filter(keyword_filter)
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
-        .all()
     )
+    articles = apply_board_filter(articles, boards).all()
 
     keyword_count = {}
 
@@ -378,6 +434,7 @@ def get_dashboard_full(
     keyword: str,
     days: int = 30,
     sort_by: str = "push_count",
+    boards: list[str] | None = None,
 ) -> dict:
     """
     Note:
@@ -396,9 +453,10 @@ def get_dashboard_full(
     """
 
     return {
-        "overview": get_overview_metrics(db, keyword, days),
-        "sentiment": get_sentiment_distribution(db, keyword, days),
-        "trend": get_daily_trend(db, keyword, days),
-        "hot_articles": get_hot_articles(db, keyword, days, sort_by),
-        "keywords": get_frequent_keywords(db, keyword, days),
+        "overview": get_overview_metrics(db, keyword, days, boards),
+        "sentiment": get_sentiment_distribution(db, keyword, days, boards),
+        "trend": get_daily_trend(db, keyword, days, boards),
+        "hot_articles": get_hot_articles(db, keyword, days, sort_by, boards),
+        "keywords": get_frequent_keywords(db, keyword, days, boards),
+        "selected_boards": normalize_boards(boards),
     }

@@ -33,16 +33,18 @@ function renderChart() {
   const values = props.trend.map((item) => item.count);
 
   chartInstance = new Chart(canvasRef.value, {
-    type: "line",
+    type: "bar",
     data: {
       labels,
       datasets: [
         {
           label: "每日文章數",
           data: values,
-          borderWidth: 2,
-          tension: 0.35,
-          fill: false,
+          backgroundColor: values.map((_, index) =>
+            index === values.length - 5 ? "#12a37f" : "#94d8cb"
+          ),
+          borderRadius: 5,
+          borderSkipped: false,
         },
       ],
     },
@@ -54,7 +56,7 @@ function renderChart() {
       // plugins 控制圖表上方 legend 顯示。
       plugins: {
         legend: {
-          display: true,
+          display: false,
         },
       },
 
@@ -62,9 +64,18 @@ function renderChart() {
       // scales 控制 X / Y 軸格式。
       scales: {
         y: {
+          display: false,
           beginAtZero: true,
           ticks: {
             precision: 0,
+          },
+          grid: {
+            display: false,
+          },
+        },
+        x: {
+          grid: {
+            display: false,
           },
         },
       },

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.services.dashboard_service import get_dashboard_full
+from app.services.dashboard_service import get_dashboard_full, normalize_boards
 
 from app.services.cache_service import get_cache, set_cache
 
@@ -31,6 +31,10 @@ def dashboard_full(
         default="push_count",
         description="Cách sắp xếp bài viết: push_count, latest, relevance",
     ),
+    boards: list[str] | None = Query(
+        default=None,
+        description="PTT boards to include. Repeat this query parameter to select multiple boards.",
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -44,7 +48,9 @@ def dashboard_full(
     # Note:
     # Tạo cache key từ tham số query.
     # Ví dụ: dashboard:玻尿酸:30:push_count
-    cache_key = f"dashboard:{keyword}:{days}:{sort_by}"
+    selected_boards = normalize_boards(boards)
+    boards_key = ",".join(selected_boards)
+    cache_key = f"dashboard:{keyword}:{days}:{sort_by}:{boards_key}"
 
     cached_data = get_cache(cache_key)
 
@@ -61,6 +67,7 @@ def dashboard_full(
         keyword=keyword,
         days=days,
         sort_by=sort_by,
+        boards=selected_boards,
     )
 
     return {

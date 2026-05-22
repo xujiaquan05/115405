@@ -10,6 +10,7 @@ import TrendChart from "../components/TrendChart.vue";
 import ArticleList from "../components/ArticleList.vue";
 import InsightPanel from "../components/InsightPanel.vue";
 import KeywordCloud from "../components/KeywordCloud.vue";
+import TopicBars from "../components/TopicBars.vue";
 
 import { useDashboard } from "../composables/useDashboard.js";
 import { useWebSocket } from "../composables/useWebSocket.js";
@@ -51,60 +52,6 @@ watch(
   <div class="dashboard-page">
     <SearchBar />
 
-    <section class="realtime-panel">
-      <div class="realtime-header">
-        <span
-          class="connection-dot"
-          :class="{ online: websocketState.connected }"
-        ></span>
-        <strong>
-          {{ websocketState.connected ? "Realtime connected" : "Realtime offline" }}
-        </strong>
-        <span v-if="websocketState.reconnecting" class="realtime-muted">
-          reconnecting...
-        </span>
-      </div>
-
-      <div
-        v-if="websocketState.crawler.status !== 'idle'"
-        class="crawler-progress"
-      >
-        <div class="progress-text">
-          <span>
-            {{ websocketState.crawler.board || "Crawler" }}
-            page {{ websocketState.crawler.currentPage }}/{{ websocketState.crawler.totalPages }}
-          </span>
-          <span>{{ websocketState.crawler.progress }}%</span>
-        </div>
-        <div class="progress-track">
-          <div
-            class="progress-fill"
-            :style="{ width: `${websocketState.crawler.progress}%` }"
-          ></div>
-        </div>
-        <p class="realtime-muted">
-          Crawled {{ websocketState.crawler.crawledCount }} articles.
-          New {{ websocketState.crawler.newCount }},
-          skipped {{ websocketState.crawler.skippedCount }}.
-        </p>
-      </div>
-
-      <div
-        v-if="websocketState.notifications.length"
-        class="notification-list"
-      >
-        <div
-          v-for="notification in websocketState.notifications"
-          :key="notification.id"
-          class="notification-item"
-          :class="notification.type"
-        >
-          <span>{{ notification.message }}</span>
-          <small>{{ notification.createdAt }}</small>
-        </div>
-      </div>
-    </section>
-
     <p v-if="state.errorMessage" class="error-message">
       {{ state.errorMessage }}
     </p>
@@ -116,16 +63,21 @@ watch(
     />
 
     <div class="dashboard-grid">
-      <TrendChart
-        :trend="trend"
-        :loading="state.loadingDashboard"
-      />
-
       <SentimentBar
         :sentiment="sentiment"
         :loading="state.loadingDashboard"
       />
+
+      <TopicBars
+        :topics="keywords"
+        :loading="state.loadingDashboard"
+      />
     </div>
+
+    <TrendChart
+      :trend="trend"
+      :loading="state.loadingDashboard"
+    />
 
     <div class="dashboard-grid">
       <ArticleList
@@ -140,12 +92,12 @@ watch(
           :insight="state.insightData"
           :loading="state.loadingInsight"
         />
-
-        <KeywordCloud
-          :keywords="keywords"
-          :loading="state.loadingDashboard"
-        />
       </div>
     </div>
+
+    <KeywordCloud
+      :keywords="keywords"
+      :loading="state.loadingDashboard"
+    />
   </div>
 </template>

@@ -116,6 +116,7 @@ def analyze_keyword_with_llm(
     analysis_type: str = "overview",
     days: int = 30,
     force_refresh: bool = False,
+    boards: list[str] | None = None,
 ) -> dict:
     """
     Note:
@@ -136,11 +137,14 @@ def analyze_keyword_with_llm(
     # Note:
     # Nếu force_refresh=False thì ưu tiên dùng cache.
     # Nếu force_refresh=True thì bỏ qua cache và gọi Gemini lại.
+    boards_key = ",".join(boards or [])
+    cache_analysis_type = f"{analysis_type}:{boards_key}" if boards_key else analysis_type
+
     if not force_refresh:
         cached = get_cached_analysis(
             db=db,
             keyword=keyword,
-            analysis_type=analysis_type,
+            analysis_type=cache_analysis_type,
             days=days,
         )
 
@@ -150,6 +154,7 @@ def analyze_keyword_with_llm(
                 "keyword": keyword,
                 "analysis_type": analysis_type,
                 "days": days,
+                "boards": boards or [],
                 "data": cached.result_json,
             }
 
@@ -160,6 +165,7 @@ def analyze_keyword_with_llm(
         keyword=keyword,
         days=days,
         limit=30,
+        boards=boards,
     )
 
     if not articles:
@@ -168,6 +174,7 @@ def analyze_keyword_with_llm(
             "keyword": keyword,
             "analysis_type": analysis_type,
             "days": days,
+            "boards": boards or [],
             "data": {
                 "summary": "目前資料庫中找不到相關文章，請先執行爬蟲或更換關鍵字。",
                 "hot_topics": [],
@@ -201,7 +208,7 @@ def analyze_keyword_with_llm(
     save_analysis_cache(
         db=db,
         keyword=keyword,
-        analysis_type=analysis_type,
+        analysis_type=cache_analysis_type,
         days=days,
         result_json=result_json,
     )
@@ -211,6 +218,7 @@ def analyze_keyword_with_llm(
         "keyword": keyword,
         "analysis_type": analysis_type,
         "days": days,
+        "boards": boards or [],
         "article_count": len(articles),
         "data": result_json,
     }

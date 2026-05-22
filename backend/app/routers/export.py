@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services.dashboard_service import normalize_boards
 from app.services.export_service import build_articles_xlsx, get_export_articles
 
 
@@ -21,13 +22,16 @@ def export_articles(
     keyword: str = Query(default="玻尿酸"),
     days: int = Query(default=30, ge=1, le=365),
     sort_by: str = Query(default="push_count"),
+    boards: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
+    selected_boards = normalize_boards(boards)
     articles = get_export_articles(
         db=db,
         keyword=keyword,
         days=days,
         sort_by=sort_by,
+        boards=selected_boards,
     )
 
     xlsx_bytes = build_articles_xlsx(articles)

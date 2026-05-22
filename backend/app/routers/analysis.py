@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services.dashboard_service import normalize_boards
 from app.services.llm_analysis_service import analyze_keyword_with_llm
 
 
@@ -33,6 +34,10 @@ def analyze_keyword(
         default=False,
         description="True = bỏ qua cache và gọi Gemini lại",
     ),
+    boards: list[str] | None = Query(
+        default=None,
+        description="PTT boards to include. Repeat this query parameter to select multiple boards.",
+    ),
     db: Session = Depends(get_db),
 ):
     """
@@ -54,6 +59,7 @@ def analyze_keyword(
         analysis_type=analysis_type,
         days=days,
         force_refresh=force_refresh,
+        boards=normalize_boards(boards),
     )
 
     return {

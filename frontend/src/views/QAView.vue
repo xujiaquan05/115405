@@ -82,24 +82,8 @@ async function askQuestion(questionText = state.question) {
 <template>
   <section class="qa-page">
     <div class="qa-header">
-      <div>
-        <h2 class="section-title">AI Q&A</h2>
-        <p class="section-desc">
-          Ask natural-language questions and verify every answer with article sources.
-        </p>
-      </div>
-    </div>
-
-    <div class="quick-question-row">
-      <button
-        v-for="question in quickQuestions"
-        :key="question"
-        class="quick-question"
-        type="button"
-        @click="askQuestion(question)"
-      >
-        {{ question }}
-      </button>
+      <h2>AI 問答</h2>
+      <p>輸入問題後，系統會根據資料庫文章回答，並附上可點擊來源。</p>
     </div>
 
     <p v-if="state.errorMessage" class="error-message">
@@ -113,6 +97,10 @@ async function askQuestion(questionText = state.question) {
         class="chat-message"
         :class="message.role"
       >
+        <div v-if="message.role === 'assistant'" class="message-avatar">
+          AI
+        </div>
+
         <div v-if="message.role === 'user'" class="user-bubble">
           {{ message.text }}
         </div>
@@ -159,20 +147,37 @@ async function askQuestion(questionText = state.question) {
         </div>
       </article>
 
-      <div v-if="state.loading" class="assistant-bubble loading-bubble">
-        Analyzing articles...
-      </div>
+      <article v-if="state.loading" class="chat-message assistant">
+        <div class="message-avatar">AI</div>
+        <div class="assistant-bubble loading-bubble">
+          Analyzing articles...
+        </div>
+      </article>
     </div>
 
-    <form class="qa-input-row" @submit.prevent="askQuestion()">
-      <input
-        v-model="state.question"
-        type="text"
-        placeholder="例如：最近玻尿酸有哪些負評？"
-      />
-      <button class="primary-button" type="submit" :disabled="state.loading">
-        Ask
-      </button>
-    </form>
+    <div class="qa-composer">
+      <div class="quick-question-row">
+        <button
+          v-for="question in quickQuestions"
+          :key="question"
+          class="quick-question"
+          type="button"
+          @click="askQuestion(question)"
+        >
+          {{ question }}
+        </button>
+      </div>
+
+      <form class="qa-input-row" @submit.prevent="askQuestion()">
+        <input
+          v-model="state.question"
+          type="text"
+          placeholder="例如：最近玻尿酸有哪些負評？"
+        />
+        <button class="qa-send-button" type="submit" :disabled="state.loading">
+          ↑
+        </button>
+      </form>
+    </div>
   </section>
 </template>

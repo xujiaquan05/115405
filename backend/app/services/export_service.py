@@ -8,7 +8,7 @@ from xml.sax.saxutils import escape
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
-from app.models.database_models import Article
+from app.models.database_models import Article, Board
 
 
 def get_export_articles(
@@ -16,6 +16,7 @@ def get_export_articles(
     keyword: str,
     days: int = 30,
     sort_by: str = "push_count",
+    boards: list[str] | None = None,
     limit: int = 200,
 ) -> list[Article]:
     end_date = datetime.utcnow()
@@ -28,6 +29,9 @@ def get_export_articles(
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
     )
+
+    if boards:
+        query = query.filter(Article.board.has(Board.name.in_(boards)))
 
     if sort_by == "latest":
         query = query.order_by(desc(Article.published_at))
