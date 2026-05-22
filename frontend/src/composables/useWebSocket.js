@@ -2,7 +2,20 @@
 
 import { reactive } from "vue";
 
-const WS_BASE_URL = "ws://localhost:8000";
+function getWebSocketBaseUrl() {
+  const explicitUrl = import.meta.env.VITE_WS_BASE_URL;
+
+  if (explicitUrl) {
+    return explicitUrl;
+  }
+
+  if (import.meta.env.DEV) {
+    return "ws://localhost:8000";
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}`;
+}
 
 const state = reactive({
   connected: false,
@@ -116,7 +129,7 @@ function connect() {
   }
 
   shouldReconnect = true;
-  socket = new WebSocket(`${WS_BASE_URL}/ws/dashboard`);
+  socket = new WebSocket(`${getWebSocketBaseUrl()}/ws/dashboard`);
 
   socket.onopen = () => {
     state.connected = true;

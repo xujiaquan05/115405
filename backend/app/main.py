@@ -1,73 +1,116 @@
-from fastapi import FastAPI
+from pathlib import Path
+import os
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
-
-from app.core.database import get_db
+from app.core.database import SessionLocal
+from app.core.startup import initialize_database
 from app.routers.crawler_router import router as crawler_router
+from app.routers import analysis, dashboard, export, qa, websocket
 
-from app.routers import dashboard
-from app.routers import analysis
-
-from app.routers import websocket
-from app.routers import qa
-from app.routers import export
 
 app = FastAPI(
     title="Medical Beauty Public Opinion Analysis System",
-    description="醫美時尚輿情分析系統 API",
-    version="1.0.0"
+    description="Medical Beauty Public Opinion Analysis System API",
+    version="1.0.0",
 )
 
-# Note:
-# CORS dùng để cho frontend Vue gọi API backend.
-# Nếu không có đoạn này, trình duyệt sẽ chặn request từ localhost:5173 sang localhost:8000.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+
+def get_cors_origins() -> list[str]:
+    configured_origins = os.getenv("CORS_ORIGINS", "")
+    origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
-    ],
+    ]
+
+    if configured_origins:
+        origins.extend(
+            origin.strip()
+            for origin in configured_origins.split(",")
+            if origin.strip()
+        )
+
+    return origins
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Đăng ký crawler router vào FastAPI.
-# Sau khi include, API /api/crawler/ptt sẽ xuất hiện trong /docs.
-app.include_router(crawler_router) #Phase 2
 
-app.include_router(dashboard.router) #phase 3
+@app.on_event("startup")
+def on_startup():
+    initialize_database()
 
-app.include_router(analysis.router) #Phase 4
 
-# Phase 6 WebSocket API
+app.include_router(crawler_router)
+app.include_router(dashboard.router)
+app.include_router(analysis.router)
 app.include_router(websocket.router)
-
-# Phase 7 AI Q&A API
 app.include_router(qa.router)
-
-# Phase 8 Excel export API
 app.include_router(export.router)
-
-@app.get("/")
-def root():
-    return {
-        "message": "Medical Beauty Public Opinion Analysis System API is running"
-    }
 
 
 @app.get("/health")
 def health_check():
-    """
-    Health check dùng để kiểm tra:
-    1. Backend có chạy không.
-    2. Database có kết nối được không.
-    """
-    db_status = get_db()
+    db = SessionLocal()
+
+    try:
+        db.execute(text("SELECT 1"))
+        database_status = "ok"
+    except Exception as error:
+        database_status = f"error: {error}"
+    finally:
+        db.close()
 
     return {
         "api": "ok",
-        "database": db_status
+        "database": database_status,
     }
+
+
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+
+if FRONTEND_DIST.exists():
+    assets_dir = FRONTEND_DIST / "assets"
+
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+
+@app.get("/")
+def root():
+    index_file = FRONTEND_DIST / "index.html"
+
+    if index_file.exists():
+        return FileResponse(index_file)
+
+    return {
+        "message": "Medical Beauty Public Opinion Analysis System API is running",
+    }
+
+
+@app.get("/{full_path:path}")
+def serve_spa(full_path: str):
+    if full_path.startswith(("api/", "ws/", "docs", "openapi.json", "redoc")):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    requested_file = FRONTEND_DIST / full_path
+    if requested_file.exists() and requested_file.is_file():
+        return FileResponse(requested_file)
+
+    index_file = FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+
+    raise HTTPException(status_code=404, detail="Frontend build not found")

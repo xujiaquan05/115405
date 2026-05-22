@@ -465,6 +465,44 @@ git push origin main
 
 ---
 
+## Deploy to Render
+
+This repo includes a `Dockerfile` and `render.yaml` for one Render web service plus one Render PostgreSQL database.
+
+Deploy flow:
+
+```text
+1. Push this repository to GitHub.
+2. Open Render Dashboard.
+3. Choose New > Blueprint.
+4. Connect this GitHub repository.
+5. Render will read render.yaml and create:
+   - medical-beauty-opinion web service
+   - medical-beauty-db PostgreSQL database
+6. When Render asks for GOOGLE_API_KEY, paste your Gemini API key.
+7. Wait for the first deploy to finish.
+8. Open the Render service URL.
+```
+
+Production behavior:
+
+```text
+Frontend and backend are served from the same Render URL.
+The backend automatically creates database tables on startup.
+The backend automatically seeds the target PTT boards.
+```
+
+Useful production URLs:
+
+```text
+Website:     https://medical-beauty-opinion.onrender.com
+Health API:  https://medical-beauty-opinion.onrender.com/health
+API docs:    https://medical-beauty-opinion.onrender.com/docs
+AI Q&A:      https://medical-beauty-opinion.onrender.com/qa
+```
+
+---
+
 ## Phase 6-8 demo checklist
 
 Backend endpoints:

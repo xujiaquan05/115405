@@ -2,15 +2,12 @@
 
 import axios from "axios";
 
-// Note:
-// Tạo một axios instance dùng chung cho toàn frontend.
-// Nhờ baseURL, khi gọi API chỉ cần viết "/api/dashboard/full"
-// thay vì viết đầy đủ "http://localhost:8000/api/dashboard/full".
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
+  || (import.meta.env.DEV ? "http://localhost:8000" : "");
+
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: apiBaseUrl,
   timeout: 120000,
 });
 
-// Note:
-// Export api để composable hoặc component khác có thể dùng.
 export default api;
