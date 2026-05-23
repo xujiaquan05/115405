@@ -1,7 +1,11 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Query
+from sqlalchemy import func
 
 from app.core.database import SessionLocal
 from app.crawlers.ptt_crawler import PTTCrawler
+from app.models.database_models import Article, Board, CrawlLog
 from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import TARGET_BOARDS, normalize_boards
@@ -12,6 +16,127 @@ router = APIRouter(
     prefix="/api/crawler",
     tags=["Crawler"],
 )
+
+
+def _format_datetime(value):
+    if not value:
+        return None
+
+    return value.isoformat()
+
+
+def _serialize_crawl_log(log: CrawlLog):
+    started_at = log.started_at
+    finished_at = log.finished_at
+    duration_seconds = None
+    handled_count = (log.new_count or 0) + (log.skipped_count or 0)
+    estimated_pages = max(1, (handled_count + 19) // 20) if handled_count else None
+
+    if started_at and finished_at:
+        duration_seconds = max(0, int((finished_at - started_at).total_seconds()))
+
+    return {
+        "id": log.id,
+        "time": _format_datetime(started_at),
+        "finished_at": _format_datetime(finished_at),
+        "platform": log.platform.name if log.platform else "ptt",
+        "board": log.board.name if log.board else "-",
+        "board_label": log.board.display_name if log.board and log.board.display_name else None,
+        "status": log.status,
+        "pages": estimated_pages,
+        "new_count": log.new_count or 0,
+        "skipped_count": log.skipped_count or 0,
+        "error_message": log.error_message,
+        "duration_seconds": duration_seconds,
+    }
+
+
+def _format_elapsed_minutes(value):
+    if not value:
+        return None
+
+    delta_seconds = max(0, int((datetime.now() - value).total_seconds()))
+    minutes = delta_seconds // 60
+
+    if minutes < 60:
+        return f"{minutes} 分鐘前"
+
+    hours = minutes // 60
+    rest_minutes = minutes % 60
+    return f"{hours} 小時 {rest_minutes} 分鐘前"
+
+
+@router.get("/status")
+def get_crawler_status(
+    limit: int = Query(default=20, ge=1, le=100),
+):
+    db = SessionLocal()
+
+    try:
+        logs = (
+            db.query(CrawlLog)
+            .outerjoin(CrawlLog.board)
+            .outerjoin(CrawlLog.platform)
+            .order_by(CrawlLog.started_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+        last_log = logs[0] if logs else None
+        latest_article_at = db.query(func.max(Article.created_at)).scalar()
+
+        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_new_count = (
+            db.query(func.count(Article.id))
+            .filter(Article.created_at >= today_start)
+            .scalar()
+            or 0
+        )
+
+        today_skipped_count = (
+            db.query(func.coalesce(func.sum(CrawlLog.skipped_count), 0))
+            .filter(CrawlLog.started_at >= today_start)
+            .scalar()
+            or 0
+        )
+
+        running_log = (
+            db.query(CrawlLog)
+            .outerjoin(CrawlLog.board)
+            .filter(CrawlLog.status == "running")
+            .order_by(CrawlLog.started_at.desc())
+            .first()
+        )
+
+        board_counts = dict(
+            db.query(Board.name, func.count(Article.id))
+            .outerjoin(Article, Article.board_id == Board.id)
+            .filter(Board.name.in_(TARGET_BOARDS))
+            .group_by(Board.name)
+            .all()
+        )
+
+        return {
+            "success": True,
+            "data": {
+                "summary": {
+                    "status": running_log.status if running_log else "idle",
+                    "last_crawled_at": _format_datetime(last_log.started_at if last_log else latest_article_at),
+                    "last_crawled_ago": _format_elapsed_minutes(last_log.started_at if last_log else latest_article_at),
+                    "today_new_count": today_new_count,
+                    "today_skipped_count": today_skipped_count,
+                    "running_board": running_log.board.name if running_log and running_log.board else None,
+                    "running_started_at": _format_datetime(running_log.started_at if running_log else None),
+                },
+                "logs": [_serialize_crawl_log(log) for log in logs],
+                "board_counts": [
+                    {"board": board, "article_count": board_counts.get(board, 0)}
+                    for board in TARGET_BOARDS
+                ],
+            },
+        }
+    finally:
+        db.close()
 
 
 def _crawl_one_board(db, board: str, pages: int, start_page: int | None):

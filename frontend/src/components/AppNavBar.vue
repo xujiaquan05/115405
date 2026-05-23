@@ -13,6 +13,7 @@
       -->
       <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
       <RouterLink to="/qa" class="nav-link">AI 問答</RouterLink>
+      <RouterLink to="/crawl" class="nav-link">爬蟲管理</RouterLink>
       <RouterLink to="/history" class="nav-link">History</RouterLink>
     </nav>
   </header>

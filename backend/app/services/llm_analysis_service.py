@@ -1,7 +1,9 @@
 # backend/app/services/llm_analysis_service.py
 
+import hashlib
 import json
 from datetime import datetime, timedelta
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.database_models import AnalysisResult
@@ -10,10 +12,20 @@ from app.services.article_compressor import (
     compress_articles_for_llm,
 )
 from app.services.llm_prompts import build_prompt
-from app.services.llm_client import generate_json_response
+from app.services.llm_client import LLMServiceUnavailableError, generate_json_response
 
 
 CACHE_HOURS = 6
+
+
+def build_cache_analysis_type(analysis_type: str, boards: list[str] | None = None) -> str:
+    if not boards:
+        return analysis_type[:50]
+
+    boards_key = ",".join(sorted(boards))
+    boards_hash = hashlib.sha1(boards_key.encode("utf-8")).hexdigest()[:12]
+
+    return f"{analysis_type}:b{boards_hash}"[:50]
 
 
 def get_cached_analysis(
@@ -90,7 +102,10 @@ def save_analysis_cache(
         )
         db.add(cache)
 
-    db.commit()
+    try:
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
 
 def parse_llm_json(raw_text: str) -> dict:
     """
@@ -137,8 +152,7 @@ def analyze_keyword_with_llm(
     # Note:
     # Nếu force_refresh=False thì ưu tiên dùng cache.
     # Nếu force_refresh=True thì bỏ qua cache và gọi Gemini lại.
-    boards_key = ",".join(boards or [])
-    cache_analysis_type = f"{analysis_type}:{boards_key}" if boards_key else analysis_type
+    cache_analysis_type = build_cache_analysis_type(analysis_type, boards)
 
     if not force_refresh:
         cached = get_cached_analysis(
@@ -196,8 +210,29 @@ def analyze_keyword_with_llm(
     )
 
     # Note:
-    # 呼叫 Gemini API。
-    raw_response = generate_json_response(prompt)
+    # 呼叫 Gemini API。若 Gemini 暫時過載，避免整個 API 回 500。
+    try:
+        raw_response = generate_json_response(prompt)
+    except LLMServiceUnavailableError:
+        return {
+            "cached": False,
+            "keyword": keyword,
+            "analysis_type": analysis_type,
+            "days": days,
+            "boards": boards or [],
+            "article_count": len(articles),
+            "llm_unavailable": True,
+            "data": {
+                "summary": "AI 分析服務目前流量過高，暫時無法產生 LLM 洞察。Dashboard 的文章數、熱門文章、情緒與趨勢仍可正常查看，請稍後再按搜尋重試。",
+                "hot_topics": [],
+                "consumer_pain_points": [
+                    "Gemini 模型目前回覆 503 high demand，這通常是暫時性狀況。",
+                ],
+                "marketing_suggestions": [
+                    "先使用 Dashboard 的統計資料觀察趨勢，待模型恢復後再重新產生深度洞察。",
+                ],
+            },
+        }
 
     # Note:
     # 把 Gemini 回傳的 JSON string 轉成 Python dict。

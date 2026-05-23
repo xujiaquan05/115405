@@ -1,10 +1,11 @@
 <!-- frontend/src/views/DashboardView.vue -->
 
 <script setup>
-import { onMounted, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import SearchBar from "../components/SearchBar.vue";
 import MetricsRow from "../components/MetricsRow.vue";
+import DataStatusCard from "../components/DataStatusCard.vue";
 import SentimentBar from "../components/SentimentBar.vue";
 import TrendChart from "../components/TrendChart.vue";
 import ArticleList from "../components/ArticleList.vue";
@@ -20,8 +21,10 @@ const {
   overview,
   sentiment,
   trend,
+  keywordTrends,
   hotArticles,
   keywords,
+  dataStatus,
   searchDashboard,
   fetchDashboard,
   changeSort,
@@ -32,12 +35,62 @@ const {
   connect,
 } = useWebSocket();
 
+const activeSection = ref("overview");
+
+const dashboardSections = [
+  { id: "overview", label: "總覽", icon: "▣" },
+  { id: "crawler", label: "爬蟲管理", icon: "▤" },
+  { id: "trend", label: "趨勢", icon: "▥" },
+  { id: "sentiment", label: "情緒", icon: "◎" },
+  { id: "articles", label: "熱門文章", icon: "♨" },
+  { id: "insight", label: "洞察", icon: "✦" },
+  { id: "keywords", label: "文字雲", icon: "☁" },
+];
+
+function updateActiveSection() {
+  const sections = dashboardSections
+    .map((section) => {
+      const element = document.getElementById(`dashboard-${section.id}`);
+      return {
+        id: section.id,
+        top: element ? element.getBoundingClientRect().top : Number.POSITIVE_INFINITY,
+      };
+    })
+    .filter((section) => Number.isFinite(section.top));
+
+  const current = sections
+    .filter((section) => section.top <= 180)
+    .sort((a, b) => b.top - a.top)[0] || sections.sort((a, b) => a.top - b.top)[0];
+
+  if (current) {
+    activeSection.value = current.id;
+  }
+}
+
+function scrollToDashboardSection(sectionId) {
+  const element = document.getElementById(`dashboard-${sectionId}`);
+
+  if (!element) return;
+
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
 
 // Note:
 // Khi mở Dashboard lần đầu, tự động load keyword mặc định.
 onMounted(() => {
   connect();
   searchDashboard();
+  updateActiveSection();
+  window.addEventListener("scroll", updateActiveSection, { passive: true });
+  window.addEventListener("resize", updateActiveSection);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("scroll", updateActiveSection);
+  window.removeEventListener("resize", updateActiveSection);
 });
 
 watch(
@@ -49,55 +102,86 @@ watch(
 </script>
 
 <template>
-  <div class="dashboard-page">
-    <SearchBar />
+  <div class="dashboard-layout">
+    <aside class="dashboard-sidebar" aria-label="Dashboard section navigation">
+      <button
+        v-for="section in dashboardSections"
+        :key="section.id"
+        class="dashboard-sidebar-item"
+        :class="{ active: activeSection === section.id }"
+        type="button"
+        @click="scrollToDashboardSection(section.id)"
+      >
+        <span class="sidebar-icon">{{ section.icon }}</span>
+        <span>{{ section.label }}</span>
+      </button>
+    </aside>
 
-    <p v-if="state.errorMessage" class="error-message">
-      {{ state.errorMessage }}
-    </p>
+    <div class="dashboard-page">
+      <div id="dashboard-overview" class="dashboard-section" data-dashboard-section>
+        <SearchBar />
 
-    <MetricsRow
-      :overview="overview"
-      :sentiment="sentiment"
-      :loading="state.loadingDashboard"
-    />
+        <p v-if="state.errorMessage" class="error-message">
+          {{ state.errorMessage }}
+        </p>
 
-    <div class="dashboard-grid">
-      <SentimentBar
-        :sentiment="sentiment"
-        :loading="state.loadingDashboard"
-      />
+        <div id="dashboard-crawler" data-dashboard-section>
+          <DataStatusCard
+            :status="dataStatus"
+            :loading="state.loadingDashboard"
+          />
+        </div>
 
-      <TopicBars
-        :topics="keywords"
-        :loading="state.loadingDashboard"
-      />
-    </div>
+        <MetricsRow
+          :overview="overview"
+          :sentiment="sentiment"
+          :loading="state.loadingDashboard"
+        />
+      </div>
 
-    <TrendChart
-      :trend="trend"
-      :loading="state.loadingDashboard"
-    />
+      <div id="dashboard-trend" class="dashboard-section" data-dashboard-section>
+        <TrendChart
+          :trend="trend"
+          :keyword-trends="keywordTrends"
+          :keyword="state.keyword"
+          :loading="state.loadingDashboard"
+        />
+      </div>
 
-    <div class="dashboard-grid">
-      <ArticleList
-        :articles="hotArticles"
-        :sort-by="state.sortBy"
-        :loading="state.loadingDashboard"
-        @change-sort="changeSort"
-      />
+      <div id="dashboard-sentiment" class="dashboard-section dashboard-grid compact-insight-grid" data-dashboard-section>
+        <SentimentBar
+          :sentiment="sentiment"
+          :loading="state.loadingDashboard"
+        />
 
-      <div class="side-column">
+        <TopicBars
+          :topics="keywords"
+          :loading="state.loadingDashboard"
+        />
+      </div>
+
+      <div id="dashboard-articles" class="dashboard-section" data-dashboard-section>
+        <ArticleList
+          :articles="hotArticles"
+          :sort-by="state.sortBy"
+          :loading="state.loadingDashboard"
+          @change-sort="changeSort"
+        />
+      </div>
+
+      <div id="dashboard-insight" class="dashboard-section" data-dashboard-section>
         <InsightPanel
           :insight="state.insightData"
           :loading="state.loadingInsight"
         />
       </div>
-    </div>
 
-    <KeywordCloud
-      :keywords="keywords"
-      :loading="state.loadingDashboard"
-    />
+      <div id="dashboard-keywords" class="dashboard-section" data-dashboard-section>
+        <KeywordCloud
+          :keywords="keywords"
+          :loading="state.loadingDashboard"
+        />
+      </div>
+    </div>
   </div>
 </template>

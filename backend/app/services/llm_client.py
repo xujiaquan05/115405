@@ -3,12 +3,17 @@
 import os
 from dotenv import load_dotenv
 from google import genai
+from google.genai import errors
 from google.genai import types
 
 # Note:
 # Load biến môi trường từ file .env.
 # Trong đó có GOOGLE_API_KEY và GEMINI_MODEL.
 load_dotenv()
+
+
+class LLMServiceUnavailableError(Exception):
+    """Raised when Gemini is temporarily unavailable or overloaded."""
 
 
 def get_gemini_client():
@@ -57,13 +62,18 @@ def generate_json_response(prompt: str) -> str:
     client = get_gemini_client()
     model_name = get_gemini_model_name()
 
-    response = client.models.generate_content(
-        model=model_name,
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            temperature=0.3,
-        ),
-    )
+    try:
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.3,
+            ),
+        )
+    except errors.ServerError as error:
+        raise LLMServiceUnavailableError(
+            "Gemini model is temporarily unavailable or overloaded."
+        ) from error
 
     return response.text

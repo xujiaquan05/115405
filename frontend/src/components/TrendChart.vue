@@ -1,7 +1,7 @@
 <!-- frontend/src/components/TrendChart.vue -->
 
 <script setup>
-import { onMounted, watch, ref } from "vue";
+import { nextTick, onMounted, watch, ref } from "vue";
 import Chart from "chart.js/auto";
 
 const props = defineProps({
@@ -9,44 +9,139 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  keywordTrends: {
+    type: Array,
+    default: () => [],
+  },
   loading: {
     type: Boolean,
     default: false,
+  },
+  keyword: {
+    type: String,
+    default: "",
   },
 });
 
 const canvasRef = ref(null);
 let chartInstance = null;
 
+const LINE_COLORS = [
+  "#f25549",
+  "#2563eb",
+  "#16a34a",
+  "#9333ea",
+  "#f59e0b",
+  "#0d9488",
+  "#db2777",
+  "#4f46e5",
+  "#84cc16",
+  "#0891b2",
+];
+
+function splitKeywords(keyword) {
+  return (keyword || "")
+    .split(/[,\s、，]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function hashKeyword(keyword) {
+  return Array.from(keyword).reduce((hash, char) => {
+    return (hash * 31 + char.charCodeAt(0)) % 360;
+  }, 17);
+}
+
+function getKeywordColor(keyword, index) {
+  if (index < LINE_COLORS.length) {
+    return LINE_COLORS[index];
+  }
+
+  const hue = (hashKeyword(keyword) + index * 137) % 360;
+  return `hsl(${hue}, 76%, 52%)`;
+}
+
+function buildFallbackSeries() {
+  const label = props.keyword?.trim() || "搜尋關鍵字";
+
+  return [
+    {
+      keyword: label,
+      trend: props.trend,
+    },
+  ];
+}
+
+function getSeries() {
+  if (props.keywordTrends.length > 0) {
+    return props.keywordTrends;
+  }
+
+  return buildFallbackSeries();
+}
+
+function getLabels(series) {
+  const dateSet = new Set();
+
+  series.forEach((item) => {
+    item.trend.forEach((point) => {
+      dateSet.add(point.date);
+    });
+  });
+
+  return Array.from(dateSet).sort();
+}
+
+function buildDataset(seriesItem, labels, index) {
+  const countByDate = new Map(
+    seriesItem.trend.map((point) => [point.date, point.count])
+  );
+  const color = getKeywordColor(seriesItem.keyword, index);
+
+  return {
+    label: seriesItem.keyword,
+    data: labels.map((date) => countByDate.get(date) || 0),
+    borderColor: color,
+    backgroundColor: color,
+    borderWidth: 2.4,
+    pointRadius: 0,
+    pointHoverRadius: 4,
+    pointHoverBackgroundColor: color,
+    pointHoverBorderColor: "#ffffff",
+    pointHoverBorderWidth: 2,
+    tension: 0.14,
+  };
+}
 
 // Note:
 // Hàm này dùng để vẽ hoặc vẽ lại biểu đồ.
 // Mỗi lần trend data thay đổi thì destroy chart cũ rồi tạo chart mới.
 function renderChart() {
-  if (!canvasRef.value) return;
+  if (!canvasRef.value || props.loading) return;
 
   if (chartInstance) {
     chartInstance.destroy();
   }
 
-  const labels = props.trend.map((item) => item.date);
-  const values = props.trend.map((item) => item.count);
+  const rawSeries = getSeries();
+  const selectedKeywords = splitKeywords(props.keyword);
+  const series = rawSeries.filter((item) => {
+    return selectedKeywords.length === 0 || selectedKeywords.includes(item.keyword);
+  });
+  const visibleSeries = series.length > 0 ? series : rawSeries;
+  const labels = getLabels(visibleSeries);
+  const datasets = visibleSeries.map((seriesItem, index) => {
+    return buildDataset(seriesItem, labels, index);
+  });
+  const values = datasets.flatMap((dataset) => dataset.data);
+  const maxValue = Math.max(100, ...values);
+  const yMax = Math.ceil(maxValue / 20) * 20;
 
   chartInstance = new Chart(canvasRef.value, {
-    type: "bar",
+    type: "line",
     data: {
       labels,
-      datasets: [
-        {
-          label: "每日文章數",
-          data: values,
-          backgroundColor: values.map((_, index) =>
-            index === values.length - 5 ? "#12a37f" : "#94d8cb"
-          ),
-          borderRadius: 5,
-          borderSkipped: false,
-        },
-      ],
+      datasets,
     },
     options: {
       responsive: true,
@@ -56,7 +151,25 @@ function renderChart() {
       // plugins 控制圖表上方 legend 顯示。
       plugins: {
         legend: {
-          display: false,
+          display: true,
+          position: "bottom",
+          align: "center",
+          labels: {
+            boxWidth: 34,
+            boxHeight: 2,
+            color: "#374151",
+            font: {
+              size: 13,
+              weight: "700",
+            },
+          },
+        },
+        tooltip: {
+          mode: "index",
+          intersect: false,
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${context.parsed.y} 則`,
+          },
         },
       },
 
@@ -64,32 +177,59 @@ function renderChart() {
       // scales 控制 X / Y 軸格式。
       scales: {
         y: {
-          display: false,
+          display: true,
           beginAtZero: true,
+          max: yMax,
+          title: {
+            display: true,
+            text: "則數",
+            color: "#6b7280",
+            font: {
+              size: 13,
+              weight: "700",
+            },
+          },
           ticks: {
             precision: 0,
+            stepSize: 20,
+            color: "#6b7280",
+            padding: 10,
           },
           grid: {
-            display: false,
+            color: "#e5e7eb",
+            drawBorder: false,
           },
         },
         x: {
+          ticks: {
+            color: "#6b7280",
+            maxRotation: 45,
+            minRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: 24,
+          },
           grid: {
             display: false,
           },
         },
       },
+      interaction: {
+        mode: "index",
+        intersect: false,
+      },
     },
   });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick();
   renderChart();
 });
 
 watch(
-  () => props.trend,
-  () => {
+  () => [props.trend, props.keywordTrends, props.loading, props.keyword],
+  async () => {
+    await nextTick();
     renderChart();
   },
   { deep: true }

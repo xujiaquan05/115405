@@ -3,10 +3,11 @@
 import re
 from datetime import datetime, timedelta
 
-from sqlalchemy import desc, or_
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.models.database_models import Article, Board
+from app.services.dashboard_service import build_keyword_filter
 
 
 def clean_text(text: str) -> str:
@@ -26,16 +27,10 @@ def get_related_articles(
 ):
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
-    keyword_like = f"%{keyword}%"
 
     query = (
         db.query(Article)
-        .filter(
-            or_(
-                Article.title.ilike(keyword_like),
-                Article.content.ilike(keyword_like),
-            )
-        )
+        .filter(build_keyword_filter(keyword))
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
     )

@@ -11,40 +11,41 @@ defineProps({
     default: false,
   },
 });
+
+const sentimentRows = [
+  { key: "positive", label: "正面", color: "#64cdb4" },
+  { key: "neutral", label: "中性", color: "#dfddd3" },
+  { key: "negative", label: "負面", color: "#f08b76" },
+];
 </script>
 
 <template>
-  <section class="card">
+  <section class="card compact-analysis-card">
     <h2 class="section-title">情緒分布</h2>
 
-    <div v-if="loading" class="skeleton skeleton-bar"></div>
+    <div v-if="loading">
+      <div class="skeleton compact-row-skeleton"></div>
+      <div class="skeleton compact-row-skeleton"></div>
+      <div class="skeleton compact-row-skeleton"></div>
+    </div>
 
-    <div v-else>
-      <!-- Note:
-        用三段 div 組成一條 sentiment bar。
-        width 根據 positive / neutral / negative 百分比改變。
-      -->
-      <div class="sentiment-bar">
-        <div
-          class="sentiment-positive"
-          :style="{ width: `${sentiment.positive || 0}%` }"
-        ></div>
-
-        <div
-          class="sentiment-neutral"
-          :style="{ width: `${sentiment.neutral || 0}%` }"
-        ></div>
-
-        <div
-          class="sentiment-negative"
-          :style="{ width: `${sentiment.negative || 0}%` }"
-        ></div>
-      </div>
-
-      <div class="sentiment-labels">
-        <span>正面 {{ sentiment.positive || 0 }}%</span>
-        <span>中性 {{ sentiment.neutral || 0 }}%</span>
-        <span>負面 {{ sentiment.negative || 0 }}%</span>
+    <div v-else class="sentiment-rank-list">
+      <div
+        v-for="row in sentimentRows"
+        :key="row.key"
+        class="sentiment-rank-row"
+      >
+        <span class="sentiment-rank-label">{{ row.label }}</span>
+        <div class="sentiment-rank-track">
+          <div
+            class="sentiment-rank-fill"
+            :style="{
+              width: `${sentiment[row.key] || 0}%`,
+              backgroundColor: row.color,
+            }"
+          ></div>
+        </div>
+        <strong>{{ sentiment[row.key] || 0 }}%</strong>
       </div>
     </div>
   </section>

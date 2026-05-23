@@ -17,8 +17,8 @@ export const TARGET_BOARDS = [
 ];
 
 const state = reactive({
-  keyword: "玻尿酸",
-  selectedBoards: ["facelift", "BeautySalon", "MakeUp"],
+  keyword: "醫美 保養 粉底 痘痘 穿搭",
+  selectedBoards: [],
   days: 30,
   sortBy: "push_count",
 
@@ -47,7 +47,7 @@ function buildParams(extraParams = {}) {
     }
   });
 
-  getSelectedBoards().forEach((board) => {
+  state.selectedBoards.forEach((board) => {
     params.append("boards", board);
   });
 
@@ -159,8 +159,10 @@ export function useDashboard() {
   const overview = computed(() => state.dashboardData?.overview || {});
   const sentiment = computed(() => state.dashboardData?.sentiment || {});
   const trend = computed(() => state.dashboardData?.trend || []);
+  const keywordTrends = computed(() => state.dashboardData?.keyword_trends || []);
   const hotArticles = computed(() => state.dashboardData?.hot_articles || []);
   const keywords = computed(() => state.dashboardData?.keywords || []);
+  const dataStatus = computed(() => state.dashboardData?.data_status || {});
   const selectedBoards = computed(() => getSelectedBoards());
 
   return {
@@ -168,8 +170,10 @@ export function useDashboard() {
     overview,
     sentiment,
     trend,
+    keywordTrends,
     hotArticles,
     keywords,
+    dataStatus,
     targetBoards: TARGET_BOARDS,
     selectedBoards,
     searchDashboard,

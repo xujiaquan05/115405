@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import DashboardView from '../views/DashboardView.vue'
 import QAView from '../views/QAView.vue'
+import CrawlManagementView from '../views/CrawlManagementView.vue'
 import HistoryView from '../views/HistoryView.vue'
 
 const routes = [
@@ -13,6 +14,11 @@ const routes = [
     path: '/qa',
     name: 'QA',
     component: QAView
+  },
+  {
+    path: '/crawl',
+    name: 'CrawlManagement',
+    component: CrawlManagementView
   },
   {
     path: '/history',

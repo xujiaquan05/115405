@@ -1,7 +1,9 @@
 <!-- frontend/src/components/ArticleList.vue -->
 
 <script setup>
-defineProps({
+import { computed, ref, watch } from "vue";
+
+const props = defineProps({
   articles: {
     type: Array,
     default: () => [],
@@ -17,6 +19,18 @@ defineProps({
 });
 
 const emit = defineEmits(["change-sort"]);
+const showAll = ref(false);
+
+const displayedArticles = computed(() => {
+  return showAll.value ? props.articles : props.articles.slice(0, 3);
+});
+
+watch(
+  () => props.articles,
+  () => {
+    showAll.value = false;
+  }
+);
 
 
 // Note:
@@ -27,11 +41,24 @@ function getPushClass(pushCount) {
   if (pushCount < 0) return "push-negative";
   return "push-normal";
 }
+
+function formatDate(dateText) {
+  if (!dateText) return "no date";
+
+  return String(dateText).slice(0, 10);
+}
+
+function getSource(article) {
+  const board = article.board || "unknown";
+  const author = article.author || "unknown";
+
+  return `${board} / ${author}`;
+}
 </script>
 
 <template>
-  <section class="card">
-    <div class="section-header">
+  <section class="card article-card">
+    <div class="section-header article-header">
       <div>
         <h2 class="section-title">熱門文章</h2>
         <p class="section-desc">點擊標題可開啟 PTT 原文。</p>
@@ -71,39 +98,72 @@ function getPushClass(pushCount) {
       目前沒有相關文章。
     </div>
 
-    <div v-else class="article-list">
-      <article
-        v-for="article in articles"
-        :key="article.id"
-        class="article-item"
-      >
-        <div class="article-main">
-          <!-- Note:
-            target="_blank" 讓 PTT 原文在新分頁開啟。
-          -->
-          <a
-            class="article-title"
-            :href="article.url"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div v-else class="article-table-wrap">
+      <table class="article-table">
+        <thead>
+          <tr>
+            <th>排名</th>
+            <th>標題</th>
+            <th>來源</th>
+            <th>回文數</th>
+            <th>日期</th>
+            <th>摘要</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr
+            v-for="(article, index) in displayedArticles"
+            :key="article.id"
           >
-            {{ article.title }}
-          </a>
+            <td class="article-rank-cell">
+              <span class="rank-badge">{{ index + 1 }}</span>
+            </td>
 
-          <p class="article-meta">
-            {{ article.board }} · {{ article.author || "unknown" }} ·
-            {{ article.published_at || "no date" }}
-          </p>
+            <td class="article-title-cell">
+              <!-- Note:
+                target="_blank" 讓 PTT 原文在新分頁開啟。
+              -->
+              <a
+                class="article-title"
+                :href="article.url"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {{ article.title }}
+              </a>
+            </td>
 
-          <p class="article-preview">
-            {{ article.preview }}
-          </p>
-        </div>
+            <td class="article-source-cell">
+              {{ getSource(article) }}
+            </td>
 
-        <span class="push-badge" :class="getPushClass(article.push_count)">
-          {{ article.push_count }}
-        </span>
-      </article>
+            <td>
+              <span class="push-badge" :class="getPushClass(article.push_count)">
+                {{ article.push_count }}
+              </span>
+            </td>
+
+            <td class="article-date-cell">
+              {{ formatDate(article.published_at) }}
+            </td>
+
+            <td class="article-preview-cell">
+              {{ article.preview }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div v-if="articles.length > 3" class="article-more-row">
+        <button
+          class="secondary-button article-more-button"
+          type="button"
+          @click="showAll = !showAll"
+        >
+          {{ showAll ? "收合文章" : `查看更多（還有 ${articles.length - 3} 篇）` }}
+        </button>
+      </div>
     </div>
   </section>
 </template>

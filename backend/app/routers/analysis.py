@@ -53,13 +53,15 @@ def analyze_keyword(
     - sentiment: phân tích cảm xúc
     """
 
+    selected_boards = normalize_boards(boards) if boards else None
+
     result = analyze_keyword_with_llm(
         db=db,
         keyword=keyword,
         analysis_type=analysis_type,
         days=days,
         force_refresh=force_refresh,
-        boards=normalize_boards(boards),
+        boards=selected_boards,
     )
 
     return {

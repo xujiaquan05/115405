@@ -1,5 +1,6 @@
 # backend/app/services/dashboard_service.py
 
+import re
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, desc
@@ -47,6 +48,16 @@ BEAUTY_KEYWORDS = [
 ]
 
 
+def split_keyword_terms(keyword: str) -> list[str]:
+    terms = [
+        term.strip()
+        for term in re.split(r"[\s,，、]+", keyword or "")
+        if term.strip()
+    ]
+
+    return terms or [""]
+
+
 def build_keyword_filter(keyword: str):
     """
     Note:
@@ -60,12 +71,16 @@ def build_keyword_filter(keyword: str):
     title chứa keyword HOẶC content chứa keyword.
     """
 
-    keyword_like = f"%{keyword}%"
+    keyword_filters = []
 
-    return or_(
-        Article.title.ilike(keyword_like),
-        Article.content.ilike(keyword_like),
-    )
+    for term in split_keyword_terms(keyword):
+        keyword_like = f"%{term}%"
+        keyword_filters.extend([
+            Article.title.ilike(keyword_like),
+            Article.content.ilike(keyword_like),
+        ])
+
+    return or_(*keyword_filters)
 
 
 def normalize_boards(boards: list[str] | None = None) -> list[str]:
@@ -298,6 +313,57 @@ def get_daily_trend(
     return trend
 
 
+def get_keyword_trends(
+    db: Session,
+    keyword: str,
+    days: int = 30,
+    boards: list[str] | None = None,
+) -> list[dict]:
+    """
+    Note:
+    Trả về trend riêng cho từng keyword để frontend vẽ nhiều line.
+    Mỗi keyword được query độc lập theo title/content.
+    """
+
+    trends = []
+    start_date, end_date = get_date_range(days)
+
+    for term in split_keyword_terms(keyword):
+        term_like = f"%{term}%"
+
+        query = (
+            db.query(
+                func.date(Article.published_at).label("date"),
+                func.count(Article.id).label("count"),
+            )
+            .filter(
+                or_(
+                    Article.title.ilike(term_like),
+                    Article.content.ilike(term_like),
+                )
+            )
+            .filter(Article.published_at >= start_date)
+            .filter(Article.published_at <= end_date)
+            .group_by(func.date(Article.published_at))
+            .order_by(func.date(Article.published_at))
+        )
+
+        rows = apply_board_filter(query, boards).all()
+
+        trends.append({
+            "keyword": term,
+            "trend": [
+                {
+                    "date": row.date.strftime("%Y-%m-%d"),
+                    "count": row.count,
+                }
+                for row in rows
+            ],
+        })
+
+    return trends
+
+
 def get_hot_articles(
     db: Session,
     keyword: str,
@@ -429,6 +495,27 @@ def get_frequent_keywords(
     return result[:20]
 
 
+def get_data_status(
+    db: Session,
+    boards: list[str] | None = None,
+) -> dict:
+    query = db.query(Article.published_at).filter(Article.published_at.isnot(None))
+    query = apply_board_filter(query, boards)
+    latest_published_at = (
+        query.order_by(desc(Article.published_at))
+        .limit(1)
+        .scalar()
+    )
+
+    return {
+        "latest_published_at": latest_published_at.strftime("%Y-%m-%d %H:%M")
+        if latest_published_at else None,
+        "status": "normal" if latest_published_at else "empty",
+        "source": "PTT",
+        "boards": normalize_boards(boards),
+    }
+
+
 def get_dashboard_full(
     db: Session,
     keyword: str,
@@ -456,7 +543,9 @@ def get_dashboard_full(
         "overview": get_overview_metrics(db, keyword, days, boards),
         "sentiment": get_sentiment_distribution(db, keyword, days, boards),
         "trend": get_daily_trend(db, keyword, days, boards),
+        "keyword_trends": get_keyword_trends(db, keyword, days, boards),
         "hot_articles": get_hot_articles(db, keyword, days, sort_by, boards),
         "keywords": get_frequent_keywords(db, keyword, days, boards),
+        "data_status": get_data_status(db, boards),
         "selected_boards": normalize_boards(boards),
     }
