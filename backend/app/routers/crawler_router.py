@@ -258,7 +258,7 @@ def crawl_ptt_board(
         default=None,
         description="Multiple PTT boards. Repeat this query parameter to crawl more than one board.",
     ),
-    pages: int = Query(default=1, ge=1, le=5, description="Number of pages per board"),
+    pages: int = Query(default=1, ge=1, description="Number of pages per board"),
     start_page: int | None = Query(
         default=None,
         description="PTT page number. If empty, crawler starts from latest index.html",

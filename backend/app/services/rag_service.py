@@ -228,7 +228,101 @@ JSON 格式：
         return fallback
 
 
-def answer_question(db: Session, question: str) -> dict[str, Any]:
+def _dashboard_context_sources(dashboard_context: dict[str, Any] | None) -> list[dict[str, Any]]:
+    if not dashboard_context:
+        return []
+
+    hot_articles = dashboard_context.get("hot_articles") or []
+
+    return [
+        {
+            "id": article.get("id"),
+            "title": article.get("title"),
+            "board": article.get("board"),
+            "author": article.get("author"),
+            "push_count": article.get("push_count", 0),
+            "published_at": article.get("published_at"),
+            "url": article.get("url"),
+            "preview": article.get("preview", ""),
+        }
+        for article in hot_articles[:5]
+        if isinstance(article, dict)
+    ]
+
+
+def generate_dashboard_context_answer(
+    question: str,
+    dashboard_context: dict[str, Any],
+) -> dict[str, Any]:
+    fallback = {
+        "answer": "我會根據目前 Dashboard 的分析結果回答。這次分析可先從文章數、情緒比例、熱門文章與 LLM 洞察交叉判讀；若資料量不足，建議先回到 Dashboard 重新搜尋或補充爬蟲資料。",
+        "key_points": [
+            "回答優先引用目前 Dashboard 的 keyword、指標、情緒與熱門文章。",
+            "如果 Dashboard 尚未載入，會以資料庫檢索結果輔助回答。",
+        ],
+        "marketing_action": "先確認 Dashboard 搜尋條件是否為最新，再依熱門文章與負面比例調整行銷訊息。",
+        "confidence": "medium",
+    }
+
+    compact_context = {
+        "keyword": dashboard_context.get("keyword"),
+        "days": dashboard_context.get("days"),
+        "overview": dashboard_context.get("overview"),
+        "sentiment": dashboard_context.get("sentiment"),
+        "keywords": dashboard_context.get("keywords"),
+        "hot_articles": dashboard_context.get("hot_articles"),
+        "insight": dashboard_context.get("insight"),
+    }
+
+    prompt = f"""
+你是醫美時尚輿情分析系統的 AI 助理。
+請「只根據下方 Dashboard 分析資料」回答使用者問題；如果資料不足，請明確說明不足之處。
+回答要給行銷人員可直接採用的判讀，不要泛泛而談。
+
+請只回傳 JSON，不要 markdown，不要額外說明。
+
+JSON 格式：
+{{
+  "answer": "完整回答，使用繁體中文，必須明確連結目前 Dashboard 的指標、情緒、熱門文章或洞察",
+  "key_points": ["重點1", "重點2", "重點3"],
+  "marketing_action": "給行銷人員的一句具體行動建議",
+  "confidence": "high / medium / low"
+}}
+
+使用者問題：{question}
+
+Dashboard 分析資料：
+{json.dumps(compact_context, ensure_ascii=False)}
+"""
+
+    try:
+        return _safe_json(generate_json_response(prompt), fallback)
+    except Exception:
+        return fallback
+
+
+def answer_question(
+    db: Session,
+    question: str,
+    dashboard_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if dashboard_context:
+        answer = generate_dashboard_context_answer(question, dashboard_context)
+
+        return {
+            "question": question,
+            "intent": {
+                "source": "dashboard_context",
+                "keyword": dashboard_context.get("keyword"),
+                "days": dashboard_context.get("days"),
+            },
+            "answer": answer.get("answer", ""),
+            "key_points": answer.get("key_points", []),
+            "marketing_action": answer.get("marketing_action", ""),
+            "confidence": answer.get("confidence", "medium"),
+            "sources": _dashboard_context_sources(dashboard_context),
+        }
+
     intent = parse_question_intent(question)
     articles = retrieve_articles(db, intent)
     answer = generate_rag_answer(question, intent, articles)

@@ -1,6 +1,8 @@
 # backend/app/routers/qa.py
 
 from fastapi import APIRouter, Depends
+from typing import Any
+
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -16,6 +18,7 @@ router = APIRouter(
 
 class QuestionRequest(BaseModel):
     question: str = Field(..., min_length=2, max_length=500)
+    dashboard_context: dict[str, Any] | None = None
 
 
 @router.post("/ask")
@@ -23,7 +26,11 @@ def ask_question(
     payload: QuestionRequest,
     db: Session = Depends(get_db),
 ):
-    result = answer_question(db=db, question=payload.question.strip())
+    result = answer_question(
+        db=db,
+        question=payload.question.strip(),
+        dashboard_context=payload.dashboard_context,
+    )
 
     return {
         "status": "success",

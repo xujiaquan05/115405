@@ -19,7 +19,6 @@ const boards = [
   { name: "teeth_salon", label: "teeth_salon 牙齒美容板" },
 ];
 
-const pageOptions = [1, 2, 3, 4, 5];
 const pageSizeOptions = [10, 20, 50];
 
 const {
@@ -165,6 +164,7 @@ async function startCrawler() {
 
   state.loading = true;
   state.errorMessage = "";
+  form.pages = Math.max(1, Number(form.pages) || 1);
 
   try {
     await api.post("/api/crawler/ptt", null, {
@@ -275,15 +275,14 @@ onMounted(() => {
 
           <label>
             <span>爬取頁數</span>
-            <select v-model.number="form.pages">
-              <option
-                v-for="pages in pageOptions"
-                :key="pages"
-                :value="pages"
-              >
-                {{ pages }} 頁
-              </option>
-            </select>
+            <input
+              v-model.number="form.pages"
+              type="number"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              placeholder="例如：45"
+            />
           </label>
 
           <label>
@@ -300,7 +299,7 @@ onMounted(() => {
         </form>
 
         <div class="crawler-tip">
-          建議爬取頁數不宜過多，避免對來源站造成負擔。
+          可自行輸入要爬取的頁數，系統會依照你填寫的數量執行。
         </div>
       </section>
 
