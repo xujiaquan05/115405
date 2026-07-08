@@ -5,7 +5,7 @@ import re
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import desc, or_
+from sqlalchemy import and_, desc, or_
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
@@ -148,11 +148,24 @@ def retrieve_articles(
         .filter(Article.published_at <= end_date)
     )
 
+    # Note:
+    # Ưu tiên sentiment do LLM chấm; bài chưa chấm (NULL)
+    # fallback tạm về quy tắc push_count cũ.
     sentiment = intent.get("sentiment", "all")
     if sentiment == "positive":
-        query = query.filter(Article.push_count >= 10)
+        query = query.filter(
+            or_(
+                Article.sentiment == "positive",
+                and_(Article.sentiment.is_(None), Article.push_count >= 10),
+            )
+        )
     elif sentiment == "negative":
-        query = query.filter(Article.push_count < 0)
+        query = query.filter(
+            or_(
+                Article.sentiment == "negative",
+                and_(Article.sentiment.is_(None), Article.push_count < 0),
+            )
+        )
 
     if intent.get("question_type") == "trend":
         query = query.order_by(desc(Article.published_at))

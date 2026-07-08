@@ -345,7 +345,9 @@ async function askQuestion(questionText = state.question) {
     saveConversations();
   } catch (error) {
     console.error(error);
-    state.errorMessage = "AI Q&A failed. Please check backend, database, or Gemini API settings.";
+    state.errorMessage = error.response?.status === 429
+      ? "提問太頻繁，請稍等一分鐘再試。"
+      : "AI Q&A failed. Please check backend, database, or Gemini API settings.";
   } finally {
     state.loading = false;
     await scrollToBottom();

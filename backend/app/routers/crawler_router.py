@@ -10,6 +10,7 @@ from app.models.database_models import Article, Board, CrawlLog
 from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import TARGET_BOARDS, normalize_boards
+from app.services.sentiment_service import classify_pending_sentiments
 from app.websocket.manager import websocket_manager
 
 
@@ -287,6 +288,19 @@ def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
     try:
         for board_name in boards:
             _crawl_one_board(db=db, board=board_name, pages=pages, start_page=start_page)
+
+        # Note:
+        # Sau khi crawl xong, chấm sentiment cho bài mới bằng Gemini
+        # (bài cũ chưa chấm cũng được backfill dần).
+        # Hàm này tự nuốt lỗi LLM, không làm hỏng crawl job.
+        scored_count = classify_pending_sentiments(db)
+
+        if scored_count:
+            websocket_manager.broadcast_sync({
+                "type": "stats_updated",
+                "reason": "sentiment_scored",
+                "scored_count": scored_count,
+            })
     finally:
         db.close()
         _finish_crawl()

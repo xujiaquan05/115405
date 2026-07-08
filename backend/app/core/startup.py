@@ -1,13 +1,30 @@
 # backend/app/core/startup.py
 
+from sqlalchemy import text
+
 from app.core.database import Base, SessionLocal, engine
 from app.models import database_models  # noqa: F401
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.dashboard_service import TARGET_BOARDS
 
 
+def _apply_schema_migrations():
+    # Note:
+    # create_all chỉ tạo bảng mới, không thêm cột vào bảng đã tồn tại.
+    # Dự án chưa dùng Alembic nên các cột thêm sau này phải
+    # ALTER TABLE thủ công ở đây (IF NOT EXISTS để chạy lại an toàn).
+    with engine.begin() as connection:
+        connection.execute(text(
+            "ALTER TABLE articles ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20)"
+        ))
+        connection.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_articles_sentiment ON articles (sentiment)"
+        ))
+
+
 def initialize_database():
     Base.metadata.create_all(bind=engine)
+    _apply_schema_migrations()
 
     db = SessionLocal()
 

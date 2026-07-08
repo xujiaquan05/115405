@@ -71,9 +71,17 @@ def generate_json_response(prompt: str) -> str:
                 temperature=0.3,
             ),
         )
-    except errors.ServerError as error:
-        raise LLMServiceUnavailableError(
-            "Gemini model is temporarily unavailable or overloaded."
-        ) from error
+    except errors.APIError as error:
+        # Note:
+        # 429 (rate limit / hết quota) và mọi lỗi 5xx đều là lỗi tạm thời,
+        # người gọi nên fallback hoặc báo "AI đang bận" thay vì lỗi 500.
+        # Các lỗi khác (401 sai API key, 400 request sai...) là lỗi cấu hình,
+        # cần raise nguyên trạng để dễ debug.
+        if error.code == 429 or (error.code is not None and error.code >= 500):
+            raise LLMServiceUnavailableError(
+                "Gemini model is temporarily unavailable or overloaded."
+            ) from error
+
+        raise
 
     return response.text

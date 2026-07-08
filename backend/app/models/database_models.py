@@ -62,6 +62,12 @@ class Article(Base):
 
     push_count = Column(Integer, default=0)
 
+    # Note:
+    # sentiment do Gemini chấm theo batch sau khi crawl:
+    # positive / neutral / negative.
+    # NULL = chưa chấm; khi đó các query sẽ fallback về push_count.
+    sentiment = Column(String(20), index=True)
+
     published_at = Column(DateTime)
     created_at = Column(DateTime, server_default=func.now())
 

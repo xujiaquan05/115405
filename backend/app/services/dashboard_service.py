@@ -3,7 +3,7 @@
 import re
 from datetime import timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, desc
+from sqlalchemy import and_, func, or_, desc
 
 from app.core.time_utils import taiwan_now
 from app.models.database_models import Article, Board
@@ -167,10 +167,16 @@ def get_overview_metrics(
         avg_push_count = 0
 
     # Note:
-    # Tạm coi bài có push_count < 0 là negative warning.
+    # Ưu tiên sentiment do LLM chấm; bài chưa chấm (NULL)
+    # fallback tạm về quy tắc push_count < 0.
     negative_count = (
         current_query
-        .filter(Article.push_count < 0)
+        .filter(
+            or_(
+                Article.sentiment == "negative",
+                and_(Article.sentiment.is_(None), Article.push_count < 0),
+            )
+        )
         .count()
     )
 
@@ -215,15 +221,16 @@ def get_sentiment_distribution(
 ) -> dict:
     """
     Note:
-    Hàm này tính sentiment bằng phương pháp đơn giản dựa trên push_count.
+    Sentiment ưu tiên kết quả LLM chấm (cột articles.sentiment,
+    do sentiment_service chạy sau mỗi lần crawl).
 
-    Quy tắc tạm thời:
+    Bài chưa được chấm (sentiment NULL) fallback tạm về push_count:
     - push_count >= 10  => positive
     - push_count >= 0   => neutral
     - push_count < 0    => negative
 
-    Vì Phase 4 mới dùng LLM phân tích cảm xúc thật,
-    Phase 3 chỉ cần sentiment gần đúng để Dashboard có dữ liệu trước.
+    ai_rated_percent cho biết bao nhiêu % bài trong kết quả
+    đã được LLM chấm thật.
     """
 
     start_date, end_date = get_date_range(days)
@@ -231,7 +238,7 @@ def get_sentiment_distribution(
     keyword_filter = build_keyword_filter(keyword)
 
     articles = (
-        db.query(Article.push_count)
+        db.query(Article.push_count, Article.sentiment)
         .filter(keyword_filter)
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
@@ -246,18 +253,32 @@ def get_sentiment_distribution(
             "neutral": 0,
             "negative": 0,
             "total": 0,
+            "ai_rated_percent": 0,
         }
 
     positive = 0
     neutral = 0
     negative = 0
+    ai_rated = 0
 
-    for article in articles:
-        push_count = article.push_count or 0
+    for row in articles:
+        sentiment = row.sentiment
 
-        if push_count >= 10:
+        if sentiment in ("positive", "neutral", "negative"):
+            ai_rated += 1
+        else:
+            push_count = row.push_count or 0
+
+            if push_count >= 10:
+                sentiment = "positive"
+            elif push_count >= 0:
+                sentiment = "neutral"
+            else:
+                sentiment = "negative"
+
+        if sentiment == "positive":
             positive += 1
-        elif push_count >= 0:
+        elif sentiment == "neutral":
             neutral += 1
         else:
             negative += 1
@@ -267,6 +288,7 @@ def get_sentiment_distribution(
         "neutral": round((neutral / total) * 100, 2),
         "negative": round((negative / total) * 100, 2),
         "total": total,
+        "ai_rated_percent": round((ai_rated / total) * 100, 2),
     }
 
 

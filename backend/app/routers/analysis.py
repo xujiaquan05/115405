@@ -12,6 +12,7 @@ from app.services.dashboard_service import (
     normalize_boards,
 )
 from app.services.llm_analysis_service import analyze_keyword_with_llm
+from app.services.sentiment_service import classify_pending_sentiments
 
 
 router = APIRouter(
@@ -73,6 +74,31 @@ def analyze_keyword(
     return {
         "status": "success",
         "result": result,
+    }
+
+
+@router.post("/sentiment/refresh")
+def refresh_sentiments(
+    max_articles: int = Query(
+        default=100,
+        ge=1,
+        le=500,
+        description="Số bài chưa chấm sentiment tối đa sẽ gửi cho Gemini trong lần này",
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Note:
+    Chấm sentiment thủ công cho các bài chưa có (backfill).
+    Bình thường sentiment được chấm tự động sau mỗi lần crawl,
+    endpoint này dùng khi DB đã có sẵn bài cũ mà chưa crawl thêm.
+    """
+
+    scored_count = classify_pending_sentiments(db, max_articles=max_articles)
+
+    return {
+        "status": "success",
+        "scored_count": scored_count,
     }
 
 
