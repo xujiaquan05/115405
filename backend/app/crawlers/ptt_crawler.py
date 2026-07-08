@@ -10,26 +10,26 @@ from bs4 import BeautifulSoup
 
 class PTTCrawler:
     """
-    PTTCrawler dùng để crawl bài viết từ PTT.
+    PTTCrawler 負責爬取 PTT 文章。
 
-    Nhiệm vụ chính:
-    1. Tạo session có cookie over18=1 để vượt qua trang xác nhận tuổi.
-    2. Crawl danh sách bài viết từ board.
-    3. Crawl nội dung chi tiết của từng bài.
-    4. Chuẩn hóa dữ liệu để lưu vào database.
+    主要工作：
+    1. 建立帶 over18=1 cookie 的 session，通過年齡確認頁。
+    2. 爬取看板的文章列表。
+    3. 爬取每篇文章的詳細內容。
+    4. 把資料整理成可存入 database 的格式。
     """
 
     BASE_URL = "https://www.ptt.cc"
 
     def __init__(self):
-        # Tạo HTTP session để tái sử dụng cookie và header giữa nhiều request.
+        # 建立 HTTP session，讓多個 request 共用 cookie 和 header。
         self.session = requests.Session()
 
-        # PTT một số board cần xác nhận 18 tuổi.
-        # Nếu không set cookie này, crawler có thể bị redirect về trang over18.
+        # PTT 部分看板需要確認滿 18 歲。
+        # 不設定這個 cookie 的話，crawler 會被導回 over18 確認頁。
         self.session.cookies.set("over18", "1")
 
-        # Danh sách User-Agent dùng random để request giống trình duyệt thật hơn.
+        # 隨機使用不同 User-Agent，讓 request 更像真實瀏覽器。
         self.user_agents = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0 Safari/537.36",
@@ -270,14 +270,14 @@ class PTTCrawler:
     
         all_articles = []
 
-        # Nếu không truyền start_page, bắt đầu từ trang mới nhất.
-        # Ví dụ: https://www.ptt.cc/bbs/BeautySalon/index.html
+        # 沒有指定 start_page 時，從最新一頁開始。
+        # 例如：https://www.ptt.cc/bbs/BeautySalon/index.html
         if start_page is None:
             current_url = f"{self.BASE_URL}/bbs/{board}/index.html"
 
-        # Nếu có truyền start_page, bắt đầu từ trang cụ thể.
-        # Ví dụ: start_page=3950
-        # URL sẽ là https://www.ptt.cc/bbs/BeautySalon/index3950.html
+        # 有指定 start_page 時，從指定頁開始。
+        # 例如：start_page=3950
+        # URL 為 https://www.ptt.cc/bbs/BeautySalon/index3950.html
         else:
             current_url = f"{self.BASE_URL}/bbs/{board}/index{start_page}.html"
 
@@ -287,10 +287,10 @@ class PTTCrawler:
             if not html:
                 break
 
-            # Parse danh sách bài viết ở trang hiện tại.
+            # 解析目前頁面的文章列表。
             articles = self.parse_article_list(board, current_url)
 
-            # Đi vào từng bài để lấy nội dung chi tiết.
+            # 進入每一篇文章抓取詳細內容。
             for article in articles:
                 detail = self.parse_article_detail(article["url"])
 
@@ -299,11 +299,11 @@ class PTTCrawler:
 
                 all_articles.append(article)
 
-                # Random delay để giảm áp lực lên PTT.
+                # 隨機延遲，減少對 PTT 的壓力。
                 time.sleep(random.uniform(0.8, 1.5))
 
-            # Sau khi crawl xong một trang, tìm link "上頁".
-            # "上頁" trên PTT nghĩa là trang cũ hơn một bậc.
+            # 爬完一頁後尋找「上頁」連結，
+            # 「上頁」代表更舊一頁的列表。
             if progress_callback:
                 progress_callback({
                     "type": "crawler_progress",
@@ -326,27 +326,27 @@ class PTTCrawler:
                     previous_page_url = self.BASE_URL + link["href"]
                     break
 
-            # Nếu không tìm thấy 上頁 thì dừng crawler.
+            # 找不到「上頁」就停止爬取。
             if not previous_page_url:
                 break
 
-            # Cập nhật URL để vòng lặp kế tiếp crawl trang cũ hơn.
+            # 更新 URL，下一輪迴圈爬更舊的一頁。
             current_url = previous_page_url
 
         return all_articles
         
     def get_latest_page_number(self, board: str) -> int | None:
         """
-        Lấy số trang gần mới nhất của PTT board.
+        取得 PTT 看板目前最新的頁碼。
 
-        Lưu ý:
-            index.html là trang mới nhất nhưng không có số.
-            Link "上頁" thường là indexN.html.
-            Vậy N + 1 có thể xem là số trang mới nhất hiện tại.
+        說明：
+            index.html 是最新頁，但網址沒有頁碼。
+            「上頁」連結通常是 indexN.html，
+            所以 N + 1 可視為目前最新的頁碼。
 
-        Ví dụ:
-            index.html có 上頁 = index3950.html
-            thì trang mới nhất tương đương khoảng 3951.
+        例如：
+            index.html 的上頁是 index3950.html，
+            最新頁大約就是 3951。
         """
 
         latest_url = f"{self.BASE_URL}/bbs/{board}/index.html"
@@ -365,15 +365,15 @@ class PTTCrawler:
             if "上頁" in link_text:
                 href = link.get("href", "")
 
-                # href thường có dạng /bbs/BeautySalon/index3950.html
-                # Ta lấy số 3950 ra.
+                # href 通常是 /bbs/BeautySalon/index3950.html，
+                # 取出其中的數字 3950。
                 match = re.search(r"index(\d+)\.html", href)
 
                 if match:
                     previous_page_number = int(match.group(1))
 
-                    # Vì 上頁 là trang ngay trước trang mới nhất,
-                    # nên số trang mới nhất có thể xem là previous + 1.
+                    # 「上頁」是最新頁的前一頁，
+                    # 所以最新頁碼可視為 previous + 1。
                     return previous_page_number + 1
 
         return None

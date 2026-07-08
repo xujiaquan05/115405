@@ -6,24 +6,22 @@ from google import genai
 from google.genai import errors
 from google.genai import types
 
-# Note:
-# Load biến môi trường từ file .env.
-# Trong đó có GOOGLE_API_KEY và GEMINI_MODEL.
+# 載入 .env 的環境變數，
+# 其中包含 GOOGLE_API_KEY 和 GEMINI_MODEL。
 load_dotenv()
 
 
 class LLMServiceUnavailableError(Exception):
-    """Raised when Gemini is temporarily unavailable or overloaded."""
+    """Gemini 暫時無法使用或過載時拋出。"""
 
 
 def get_gemini_client():
     """
-    Note:
-    Hàm này tạo Gemini client.
+    建立 Gemini client。
 
-    Vì sao tách riêng?
-    - Nếu sau này đổi API Key hoặc đổi model, chỉ cần sửa ở đây.
-    - Các service khác không cần biết chi tiết cách kết nối Gemini.
+    為什麼獨立成一個函式？
+    - 之後更換 API Key 或 model 時只需要改這裡。
+    - 其他 service 不需要知道連線 Gemini 的細節。
     """
 
     api_key = os.getenv("GOOGLE_API_KEY")
@@ -36,11 +34,10 @@ def get_gemini_client():
 
 def get_gemini_model_name() -> str:
     """
-    Note:
-    Lấy tên model từ .env.
+    從 .env 讀取 model 名稱。
 
-    Nếu .env không có GEMINI_MODEL,
-    mặc định dùng gemini-2.5-flash.
+    如果 .env 沒有設定 GEMINI_MODEL，
+    預設使用 gemini-2.5-flash。
     """
 
     return os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
@@ -48,15 +45,14 @@ def get_gemini_model_name() -> str:
 
 def generate_json_response(prompt: str) -> str:
     """
-    Note:
-    Hàm này gửi prompt đến Gemini và yêu cầu model trả về JSON.
+    把 prompt 送給 Gemini 並要求回傳 JSON。
 
-    Quy trình:
-    1. Lấy GOOGLE_API_KEY từ .env
-    2. Cấu hình Gemini SDK
-    3. Tạo model
-    4. Gửi prompt
-    5. Trả về response.text cho service phía sau parse JSON
+    流程：
+    1. 從 .env 取得 GOOGLE_API_KEY
+    2. 設定 Gemini SDK
+    3. 建立 model
+    4. 送出 prompt
+    5. 回傳 response.text 給後續 service 解析 JSON
     """
 
     client = get_gemini_client()
@@ -72,11 +68,11 @@ def generate_json_response(prompt: str) -> str:
             ),
         )
     except errors.APIError as error:
-        # Note:
-        # 429 (rate limit / hết quota) và mọi lỗi 5xx đều là lỗi tạm thời,
-        # người gọi nên fallback hoặc báo "AI đang bận" thay vì lỗi 500.
-        # Các lỗi khác (401 sai API key, 400 request sai...) là lỗi cấu hình,
-        # cần raise nguyên trạng để dễ debug.
+        # 說明：
+        # 429（rate limit / 額度用完）和所有 5xx 都屬於暫時性錯誤，
+        # 呼叫端應 fallback 或顯示「AI 忙碌中」，而不是回 500。
+        # 其他錯誤（401 API key 錯誤、400 請求格式錯誤等）是設定問題，
+        # 需要原樣拋出方便 debug。
         if error.code == 429 or (error.code is not None and error.code >= 500):
             raise LLMServiceUnavailableError(
                 "Gemini model is temporarily unavailable or overloaded."

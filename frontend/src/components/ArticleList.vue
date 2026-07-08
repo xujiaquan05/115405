@@ -33,8 +33,7 @@ watch(
 );
 
 
-// Note:
-// Dựa vào push_count để quyết định badge class.
+// 依 push_count 決定 badge 的 class。
 function getPushClass(pushCount) {
   if (pushCount >= 50) return "push-hot";
   if (pushCount >= 10) return "push-warm";

@@ -1,22 +1,34 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import get_db
 from app.core.startup import initialize_database
 from app.routers.crawler_router import router as crawler_router
 from app.routers import analysis, dashboard, export, qa, websocket
+
+
+# 說明：
+# FastAPI 建議用 lifespan 取代已 deprecated 的 @app.on_event("startup")。
+# yield 之前的程式碼在啟動時執行，之後的在關閉時執行。
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    initialize_database()
+    yield
 
 
 app = FastAPI(
     title="Medical Beauty Public Opinion Analysis System",
     description="Medical Beauty Public Opinion Analysis System API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 
@@ -48,11 +60,6 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-def on_startup():
-    initialize_database()
-
-
 app.include_router(crawler_router)
 app.include_router(dashboard.router)
 app.include_router(analysis.router)
@@ -62,16 +69,12 @@ app.include_router(export.router)
 
 
 @app.get("/health")
-def health_check():
-    db = SessionLocal()
-
+def health_check(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
         database_status = "ok"
     except Exception as error:
         database_status = f"error: {error}"
-    finally:
-        db.close()
 
     return {
         "api": "ok",

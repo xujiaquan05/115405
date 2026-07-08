@@ -23,10 +23,10 @@ TARGET_BOARDS = [
 ]
 
 
-# Danh sách từ khóa liên quan đến醫美 / làm đẹp
-# Note:
-# Danh sách này dùng cho keyword cloud.
-# Sau này bạn có thể thêm nhiều từ hơn nếu dữ liệu nhiều hơn.
+# 醫美 / 美容相關的關鍵字清單。
+# 說明：
+# 這份清單用於 keyword cloud，
+# 之後資料變多時可以再增加更多關鍵字。
 BEAUTY_KEYWORDS = [
     "玻尿酸",
     "肉毒",
@@ -61,15 +61,15 @@ def split_keyword_terms(keyword: str) -> list[str]:
 
 def build_keyword_filter(keyword: str):
     """
-    Note:
-    Tạo điều kiện tìm kiếm keyword trong title hoặc content.
+    說明：
+    建立在 title 或 content 中搜尋 keyword 的條件。
 
-    Vì bài viết PTT có keyword có thể nằm trong:
-    - title: tiêu đề bài viết
-    - content: nội dung bài viết
+    PTT 文章的關鍵字可能出現在：
+    - title: 文章標題
+    - content: 文章內文
 
-    Nên mình dùng OR:
-    title chứa keyword HOẶC content chứa keyword.
+    所以用 OR：
+    title 包含 keyword 或 content 包含 keyword。
     """
 
     keyword_filters = []
@@ -104,12 +104,12 @@ def apply_board_filter(query, boards: list[str] | None = None):
 
 def get_date_range(days: int):
     """
-    Note:
-    Tạo khoảng thời gian truy vấn.
+    說明：
+    建立查詢的時間區間。
 
-    Ví dụ:
+    例如：
     days = 30
-    nghĩa là lấy dữ liệu từ 30 ngày trước đến hiện tại.
+    表示取最近 30 天到現在的資料。
     """
 
     end_date = taiwan_now()
@@ -125,16 +125,14 @@ def get_overview_metrics(
     boards: list[str] | None = None,
 ) -> dict:
     """
-    Note:
-    Hàm này dùng cho 4 thẻ số liệu tổng quan trên Dashboard.
+    說明：
+    提供 Dashboard 上方 4 張總覽數據卡的資料。
 
-    Nó sẽ tính:
-    1. Tổng số bài liên quan keyword
-    2. Trung bình push_count
-    3. Số bài negative đơn giản
-    4. Tỷ lệ tăng trưởng so với kỳ trước
-
-    Vì Phase 3 chưa dùng LLM, nên negative tạm tính bằng push_count < 0.
+    計算內容：
+    1. 與 keyword 相關的文章總數
+    2. 平均 push_count
+    3. 負面文章數
+    4. 相較上一期的成長率
     """
 
     start_date, end_date = get_date_range(days)
@@ -144,8 +142,7 @@ def get_overview_metrics(
 
     keyword_filter = build_keyword_filter(keyword)
 
-    # Note:
-    # Query số bài trong khoảng thời gian hiện tại.
+    # 查詢目前時間區間內的文章數。
     current_query = (
         db.query(Article)
         .filter(keyword_filter)
@@ -156,9 +153,8 @@ def get_overview_metrics(
 
     total_articles = current_query.count()
 
-    # Note:
-    # Tính average push_count.
-    # Nếu không có bài nào thì trả về 0 để tránh lỗi None.
+    # 計算平均 push_count；
+    # 沒有任何文章時回傳 0，避免 None 造成錯誤。
     avg_push_count = (
         current_query.with_entities(func.avg(Article.push_count)).scalar()
     )
@@ -166,9 +162,8 @@ def get_overview_metrics(
     if avg_push_count is None:
         avg_push_count = 0
 
-    # Note:
-    # Ưu tiên sentiment do LLM chấm; bài chưa chấm (NULL)
-    # fallback tạm về quy tắc push_count < 0.
+    # 優先使用 LLM 評出的 sentiment；
+    # 還沒評分的文章（NULL）暫時 fallback 回 push_count < 0 規則。
     negative_count = (
         current_query
         .filter(
@@ -180,8 +175,7 @@ def get_overview_metrics(
         .count()
     )
 
-    # Note:
-    # Query số bài của kỳ trước để tính growth rate.
+    # 查詢上一期的文章數，用來計算成長率。
     previous_count = (
         db.query(Article)
         .filter(keyword_filter)
@@ -190,10 +184,9 @@ def get_overview_metrics(
     )
     previous_count = apply_board_filter(previous_count, boards).count()
 
-    # Note:
-    # Công thức growth:
-    # nếu kỳ trước = 0 và kỳ này > 0 thì tăng 100%
-    # nếu cả hai đều 0 thì là 0%
+    # 成長率公式：
+    # 上一期 = 0 且這一期 > 0 時視為成長 100%；
+    # 兩期都是 0 時為 0%。
     if previous_count == 0:
         growth_rate = 100 if total_articles > 0 else 0
     else:
@@ -220,17 +213,17 @@ def get_sentiment_distribution(
     boards: list[str] | None = None,
 ) -> dict:
     """
-    Note:
-    Sentiment ưu tiên kết quả LLM chấm (cột articles.sentiment,
-    do sentiment_service chạy sau mỗi lần crawl).
+    說明：
+    Sentiment 優先使用 LLM 評分結果（articles.sentiment 欄位，
+    由 sentiment_service 在每次爬取後評分）。
 
-    Bài chưa được chấm (sentiment NULL) fallback tạm về push_count:
+    還沒評分的文章（sentiment NULL）暫時 fallback 回 push_count：
     - push_count >= 10  => positive
     - push_count >= 0   => neutral
     - push_count < 0    => negative
 
-    ai_rated_percent cho biết bao nhiêu % bài trong kết quả
-    đã được LLM chấm thật.
+    ai_rated_percent 表示結果中有多少 % 的文章
+    是由 LLM 真正評分的。
     """
 
     start_date, end_date = get_date_range(days)
@@ -299,12 +292,12 @@ def get_daily_trend(
     boards: list[str] | None = None,
 ) -> list[dict]:
     """
-    Note:
-    Hàm này dùng cho biểu đồ đường line chart.
+    說明：
+    提供折線圖（line chart）用的資料。
 
-    Nó group bài viết theo ngày:
-    2026-05-01 có bao nhiêu bài
-    2026-05-02 có bao nhiêu bài
+    把文章依日期分組：
+    2026-05-01 有幾篇
+    2026-05-02 有幾篇
     ...
     """
 
@@ -344,8 +337,8 @@ def get_keyword_trends(
 ) -> list[dict]:
     """
     Note:
-    Trả về trend riêng cho từng keyword để frontend vẽ nhiều line.
-    Mỗi keyword được query độc lập theo title/content.
+    回傳每個 keyword 各自的 trend，讓前端畫多條折線。
+    每個 keyword 都獨立依 title/content 查詢。
     """
 
     trends = []
@@ -396,15 +389,15 @@ def get_hot_articles(
     limit: int = 10,
 ) -> list[dict]:
     """
-    Note:
-    Hàm này lấy danh sách bài viết hot / liên quan nhất.
+    說明：
+    取得熱門 / 最相關的文章列表。
 
-    sort_by hỗ trợ:
-    - push_count: bài nhiều推 nhất
-    - latest: bài mới nhất
-    - relevance: tạm thời cũng ưu tiên push_count
+    sort_by 支援：
+    - push_count: 推文數最多
+    - latest: 最新文章
+    - relevance: 暫時也以 push_count 優先
 
-    Sau này nếu có full-text search ranking thì relevance có thể nâng cấp.
+    之後若有 full-text search ranking，relevance 可以再升級。
     """
 
     start_date, end_date = get_date_range(days)
@@ -419,8 +412,7 @@ def get_hot_articles(
     )
     query = apply_board_filter(query, boards)
 
-    # Note:
-    # Chọn cách sắp xếp dựa theo sort_by user truyền vào.
+    # 依 user 傳入的 sort_by 選擇排序方式。
     if sort_by == "latest":
         query = query.order_by(desc(Article.published_at))
     elif sort_by == "relevance":
@@ -435,9 +427,8 @@ def get_hot_articles(
     for article in articles:
         content = article.content or ""
 
-        # Note:
-        # Dashboard không cần hiện full content.
-        # Chỉ lấy 120 chữ đầu làm preview cho nhẹ.
+        # Dashboard 不需要顯示完整內文，
+        # 只取前 120 個字當作 preview，減少傳輸量。
         preview = content[:120]
 
         if len(content) > 120:
@@ -465,16 +456,16 @@ def get_frequent_keywords(
     boards: list[str] | None = None,
 ) -> list[dict]:
     """
-    Note:
-    Hàm này thống kê từ khóa醫美 nào xuất hiện nhiều.
+    說明：
+    統計哪些醫美關鍵字出現得最多。
 
-    Cách làm đơn giản:
-    - Lấy các bài liên quan keyword chính
-    - Đếm mỗi BEAUTY_KEYWORDS xuất hiện trong bao nhiêu bài
-    - Sắp xếp từ cao xuống thấp
+    簡單做法：
+    - 取得與主 keyword 相關的文章
+    - 計算每個 BEAUTY_KEYWORDS 出現在幾篇文章中
+    - 由高到低排序
 
-    Đây là bản dễ hiểu cho Phase 3.
-    Sau này nếu muốn mạnh hơn có thể dùng jieba hoặc CKIP để tách từ tiếng Trung.
+    這是容易理解的簡化版本；
+    之後若要更精準，可以改用 jieba 或 CKIP 做中文斷詞。
     """
 
     start_date, end_date = get_date_range(days)
@@ -547,19 +538,19 @@ def get_dashboard_full(
     boards: list[str] | None = None,
 ) -> dict:
     """
-    Note:
-    Đây là hàm tổng hợp cho Dashboard.
+    說明：
+    Dashboard 的彙總函式。
 
-    Nó gọi 5 hàm nhỏ:
+    它呼叫以下幾個小函式：
     1. overview
     2. sentiment
     3. trend
     4. hot_articles
     5. frequent_keywords
 
-    Vì đang dùng SQLAlchemy sync Session,
-    mình chạy tuần tự cho đơn giản và ổn định.
-    Nếu sau này chuyển sang async DB thì mới dùng asyncio.gather.
+    因為使用的是 SQLAlchemy sync Session，
+    為求簡單穩定採取循序執行；
+    之後若改用 async DB 再考慮 asyncio.gather。
     """
 
     return {

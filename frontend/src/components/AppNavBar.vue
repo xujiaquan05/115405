@@ -8,9 +8,7 @@
     </div>
 
     <nav class="navbar-links">
-      <!-- Note:
-        RouterLink dùng để chuyển trang mà không reload toàn bộ website.
-      -->
+      <!-- RouterLink 用來切換頁面，不會重新載入整個網站。 -->
       <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
       <RouterLink to="/qa" class="nav-link">AI 問答</RouterLink>
       <RouterLink to="/history" class="nav-link">History</RouterLink>

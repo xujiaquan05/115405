@@ -3,14 +3,13 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-# Note:
-# published_at của bài viết được parse trực tiếp từ trang PTT,
-# tức là giờ Đài Loan (UTC+8) và lưu dạng naive datetime.
+# 說明：
+# 文章的 published_at 是直接從 PTT 頁面解析出來的，
+# 也就是台灣時間（UTC+8），並以 naive datetime 儲存。
 #
-# Vì vậy mọi phép so sánh "hiện tại" với published_at phải dùng
-# giờ Đài Loan. Nếu dùng datetime.utcnow() (chậm hơn 8 tiếng),
-# điều kiện published_at <= now sẽ loại nhầm toàn bộ bài viết
-# đăng trong 8 giờ gần nhất.
+# 因此所有和 published_at 比較的「現在時間」都必須用台灣時間。
+# 如果用 datetime.utcnow()（慢 8 小時），
+# published_at <= now 的條件會把最近 8 小時內發表的文章全部誤篩掉。
 TAIPEI_TZ = ZoneInfo("Asia/Taipei")
 
 

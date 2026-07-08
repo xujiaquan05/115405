@@ -19,35 +19,34 @@ router = APIRouter(
 def dashboard_full(
     keyword: str = Query(
         default="玻尿酸",
-        description="Keyword muốn phân tích, ví dụ: 玻尿酸, 肉毒, 雷射",
+        description="要分析的關鍵字，例如：玻尿酸、肉毒、雷射",
     ),
     days: int = Query(
         default=30,
         ge=1,
         le=365,
-        description="Số ngày muốn truy vấn, ví dụ: 7, 30, 90",
+        description="查詢最近幾天的資料，例如：7、30、90",
     ),
     sort_by: str = Query(
         default="push_count",
-        description="Cách sắp xếp bài viết: push_count, latest, relevance",
+        description="文章排序方式：push_count、latest、relevance",
     ),
     boards: list[str] | None = Query(
         default=None,
-        description="PTT boards to include. Repeat this query parameter to select multiple boards.",
+        description="要包含的 PTT 看板，重複此參數可選多個看板。",
     ),
     db: Session = Depends(get_db),
 ):
     """
-    Note:
-    API chính của Phase 3.
+    說明：
+    Dashboard 的主要 API。
 
-    Frontend Dashboard sau này chỉ cần gọi API này một lần
-    là lấy được đủ dữ liệu cho toàn bộ dashboard.
+    前端 Dashboard 只需要呼叫這一支 API，
+    就能拿到整個 dashboard 需要的全部資料。
     """
 
-    # Note:
-    # Tạo cache key từ tham số query.
-    # Ví dụ: dashboard:玻尿酸:30:push_count
+    # 用查詢參數組出 cache key，
+    # 例如：dashboard:玻尿酸:30:push_count
     selected_boards = normalize_boards(boards)
     boards_key = ",".join(selected_boards)
     cache_key = f"dashboard:{keyword}:{days}:{sort_by}:{boards_key}"
@@ -69,6 +68,11 @@ def dashboard_full(
         sort_by=sort_by,
         boards=selected_boards,
     )
+
+    # 說明：
+    # 寫入 cache，之後相同條件的查詢 10 分鐘內直接回 cache。
+    # （修正：原本只有 get_cache 沒有 set_cache，cache 從未生效。）
+    set_cache(cache_key, data, minutes=10)
 
     return {
         "status": "success",

@@ -73,8 +73,8 @@ ARTICLE_HTML = """
 
 class TestParseArticleDetail:
     def test_signature_removed_but_inline_dashes_kept(self, crawler, monkeypatch):
-        # Bug cũ: content.split("--")[0] cắt cụt bài viết
-        # ngay tại "--" trong URL. Bây giờ chỉ cắt ở dòng "--" độc lập.
+        # 舊 bug：content.split("--")[0] 會在 URL 內的 "--" 處
+        # 把文章截斷。現在只會在獨立的 "--" 行切開。
         monkeypatch.setattr(crawler, "_safe_get", lambda url: ARTICLE_HTML)
 
         detail = crawler.parse_article_detail("http://fake-url")

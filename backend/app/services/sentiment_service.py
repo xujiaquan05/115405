@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 SENTIMENT_VALUES = {"positive", "neutral", "negative"}
 
-# Note:
-# Mỗi call Gemini chấm 20 bài để tiết kiệm quota.
-# Mỗi lần chạy tối đa 200 bài — bài cũ chưa chấm sẽ được
-# backfill dần qua các lần crawl sau.
+# 說明：
+# 每次呼叫 Gemini 一次評 20 篇，節省 API 額度。
+# 每回合最多處理 200 篇 — 還沒評分的舊文章
+# 會在之後的爬取回合中逐步補齊（backfill）。
 BATCH_SIZE = 20
 MAX_ARTICLES_PER_RUN = 200
 
@@ -51,10 +51,10 @@ JSON 格式：
 
 def _parse_batch_response(raw_text: str) -> dict[int, str]:
     """
-    Note:
-    Parse JSON từ Gemini thành {article_id: sentiment}.
-    id lạ hoặc nhãn không hợp lệ đều bị bỏ qua,
-    bài đó giữ sentiment = NULL và sẽ được chấm lại lần sau.
+    說明：
+    把 Gemini 回傳的 JSON 解析成 {article_id: sentiment}。
+    不認識的 id 或不合法的標籤都會被忽略，
+    該篇文章保持 sentiment = NULL，下次再重新評分。
     """
 
     try:
@@ -88,9 +88,9 @@ def classify_pending_sentiments(
     batch_size: int = BATCH_SIZE,
 ) -> int:
     """
-    Chấm sentiment cho các bài chưa có (sentiment IS NULL), bài mới trước.
-    Trả về số bài đã chấm được. Nếu Gemini bận thì dừng sớm,
-    phần còn lại chờ lần chạy sau — không raise ra ngoài.
+    為還沒有 sentiment 的文章（sentiment IS NULL）評分，新文章優先。
+    回傳成功評分的文章數。若 Gemini 忙碌就提早停止，
+    剩下的文章等下次執行 — 不會把例外往外拋。
     """
 
     pending = (

@@ -115,9 +115,8 @@ function buildDataset(seriesItem, labels, index) {
   };
 }
 
-// Note:
-// Hàm này dùng để vẽ hoặc vẽ lại biểu đồ.
-// Mỗi lần trend data thay đổi thì destroy chart cũ rồi tạo chart mới.
+// 繪製或重新繪製圖表。
+// 每次 trend data 變動時，先 destroy 舊圖再建立新圖。
 function renderChart() {
   if (!canvasRef.value || props.loading) return;
 

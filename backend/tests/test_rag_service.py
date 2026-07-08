@@ -45,4 +45,4 @@ class TestFallbackIntent:
     def test_unknown_keyword_still_returns_keywords(self):
         intent = _fallback_intent("隆乳手術安全嗎")
 
-        assert intent["keywords"], "keywords không được rỗng"
+        assert intent["keywords"], "keywords 不可為空"

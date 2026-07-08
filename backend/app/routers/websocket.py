@@ -14,13 +14,13 @@ router = APIRouter(
 @router.websocket("/dashboard")
 async def dashboard_websocket(websocket: WebSocket):
     """
-    Note:
-    Đây là WebSocket endpoint cho Dashboard.
+    說明：
+    Dashboard 用的 WebSocket endpoint。
 
-    Frontend sẽ kết nối tới:
+    前端會連線到：
     ws://localhost:8000/ws/dashboard
 
-    Sau khi kết nối, backend có thể gửi realtime event:
+    連線後 backend 可以推送即時事件：
     - crawler_started
     - crawler_progress
     - crawler_completed
@@ -31,8 +31,7 @@ async def dashboard_websocket(websocket: WebSocket):
     await websocket_manager.connect(websocket)
 
     try:
-        # Note:
-        # Gửi message đầu tiên để frontend biết WebSocket đã kết nối thành công.
+        # 先送出第一則訊息，讓前端知道 WebSocket 已連線成功。
         await websocket.send_json({
             "type": "connected",
             "message": "WebSocket connected successfully",
@@ -40,14 +39,13 @@ async def dashboard_websocket(websocket: WebSocket):
         })
 
         while True:
-            # Note:
-            # Giữ kết nối sống.
-            # Frontend có thể gửi ping hoặc text bất kỳ.
-            # Hiện tại mình không cần xử lý nội dung client gửi lên.
+            # 維持連線。
+            # 前端可能送 ping 或任意文字，
+            # 目前不需要處理 client 送上來的內容。
             await websocket.receive_text()
 
     except WebSocketDisconnect:
         websocket_manager.disconnect(websocket)
 
     except Exception:
-        websocket_manager.disconnect(websocket) 
+        websocket_manager.disconnect(websocket)

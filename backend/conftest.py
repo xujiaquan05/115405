@@ -1,9 +1,9 @@
 # backend/conftest.py
 #
-# Note:
-# File này giúp pytest tự thêm thư mục backend/ vào sys.path
-# (để import được package app), và ép DATABASE_URL về SQLite in-memory
-# khi chạy test — test không bao giờ được đụng vào database thật.
+# 說明：
+# 這個檔案讓 pytest 自動把 backend/ 加入 sys.path（才能 import app 套件），
+# 並在測試時把 DATABASE_URL 強制設為 SQLite in-memory —
+# 測試永遠不可以碰到真正的資料庫。
 
 import os
 

@@ -25,39 +25,39 @@ router = APIRouter(
 def analyze_keyword(
     keyword: str = Query(
         default="玻尿酸",
-        description="Keyword muốn phân tích, ví dụ: 玻尿酸, 肉毒, 雷射",
+        description="要分析的關鍵字，例如：玻尿酸、肉毒、雷射",
     ),
     analysis_type: str = Query(
         default="overview",
-        description="Loại phân tích: overview, trend, sentiment",
+        description="分析類型：overview、trend、sentiment",
     ),
     days: int = Query(
         default=30,
         ge=1,
         le=365,
-        description="Phân tích bài viết trong bao nhiêu ngày gần đây",
+        description="分析最近幾天內的文章",
     ),
     force_refresh: bool = Query(
         default=False,
-        description="True = bỏ qua cache và gọi Gemini lại",
+        description="True = 跳過 cache，重新呼叫 Gemini",
     ),
     boards: list[str] | None = Query(
         default=None,
-        description="PTT boards to include. Repeat this query parameter to select multiple boards.",
+        description="要包含的 PTT 看板，重複此參數可選多個看板。",
     ),
     db: Session = Depends(get_db),
 ):
     """
-    Note:
-    API chính của Phase 4.
+    說明：
+    LLM 關鍵字分析的主要 API。
 
-    Ví dụ:
+    例如：
     /api/analysis/keyword?keyword=玻尿酸&analysis_type=overview&days=30
 
-    analysis_type:
-    - overview: phân tích tổng hợp
-    - trend: phân tích xu hướng
-    - sentiment: phân tích cảm xúc
+    analysis_type：
+    - overview: 綜合分析
+    - trend: 趨勢分析
+    - sentiment: 情緒分析
     """
 
     selected_boards = normalize_boards(boards) if boards else None
@@ -83,15 +83,15 @@ def refresh_sentiments(
         default=100,
         ge=1,
         le=500,
-        description="Số bài chưa chấm sentiment tối đa sẽ gửi cho Gemini trong lần này",
+        description="這次最多送給 Gemini 評分的未評分文章數",
     ),
     db: Session = Depends(get_db),
 ):
     """
-    Note:
-    Chấm sentiment thủ công cho các bài chưa có (backfill).
-    Bình thường sentiment được chấm tự động sau mỗi lần crawl,
-    endpoint này dùng khi DB đã có sẵn bài cũ mà chưa crawl thêm.
+    說明：
+    手動為還沒有 sentiment 的文章評分（backfill）。
+    正常情況下 sentiment 會在每次爬取後自動評分，
+    這個 endpoint 用在 DB 已有舊文章但尚未再爬取的情況。
     """
 
     scored_count = classify_pending_sentiments(db, max_articles=max_articles)

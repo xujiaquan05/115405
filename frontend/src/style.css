@@ -1,8 +1,6 @@
 /* frontend/src/style.css */
 
-/* Note:
-  Reset cơ bản để giao diện nhìn nhất quán hơn.
-*/
+/* 基本 reset，讓介面看起來更一致。 */
 * {
   box-sizing: border-box;
 }

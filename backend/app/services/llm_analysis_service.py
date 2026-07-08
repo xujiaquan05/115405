@@ -38,15 +38,15 @@ def get_cached_analysis(
     days: int,
 ):
     """
-    Note:
-    Kiểm tra xem keyword + analysis_type + days đã có cache chưa.
+    說明：
+    檢查 keyword + analysis_type + days 是否已有 cache。
 
-    Nếu có cache và chưa hết hạn:
-    - trả kết quả cũ
-    - không gọi Gemini API
+    如果有 cache 且尚未過期：
+    - 回傳舊結果
+    - 不呼叫 Gemini API
 
-    Nếu không có hoặc đã hết hạn:
-    - return None
+    如果沒有或已過期：
+    - 回傳 None
     """
 
     now = datetime.utcnow()
@@ -72,12 +72,12 @@ def save_analysis_cache(
     result_json: dict,
 ):
     """
-    Note:
-    Lưu kết quả phân tích vào database.
+    說明：
+    把分析結果存入 database。
 
-    expires_at = hiện tại + 6 giờ.
-    Trong 6 giờ đó nếu user hỏi lại cùng điều kiện,
-    backend sẽ lấy cache thay vì gọi Gemini.
+    expired_at = 現在 + 6 小時。
+    這 6 小時內若 user 用相同條件再查詢，
+    backend 會直接使用 cache，不再呼叫 Gemini。
     """
 
     expired_time = datetime.utcnow() + timedelta(hours=CACHE_HOURS)
@@ -112,11 +112,11 @@ def save_analysis_cache(
 
 def parse_llm_json(raw_text: str) -> dict:
     """
-    Note:
-    Chuyển text Gemini trả về thành dict Python.
+    說明：
+    把 Gemini 回傳的文字轉成 Python dict。
 
-    Dù đã yêu cầu JSON mode, mình vẫn thêm try/except
-    để tránh trường hợp LLM trả về format không hợp lệ làm server crash.
+    雖然已要求 JSON mode，仍加上 try/except，
+    避免 LLM 回傳不合法格式時導致 server crash。
     """
 
     try:
@@ -137,24 +137,23 @@ def analyze_keyword_with_llm(
     boards: list[str] | None = None,
 ) -> dict:
     """
-    Note:
-    Đây là hàm chính của Phase 4.
+    說明：
+    LLM 分析的主要函式。
 
-    Quy trình:
-    1. Kiểm tra cache trong analysis_results
-    2. Nếu có cache thì trả cache
-    3. Nếu không có cache thì query articles
-    4. Nén bài viết
-    5. Tạo prompt
-    6. Gọi Gemini
-    7. Parse JSON
-    8. Lưu kết quả vào cache
-    9. Trả kết quả cho API
+    流程：
+    1. 檢查 analysis_results 中的 cache
+    2. 有 cache 就直接回傳
+    3. 沒有 cache 就查詢 articles
+    4. 壓縮文章
+    5. 產生 prompt
+    6. 呼叫 Gemini
+    7. 解析 JSON
+    8. 把結果存入 cache
+    9. 回傳結果給 API
     """
 
-    # Note:
-    # Nếu force_refresh=False thì ưu tiên dùng cache.
-    # Nếu force_refresh=True thì bỏ qua cache và gọi Gemini lại.
+    # force_refresh=False 時優先使用 cache；
+    # force_refresh=True 時跳過 cache，重新呼叫 Gemini。
     cache_analysis_type = build_cache_analysis_type(analysis_type, boards)
 
     if not force_refresh:
@@ -175,8 +174,7 @@ def analyze_keyword_with_llm(
                 "data": cached.result_json,
             }
 
-    # Note:
-    # Lấy bài viết liên quan từ bảng articles.
+    # 從 articles 資料表取得相關文章。
     articles = get_related_articles(
         db=db,
         keyword=keyword,

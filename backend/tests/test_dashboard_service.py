@@ -14,6 +14,6 @@ class TestSplitKeywordTerms:
         assert split_keyword_terms("玻尿酸，肉毒、雷射") == ["玻尿酸", "肉毒", "雷射"]
 
     def test_empty_returns_single_empty_term(self):
-        # Query dùng ilike %term%, term rỗng nghĩa là match tất cả.
+        # 查詢用 ilike %term%，term 為空字串表示 match 全部。
         assert split_keyword_terms("") == [""]
         assert split_keyword_terms(None) == [""]

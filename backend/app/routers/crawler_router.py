@@ -1,10 +1,11 @@
 import threading
 from datetime import datetime
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, get_db
 from app.crawlers.ptt_crawler import PTTCrawler
 from app.models.database_models import Article, Board, CrawlLog
 from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
@@ -71,74 +72,70 @@ def _format_elapsed_minutes(value):
 @router.get("/status")
 def get_crawler_status(
     limit: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
 ):
-    db = SessionLocal()
+    logs = (
+        db.query(CrawlLog)
+        .outerjoin(CrawlLog.board)
+        .outerjoin(CrawlLog.platform)
+        .order_by(CrawlLog.started_at.desc())
+        .limit(limit)
+        .all()
+    )
 
-    try:
-        logs = (
-            db.query(CrawlLog)
-            .outerjoin(CrawlLog.board)
-            .outerjoin(CrawlLog.platform)
-            .order_by(CrawlLog.started_at.desc())
-            .limit(limit)
-            .all()
-        )
+    last_log = logs[0] if logs else None
+    latest_article_at = db.query(func.max(Article.created_at)).scalar()
 
-        last_log = logs[0] if logs else None
-        latest_article_at = db.query(func.max(Article.created_at)).scalar()
+    today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_new_count = (
+        db.query(func.count(Article.id))
+        .filter(Article.created_at >= today_start)
+        .scalar()
+        or 0
+    )
 
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_new_count = (
-            db.query(func.count(Article.id))
-            .filter(Article.created_at >= today_start)
-            .scalar()
-            or 0
-        )
+    today_skipped_count = (
+        db.query(func.coalesce(func.sum(CrawlLog.skipped_count), 0))
+        .filter(CrawlLog.started_at >= today_start)
+        .scalar()
+        or 0
+    )
 
-        today_skipped_count = (
-            db.query(func.coalesce(func.sum(CrawlLog.skipped_count), 0))
-            .filter(CrawlLog.started_at >= today_start)
-            .scalar()
-            or 0
-        )
+    running_log = (
+        db.query(CrawlLog)
+        .outerjoin(CrawlLog.board)
+        .filter(CrawlLog.status == "running")
+        .order_by(CrawlLog.started_at.desc())
+        .first()
+    )
 
-        running_log = (
-            db.query(CrawlLog)
-            .outerjoin(CrawlLog.board)
-            .filter(CrawlLog.status == "running")
-            .order_by(CrawlLog.started_at.desc())
-            .first()
-        )
+    board_counts = dict(
+        db.query(Board.name, func.count(Article.id))
+        .outerjoin(Article, Article.board_id == Board.id)
+        .filter(Board.name.in_(TARGET_BOARDS))
+        .group_by(Board.name)
+        .all()
+    )
 
-        board_counts = dict(
-            db.query(Board.name, func.count(Article.id))
-            .outerjoin(Article, Article.board_id == Board.id)
-            .filter(Board.name.in_(TARGET_BOARDS))
-            .group_by(Board.name)
-            .all()
-        )
-
-        return {
-            "success": True,
-            "data": {
-                "summary": {
-                    "status": running_log.status if running_log else "idle",
-                    "last_crawled_at": _format_datetime(last_log.started_at if last_log else latest_article_at),
-                    "last_crawled_ago": _format_elapsed_minutes(last_log.started_at if last_log else latest_article_at),
-                    "today_new_count": today_new_count,
-                    "today_skipped_count": today_skipped_count,
-                    "running_board": running_log.board.name if running_log and running_log.board else None,
-                    "running_started_at": _format_datetime(running_log.started_at if running_log else None),
-                },
-                "logs": [_serialize_crawl_log(log) for log in logs],
-                "board_counts": [
-                    {"board": board, "article_count": board_counts.get(board, 0)}
-                    for board in TARGET_BOARDS
-                ],
+    return {
+        "success": True,
+        "data": {
+            "summary": {
+                "status": running_log.status if running_log else "idle",
+                "last_crawled_at": _format_datetime(last_log.started_at if last_log else latest_article_at),
+                "last_crawled_ago": _format_elapsed_minutes(last_log.started_at if last_log else latest_article_at),
+                "today_new_count": today_new_count,
+                "today_skipped_count": today_skipped_count,
+                "running_board": running_log.board.name if running_log and running_log.board else None,
+                "running_started_at": _format_datetime(running_log.started_at if running_log else None),
             },
-        }
-    finally:
-        db.close()
+            "logs": [_serialize_crawl_log(log) for log in logs],
+            "board_counts": [
+                {"board": board, "article_count": board_counts.get(board, 0)}
+                for board in TARGET_BOARDS
+            ],
+        },
+    }
 
 
 def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
@@ -253,10 +250,10 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
         }
 
 
-# Note:
-# Crawl chạy trong background task, nên cần cờ trạng thái + lock
-# để tránh hai request cùng lúc kích hoạt hai đợt crawl chồng nhau
-# (vừa đập vào PTT gấp đôi, vừa ghi log lẫn lộn).
+# 說明：
+# 爬取在 background task 中執行，因此需要狀態旗標 + lock，
+# 避免兩個 request 同時觸發兩批重疊的爬取
+# （既加倍打到 PTT，log 也會互相混在一起）。
 _crawl_state_lock = threading.Lock()
 _crawl_running = False
 
@@ -280,19 +277,19 @@ def _finish_crawl():
 
 
 def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
-    # Note:
-    # Background task chạy sau khi response đã trả về,
-    # nên phải tự mở/đóng session riêng, không dùng session của request.
+    # 說明：
+    # background task 在 response 送出後才執行，
+    # 必須自己開關獨立的 session，不能用 request 的 session。
     db = SessionLocal()
 
     try:
         for board_name in boards:
             _crawl_one_board(db=db, board=board_name, pages=pages, start_page=start_page)
 
-        # Note:
-        # Sau khi crawl xong, chấm sentiment cho bài mới bằng Gemini
-        # (bài cũ chưa chấm cũng được backfill dần).
-        # Hàm này tự nuốt lỗi LLM, không làm hỏng crawl job.
+        # 說明：
+        # 爬取結束後，用 Gemini 為新文章評情緒
+        # （還沒評分的舊文章也會被逐步 backfill）。
+        # 這個函式會自行吞掉 LLM 錯誤，不會影響爬取工作。
         scored_count = classify_pending_sentiments(db)
 
         if scored_count:

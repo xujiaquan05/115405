@@ -148,9 +148,9 @@ def retrieve_articles(
         .filter(Article.published_at <= end_date)
     )
 
-    # Note:
-    # Ưu tiên sentiment do LLM chấm; bài chưa chấm (NULL)
-    # fallback tạm về quy tắc push_count cũ.
+    # 說明：
+    # 優先使用 LLM 評出的 sentiment；
+    # 還沒評分的文章（NULL）暫時 fallback 回原本的 push_count 規則。
     sentiment = intent.get("sentiment", "all")
     if sentiment == "positive":
         query = query.filter(

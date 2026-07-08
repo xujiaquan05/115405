@@ -11,11 +11,11 @@ def test_taiwan_now_is_utc_plus_8():
 
     diff_hours = (taiwan - utc_naive).total_seconds() / 3600
 
-    # Đài Loan không có daylight saving nên luôn đúng +8.
+    # 台灣沒有日光節約時間，所以永遠是 +8。
     assert 7.99 < diff_hours < 8.01
 
 
 def test_taiwan_now_is_naive():
-    # published_at trong DB là naive datetime,
-    # nên taiwan_now cũng phải naive để so sánh được.
+    # DB 裡的 published_at 是 naive datetime，
+    # taiwan_now 也必須是 naive 才能互相比較。
     assert taiwan_now().tzinfo is None

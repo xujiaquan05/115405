@@ -9,10 +9,10 @@ from app.services.dashboard_service import TARGET_BOARDS
 
 
 def _apply_schema_migrations():
-    # Note:
-    # create_all chỉ tạo bảng mới, không thêm cột vào bảng đã tồn tại.
-    # Dự án chưa dùng Alembic nên các cột thêm sau này phải
-    # ALTER TABLE thủ công ở đây (IF NOT EXISTS để chạy lại an toàn).
+    # 說明：
+    # create_all 只會建立新資料表，不會在既有資料表上新增欄位。
+    # 專案尚未使用 Alembic，所以之後新增的欄位必須在這裡
+    # 手動 ALTER TABLE（加 IF NOT EXISTS 讓重複執行也安全）。
     with engine.begin() as connection:
         connection.execute(text(
             "ALTER TABLE articles ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20)"

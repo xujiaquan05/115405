@@ -62,10 +62,10 @@ class Article(Base):
 
     push_count = Column(Integer, default=0)
 
-    # Note:
-    # sentiment do Gemini chấm theo batch sau khi crawl:
-    # positive / neutral / negative.
-    # NULL = chưa chấm; khi đó các query sẽ fallback về push_count.
+    # 說明：
+    # sentiment 由 Gemini 在爬取後以 batch 方式評分：
+    # positive / neutral / negative。
+    # NULL = 尚未評分；查詢時會 fallback 回 push_count 規則。
     sentiment = Column(String(20), index=True)
 
     published_at = Column(DateTime)

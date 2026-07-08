@@ -7,27 +7,30 @@ from fastapi import WebSocket
 
 class ConnectionManager:
     """
-    Note:
-    ConnectionManager dùng để quản lý tất cả WebSocket client đang kết nối.
+    說明：
+    ConnectionManager 負責管理所有連線中的 WebSocket client。
 
-    Ví dụ:
-    - User A mở Dashboard
-    - User B cũng mở Dashboard
+    例如：
+    - User A 開著 Dashboard
+    - User B 也開著 Dashboard
 
-    Khi crawler chạy, backend sẽ broadcast message cho tất cả user đang mở Dashboard.
+    當 crawler 執行時，backend 會 broadcast 訊息給
+    所有開著 Dashboard 的 user。
+
+    限制：連線清單存在單一 process 的 RAM 中，
+    若之後 scale 多個 worker，broadcast 只會送到
+    同一個 worker 的 client，需要改用 Redis pub/sub。
     """
 
     def __init__(self):
-        # Note:
-        # active_connections lưu danh sách WebSocket client còn đang kết nối.
+        # active_connections 保存仍在連線中的 WebSocket client。
         self.active_connections: List[WebSocket] = []
         self._loop = None
 
     async def connect(self, websocket: WebSocket):
         """
-        Note:
-        Khi frontend kết nối WebSocket,
-        backend phải accept() trước, sau đó mới lưu connection.
+        前端建立 WebSocket 連線時，
+        backend 必須先 accept()，再保存 connection。
         """
 
         await websocket.accept()
@@ -36,9 +39,8 @@ class ConnectionManager:
 
     def disconnect(self, websocket: WebSocket):
         """
-        Note:
-        Khi user đóng tab / reload trang / mất mạng,
-        mình xóa websocket đó ra khỏi danh sách.
+        當 user 關閉分頁 / 重新整理 / 斷網時，
+        把該 websocket 從清單中移除。
         """
 
         if websocket in self.active_connections:
@@ -46,12 +48,11 @@ class ConnectionManager:
 
     async def broadcast(self, message: Dict[str, Any]):
         """
-        Note:
-        Gửi cùng một message cho tất cả client đang kết nối.
+        把同一則訊息送給所有連線中的 client。
 
-        Vì WebSocket có thể bị ngắt bất cứ lúc nào,
-        nên mỗi lần gửi phải try/except.
-        Nếu gửi thất bại, đưa connection đó vào danh sách cần xóa.
+        WebSocket 隨時可能斷線，
+        所以每次傳送都要 try/except；
+        傳送失敗的 connection 加入待移除清單。
         """
 
         disconnected_clients = []
@@ -60,26 +61,22 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception:
-                # Note:
-                # Nếu gửi thất bại, nghĩa là client có thể đã disconnect.
+                # 傳送失敗代表 client 可能已經斷線。
                 disconnected_clients.append(connection)
 
-        # Note:
-        # Xóa các client đã mất kết nối để lần sau không gửi nữa.
+        # 移除已斷線的 client，之後不再對它們傳送。
         for connection in disconnected_clients:
             self.disconnect(connection)
 
     def broadcast_sync(self, message: Dict[str, Any]):
         """
-        Note:
-        Hàm này dùng để gọi broadcast từ code đồng bộ.
+        提供給同步程式呼叫 broadcast 的入口。
 
-        Vì crawler hiện tại của mình là sync function,
-        không thể dùng await trực tiếp.
+        因為 crawler 是同步函式，無法直接 await。
 
-        Cách xử lý:
-        - Nếu đang có event loop: tạo task
-        - Nếu không có event loop: dùng asyncio.run()
+        處理方式：
+        - 目前執行緒有 event loop：建立 task
+        - 沒有 event loop：透過已記錄的 loop 或 asyncio.run() 執行
         """
 
         try:
@@ -95,7 +92,6 @@ class ConnectionManager:
         return len(self.active_connections)
 
 
-# Note:
-# Tạo một manager global dùng chung cho toàn backend.
-# Các router và crawler sẽ import object này để broadcast.
+# 建立全域共用的 manager，
+# 各 router 和 crawler 匯入此物件來 broadcast。
 websocket_manager = ConnectionManager()

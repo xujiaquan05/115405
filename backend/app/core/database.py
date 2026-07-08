@@ -6,30 +6,25 @@ from dotenv import load_dotenv
 import os
 
 
-# Note:
-# Load biến môi trường trong file .env
+# 載入 .env 檔案中的環境變數
 load_dotenv()
 
 
-# Note:
-# Lấy DATABASE_URL từ file .env
+# 從 .env 讀取 DATABASE_URL
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 
-# Note:
-# Nếu DATABASE_URL không tồn tại thì báo lỗi rõ ràng
-# để mình biết là file .env chưa đúng.
+# 如果 DATABASE_URL 不存在就明確報錯，
+# 方便發現 .env 設定不正確。
 if DATABASE_URL is None:
     raise ValueError("DATABASE_URL is not set in .env file")
 
 
-# Note:
-# engine là kết nối chính đến PostgreSQL
+# engine 是連線 PostgreSQL 的主要物件
 engine = create_engine(DATABASE_URL)
 
 
-# Note:
-# SessionLocal dùng để tạo session mỗi lần API gọi database
+# SessionLocal 用來在每次 API 呼叫時建立 database session
 SessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -37,17 +32,15 @@ SessionLocal = sessionmaker(
 )
 
 
-# Note:
-# Base dùng cho models.py kế thừa
+# Base 供 models 繼承使用
 Base = declarative_base()
 
 
 def get_db():
     """
-    Note:
-    Đây là function cung cấp database session cho FastAPI.
+    提供 database session 給 FastAPI 的相依函式。
 
-    FastAPI sẽ gọi hàm này khi thấy:
+    FastAPI 會在看到以下寫法時呼叫此函式：
     db: Session = Depends(get_db)
     """
 

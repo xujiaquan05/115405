@@ -16,10 +16,10 @@ router = APIRouter(
     tags=["AI Q&A"],
 )
 
-# Note:
-# Mỗi câu hỏi tốn 1-2 call Gemini (tốn quota API key),
-# nên giới hạn mỗi IP 10 câu hỏi / phút để tránh bị spam
-# trên URL public.
+# 說明：
+# 每個問題會消耗 1-2 次 Gemini 呼叫（花費 API key 額度），
+# 因此限制每個 IP 每分鐘 10 個問題，
+# 避免 public URL 被灌爆。
 qa_rate_limiter = RateLimiter(max_requests=10, window_seconds=60)
 
 

@@ -1,10 +1,16 @@
 # backend/tests/test_cache_service.py
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from app.services import cache_service
+
+
+def _expired_time():
+    # cache_service 內部使用 timezone-aware UTC 時間，
+    # 測試也必須用 aware datetime 才能比較。
+    return datetime.now(timezone.utc) - timedelta(minutes=1)
 
 
 @pytest.fixture(autouse=True)
@@ -25,9 +31,7 @@ class TestCacheBasics:
 
     def test_expired_entry_removed(self):
         cache_service.set_cache("key1", "data")
-        cache_service.CACHE_STORE["key1"]["expires_at"] = (
-            datetime.utcnow() - timedelta(minutes=1)
-        )
+        cache_service.CACHE_STORE["key1"]["expires_at"] = _expired_time()
 
         assert cache_service.get_cache("key1") is None
         assert "key1" not in cache_service.CACHE_STORE
@@ -45,16 +49,14 @@ class TestCacheEviction:
     def test_expired_entries_evicted_first(self, monkeypatch):
         monkeypatch.setattr(cache_service, "MAX_CACHE_ITEMS", 3)
 
-        # Đổ đầy cache đến trần (3 entry), trong đó 1 entry đã hết hạn.
+        # 把 cache 填到上限（3 個 entry），其中 1 個已過期。
         cache_service.set_cache("fresh1", 1)
         cache_service.set_cache("stale", 2)
         cache_service.set_cache("fresh2", 3)
-        cache_service.CACHE_STORE["stale"]["expires_at"] = (
-            datetime.utcnow() - timedelta(minutes=1)
-        )
+        cache_service.CACHE_STORE["stale"]["expires_at"] = _expired_time()
 
-        # Insert khi cache đã đầy => entry hết hạn bị dọn trước,
-        # entry còn hạn được giữ nguyên.
+        # cache 已滿時再寫入 => 先清掉過期 entry，
+        # 未過期的 entry 保持不動。
         cache_service.set_cache("fresh3", 4)
 
         assert "stale" not in cache_service.CACHE_STORE

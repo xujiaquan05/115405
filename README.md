@@ -3,7 +3,7 @@
 本專案是一個輿情分析系統，用於收集文章資料、儲存到 PostgreSQL，並透過 FastAPI 後端與 Vue 前端進行展示。
 
 Repository：  
-https://github.com/xujiaquan05/114
+https://github.com/xujiaquan05/115405
 
 ---
 
@@ -18,13 +18,13 @@ cd Desktop
 下載專案：
 
 ```bash
-git clone https://github.com/xujiaquan05/114.git
+git clone https://github.com/xujiaquan05/115405.git
 ```
 
 進入專案資料夾：
 
 ```bash
-cd 114
+cd 115405
 ```
 
 ---
@@ -503,15 +503,35 @@ AI Q&A:      https://medical-beauty-opinion.onrender.com/qa
 
 ---
 
+## 執行後端測試
+
+安裝測試套件（只需要一次）：
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+```
+
+執行全部測試：
+
+```bash
+python -m pytest tests/ -v
+```
+
+測試會自動使用 SQLite in-memory，不會碰到真正的資料庫。
+
+---
+
 ## Phase 6-8 demo checklist
 
 Backend endpoints:
 
 ```text
 GET  /api/dashboard/full
-POST /api/crawler/ptt
+POST /api/crawler/ptt                    (背景執行，進度走 WebSocket)
+POST /api/analysis/sentiment/refresh     (手動補評文章情緒)
 WS   /ws/dashboard
-POST /api/qa/ask
+POST /api/qa/ask                         (每 IP 限 10 次/分鐘)
 GET  /api/export/articles.xlsx
 ```
 

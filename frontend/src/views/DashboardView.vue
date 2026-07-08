@@ -79,8 +79,7 @@ function scrollToDashboardSection(sectionId) {
   });
 }
 
-// Note:
-// Khi mở Dashboard lần đầu, tự động load keyword mặc định.
+// 第一次開啟 Dashboard 時，自動載入預設關鍵字。
 onMounted(() => {
   connect();
   searchDashboard({ createConversation: false });
