@@ -2,12 +2,13 @@
 
 import json
 import re
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import desc, or_
 from sqlalchemy.orm import Session
 
+from app.core.time_utils import taiwan_now
 from app.models.database_models import Article
 from app.services.article_compressor import clean_text, compress_articles_for_llm
 from app.services.llm_client import generate_json_response
@@ -131,7 +132,7 @@ def retrieve_articles(
     intent: dict[str, Any],
     limit: int = 12,
 ) -> list[Article]:
-    end_date = datetime.utcnow()
+    end_date = taiwan_now()
     start_date = end_date - timedelta(days=intent.get("days", 30))
 
     keyword_filters = []

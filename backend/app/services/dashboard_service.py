@@ -1,10 +1,11 @@
 # backend/app/services/dashboard_service.py
 
 import re
-from datetime import datetime, timedelta
+from datetime import timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_, desc
 
+from app.core.time_utils import taiwan_now
 from app.models.database_models import Article, Board
 
 
@@ -111,7 +112,7 @@ def get_date_range(days: int):
     nghĩa là lấy dữ liệu từ 30 ngày trước đến hiện tại.
     """
 
-    end_date = datetime.utcnow()
+    end_date = taiwan_now()
     start_date = end_date - timedelta(days=days)
 
     return start_date, end_date

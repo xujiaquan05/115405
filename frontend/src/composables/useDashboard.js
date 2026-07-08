@@ -169,7 +169,9 @@ export function useDashboard() {
       });
     } catch (error) {
       console.error(error);
-      state.errorMessage = "Crawler trigger failed. Please check backend status.";
+      state.errorMessage = error.response?.status === 409
+        ? "已有爬取任務執行中，請稍候再試。"
+        : "Crawler trigger failed. Please check backend status.";
     } finally {
       state.loadingCrawler = false;
     }

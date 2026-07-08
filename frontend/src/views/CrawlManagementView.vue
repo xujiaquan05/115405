@@ -160,7 +160,7 @@ async function fetchCrawlerStatus() {
 }
 
 async function startCrawler() {
-  if (state.loading) return;
+  if (isRunning.value) return;
 
   state.loading = true;
   state.errorMessage = "";
@@ -177,7 +177,9 @@ async function startCrawler() {
     await fetchCrawlerStatus();
   } catch (error) {
     console.error(error);
-    state.errorMessage = "啟動爬蟲失敗，請確認網路、PTT 連線或 backend log。";
+    state.errorMessage = error.response?.status === 409
+      ? "已有爬取任務執行中，請等待目前任務完成後再試。"
+      : "啟動爬蟲失敗，請確認網路、PTT 連線或 backend log。";
   } finally {
     state.loading = false;
   }
@@ -292,9 +294,9 @@ onMounted(() => {
             </select>
           </label>
 
-          <button class="crawler-primary-button" type="submit" :disabled="state.loading">
+          <button class="crawler-primary-button" type="submit" :disabled="isRunning">
             <span>▶</span>
-            {{ state.loading ? "爬取中" : "開始爬取" }}
+            {{ isRunning ? "爬取中" : "開始爬取" }}
           </button>
         </form>
 

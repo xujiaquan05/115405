@@ -1,11 +1,12 @@
 # backend/app/services/article_compressor.py
 
 import re
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
+from app.core.time_utils import taiwan_now
 from app.models.database_models import Article, Board
 from app.services.dashboard_service import build_keyword_filter
 
@@ -25,7 +26,7 @@ def get_related_articles(
     limit: int = 30,
     boards: list[str] | None = None,
 ):
-    end_date = datetime.utcnow()
+    end_date = taiwan_now()
     start_date = end_date - timedelta(days=days)
 
     query = (

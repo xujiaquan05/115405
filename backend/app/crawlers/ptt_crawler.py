@@ -1,5 +1,6 @@
 import hashlib
 import random
+import re
 import time
 from datetime import datetime
 from typing import Callable, Optional
@@ -231,8 +232,16 @@ class PTTCrawler:
         # 取得清理後的文字。
         content = main_content.get_text("\n", strip=True)
 
-        # 去掉 PTT 常見的分隔線。
-        content = content.split("--")[0].strip()
+        # PTT 簽名檔以「獨立一行 --」開始，之後接簽名與 ※ 發信站資訊。
+        # 只能從「最後一個」獨立 -- 行切開；
+        # 如果像舊版一樣用 content.split("--")，
+        # 正文中含 "--" 的網址或分隔線都會把文章誤切一半。
+        signature_parts = re.split(r"\n--\s*(?:\n|$)", content)
+
+        if len(signature_parts) > 1:
+            content = "\n--\n".join(signature_parts[:-1])
+
+        content = content.strip()
 
         return {
             "content": content,
@@ -358,7 +367,6 @@ class PTTCrawler:
 
                 # href thường có dạng /bbs/BeautySalon/index3950.html
                 # Ta lấy số 3950 ra.
-                import re
                 match = re.search(r"index(\d+)\.html", href)
 
                 if match:

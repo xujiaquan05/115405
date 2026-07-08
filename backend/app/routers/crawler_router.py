@@ -1,6 +1,7 @@
+import threading
 from datetime import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from sqlalchemy import func
 
 from app.core.database import SessionLocal
@@ -251,8 +252,49 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
         }
 
 
+# Note:
+# Crawl chạy trong background task, nên cần cờ trạng thái + lock
+# để tránh hai request cùng lúc kích hoạt hai đợt crawl chồng nhau
+# (vừa đập vào PTT gấp đôi, vừa ghi log lẫn lộn).
+_crawl_state_lock = threading.Lock()
+_crawl_running = False
+
+
+def _try_start_crawl() -> bool:
+    global _crawl_running
+
+    with _crawl_state_lock:
+        if _crawl_running:
+            return False
+
+        _crawl_running = True
+        return True
+
+
+def _finish_crawl():
+    global _crawl_running
+
+    with _crawl_state_lock:
+        _crawl_running = False
+
+
+def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
+    # Note:
+    # Background task chạy sau khi response đã trả về,
+    # nên phải tự mở/đóng session riêng, không dùng session của request.
+    db = SessionLocal()
+
+    try:
+        for board_name in boards:
+            _crawl_one_board(db=db, board=board_name, pages=pages, start_page=start_page)
+    finally:
+        db.close()
+        _finish_crawl()
+
+
 @router.post("/ptt")
 def crawl_ptt_board(
+    background_tasks: BackgroundTasks,
     board: str = Query(default="BeautySalon", description="Single PTT board name"),
     boards: list[str] | None = Query(
         default=None,
@@ -264,27 +306,23 @@ def crawl_ptt_board(
         description="PTT page number. If empty, crawler starts from latest index.html",
     ),
 ):
-    db = SessionLocal()
+    selected_boards = normalize_boards(boards) if boards else [board]
+    selected_boards = [name for name in selected_boards if name in TARGET_BOARDS]
 
-    try:
-        selected_boards = normalize_boards(boards) if boards else [board]
-        selected_boards = [name for name in selected_boards if name in TARGET_BOARDS]
+    if not selected_boards:
+        raise HTTPException(status_code=400, detail="沒有可爬取的看板，請確認看板名稱。")
 
-        results = [
-            _crawl_one_board(db=db, board=board_name, pages=pages, start_page=start_page)
-            for board_name in selected_boards
-        ]
+    if not _try_start_crawl():
+        raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
 
-        return {
-            "success": all(result.get("success") for result in results),
-            "platform": "ptt",
-            "boards": selected_boards,
-            "pages": pages,
-            "start_page": start_page,
-            "results": results,
-            "total_crawled": sum(result.get("total_crawled", 0) for result in results),
-            "new_count": sum(result.get("new_count", 0) for result in results),
-            "skipped_count": sum(result.get("skipped_count", 0) for result in results),
-        }
-    finally:
-        db.close()
+    background_tasks.add_task(_run_crawl_job, selected_boards, pages, start_page)
+
+    return {
+        "success": True,
+        "started": True,
+        "platform": "ptt",
+        "boards": selected_boards,
+        "pages": pages,
+        "start_page": start_page,
+        "message": "爬取任務已開始，進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
+    }
