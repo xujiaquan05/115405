@@ -1,10 +1,14 @@
 <!-- frontend/src/views/QAView.vue -->
 
 <script setup>
-import { computed, nextTick, onMounted, reactive, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 
 import api from "../services/api.js";
-import { useDashboard } from "../composables/useDashboard.js";
+import {
+  DASHBOARD_ANALYSIS_CONTEXT_KEY,
+  TARGET_BOARDS,
+  useDashboard,
+} from "../composables/useDashboard.js";
 
 const STORAGE_KEY = "qa-conversations";
 const DEFAULT_CONVERSATION_TITLE = "新的對話";
@@ -32,7 +36,6 @@ const state = reactive({
   errorMessage: "",
   conversations: [],
   activeConversationId: null,
-  sidebarOpen: true,
   searchText: "",
   openMenuId: null,
   editingConversationId: null,
@@ -91,20 +94,67 @@ function createWelcomeMessage() {
   };
 }
 
-function createConversation(title = DEFAULT_CONVERSATION_TITLE) {
+function readDashboardAnalysisContext() {
+  try {
+    return JSON.parse(localStorage.getItem(DASHBOARD_ANALYSIS_CONTEXT_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function applyDashboardContextToState(context) {
+  if (!context) return;
+
+  if (context.keyword) {
+    dashboardState.keyword = context.keyword;
+  }
+
+  if (context.days) {
+    dashboardState.days = context.days;
+  }
+
+  if (Array.isArray(context.boards)) {
+    const allBoards = TARGET_BOARDS.map((board) => board.name);
+    const usesAllBoards =
+      context.boards.length === allBoards.length &&
+      allBoards.every((board) => context.boards.includes(board));
+
+    dashboardState.selectedBoards = usesAllBoards ? [] : context.boards;
+  }
+}
+
+function createConversation(title = DEFAULT_CONVERSATION_TITLE, dashboardContextId = "") {
   const conversation = {
     id: Date.now() + Math.random(),
     title,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     keyword: dashboardState.keyword,
+    dashboardContextId,
     messages: [createWelcomeMessage()],
   };
 
   state.conversations.unshift(conversation);
   state.activeConversationId = conversation.id;
-  state.sidebarOpen = true;
   saveConversations();
+}
+
+function ensureConversationForDashboardContext(context = readDashboardAnalysisContext()) {
+  if (!context?.id) return;
+
+  applyDashboardContextToState(context);
+
+  const existingConversation = state.conversations.find((conversation) => {
+    return conversation.dashboardContextId === context.id;
+  });
+
+  if (existingConversation) {
+    state.activeConversationId = existingConversation.id;
+    nextTick(scrollToBottom);
+    return;
+  }
+
+  createConversation(DEFAULT_CONVERSATION_TITLE, context.id);
 }
 
 function saveConversations() {
@@ -120,7 +170,9 @@ function loadConversations() {
   }
 
   if (!state.conversations.length) {
-    createConversation();
+    const context = readDashboardAnalysisContext();
+    applyDashboardContextToState(context);
+    createConversation(DEFAULT_CONVERSATION_TITLE, context?.id || "");
     return;
   }
 
@@ -192,6 +244,12 @@ function togglePinnedConversation(conversationId) {
   conversation.updatedAt = new Date().toISOString();
   state.openMenuId = null;
   saveConversations();
+}
+
+function toggleMessageSources(message) {
+  message.sourcesExpanded = !message.sourcesExpanded;
+  saveConversations();
+  nextTick(scrollToBottom);
 }
 
 function formatConversationTime(value) {
@@ -279,6 +337,7 @@ async function askQuestion(questionText = state.question) {
       marketing_action: result.marketing_action,
       confidence: result.confidence,
       sources: result.sources || [],
+      sourcesExpanded: false,
       intent: result.intent,
     });
 
@@ -295,101 +354,29 @@ async function askQuestion(questionText = state.question) {
 
 onMounted(() => {
   loadConversations();
+  ensureConversationForDashboardContext();
   ensureDashboardContext();
+  window.addEventListener("dashboard-analysis-context-created", handleDashboardContextCreated);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener("dashboard-analysis-context-created", handleDashboardContextCreated);
+});
+
+watch(
+  () => dashboardState.analysisContextId,
+  () => {
+    ensureConversationForDashboardContext();
+  }
+);
+
+function handleDashboardContextCreated(event) {
+  ensureConversationForDashboardContext(event.detail);
+}
 </script>
 
 <template>
-  <section class="qa-page" :class="{ 'history-open': state.sidebarOpen }">
-    <button
-      class="qa-sidebar-toggle"
-      type="button"
-      :aria-label="state.sidebarOpen ? '關閉對話歷史' : '開啟對話歷史'"
-      @click="state.sidebarOpen = !state.sidebarOpen"
-    >
-      {{ state.sidebarOpen ? "‹" : "☰" }}
-    </button>
-
-    <aside class="qa-history-panel" :aria-hidden="!state.sidebarOpen">
-      <div class="qa-panel-actions">
-        <button type="button" @click="createConversation()">
-          <span>✎</span>
-          新對話
-        </button>
-
-        <label>
-          <span>⌕</span>
-          <input
-            v-model="state.searchText"
-            type="search"
-            placeholder="搜尋對話"
-          />
-        </label>
-      </div>
-
-      <div class="qa-history-title">對話歷史</div>
-
-      <div class="qa-history-list">
-        <div
-          v-for="conversation in filteredConversations"
-          :key="conversation.id"
-          class="qa-history-item"
-          :class="{ active: conversation.id === state.activeConversationId }"
-        >
-          <button
-            class="qa-history-item-main"
-            type="button"
-            @click="selectConversation(conversation.id)"
-          >
-            <input
-              v-if="state.editingConversationId === conversation.id"
-              v-model="state.editingTitle"
-              class="qa-history-title-input"
-              type="text"
-              @click.stop
-              @keydown.enter.prevent="finishRenameConversation(conversation.id)"
-              @blur="finishRenameConversation(conversation.id)"
-            />
-            <strong v-else>{{ conversation.title }}</strong>
-            <small>{{ conversation.keyword }} · {{ formatConversationTime(conversation.updatedAt) }}</small>
-          </button>
-
-          <span class="qa-history-menu-wrap" @click.stop>
-            <button
-              class="qa-history-menu-button"
-              type="button"
-              aria-label="開啟對話選單"
-              @click="toggleConversationMenu(conversation.id)"
-            >
-              ⋯
-            </button>
-
-            <span
-              v-if="state.openMenuId === conversation.id"
-              class="qa-conversation-menu"
-            >
-              <button type="button" @click="startRenameConversation(conversation.id)">
-                <span>✎</span>
-                重新命名
-              </button>
-              <button type="button" @click="togglePinnedConversation(conversation.id)">
-                <span>⌖</span>
-                {{ conversation.pinned ? "取消釘選" : "釘選聊天" }}
-              </button>
-              <button
-                class="danger"
-                type="button"
-                @click="deleteConversation(conversation.id)"
-              >
-                <span>⌫</span>
-                刪除
-              </button>
-            </span>
-          </span>
-        </div>
-      </div>
-    </aside>
-
+  <section class="qa-page">
     <div class="qa-chat-area">
       <div class="qa-header">
         <h2>AI 問答</h2>
@@ -433,9 +420,18 @@ onMounted(() => {
               {{ message.marketing_action }}
             </div>
 
-            <div v-if="message.sources?.length" class="qa-block">
-              <h3>Dashboard Sources</h3>
-              <div class="source-list">
+            <div v-if="message.sources?.length" class="qa-block source-toggle-block">
+              <button
+                class="source-toggle-button"
+                type="button"
+                :aria-expanded="Boolean(message.sourcesExpanded)"
+                @click="toggleMessageSources(message)"
+              >
+                <span>{{ message.sourcesExpanded ? "收起資料來源" : "顯示資料來源" }}</span>
+                <small>{{ message.sources.length }} 筆引用</small>
+              </button>
+
+              <div v-if="message.sourcesExpanded" class="source-list">
                 <a
                   v-for="source in message.sources"
                   :key="source.id || source.title"

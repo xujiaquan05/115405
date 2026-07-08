@@ -16,16 +16,19 @@ from app.services.llm_client import LLMServiceUnavailableError, generate_json_re
 
 
 CACHE_HOURS = 6
+PROMPT_CACHE_VERSION = "p20260609"
 
 
 def build_cache_analysis_type(analysis_type: str, boards: list[str] | None = None) -> str:
+    versioned_type = f"{analysis_type}:{PROMPT_CACHE_VERSION}"
+
     if not boards:
-        return analysis_type[:50]
+        return versioned_type[:50]
 
     boards_key = ",".join(sorted(boards))
     boards_hash = hashlib.sha1(boards_key.encode("utf-8")).hexdigest()[:12]
 
-    return f"{analysis_type}:b{boards_hash}"[:50]
+    return f"{versioned_type}:b{boards_hash}"[:50]
 
 
 def get_cached_analysis(

@@ -3,6 +3,8 @@
 import { computed, reactive } from "vue";
 import api from "../services/api.js";
 
+export const DASHBOARD_ANALYSIS_CONTEXT_KEY = "dashboard-analysis-context";
+
 export const TARGET_BOARDS = [
   { name: "facelift", label: "facelift 醫美/整形" },
   { name: "BeautySalon", label: "BeautySalon 保養" },
@@ -16,11 +18,24 @@ export const TARGET_BOARDS = [
   { name: "teeth_salon", label: "teeth_salon 牙齒美容" },
 ];
 
+function readStoredAnalysisContext() {
+  if (typeof localStorage === "undefined") return null;
+
+  try {
+    return JSON.parse(localStorage.getItem(DASHBOARD_ANALYSIS_CONTEXT_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+const storedAnalysisContext = readStoredAnalysisContext();
+
 const state = reactive({
   keyword: "醫美 保養 粉底 痘痘 穿搭",
   selectedBoards: [],
   days: 30,
   sortBy: "push_count",
+  analysisContextId: storedAnalysisContext?.id || "",
 
   dashboardData: null,
   insightData: null,
@@ -54,6 +69,29 @@ function buildParams(extraParams = {}) {
   return params;
 }
 
+function publishDashboardAnalysisContext() {
+  const context = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    keyword: state.keyword,
+    days: state.days,
+    boards: getSelectedBoards(),
+    createdAt: new Date().toISOString(),
+  };
+
+  state.analysisContextId = context.id;
+  localStorage.setItem(DASHBOARD_ANALYSIS_CONTEXT_KEY, JSON.stringify(context));
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("dashboard-analysis-context-created", {
+        detail: context,
+      })
+    );
+  }
+
+  return context;
+}
+
 export function useDashboard() {
   async function fetchDashboard() {
     state.loadingDashboard = true;
@@ -77,7 +115,7 @@ export function useDashboard() {
     }
   }
 
-  async function fetchInsight() {
+  async function fetchInsight(forceRefresh = false) {
     state.loadingInsight = true;
 
     try {
@@ -86,7 +124,7 @@ export function useDashboard() {
           keyword: state.keyword,
           analysis_type: "overview",
           days: state.days,
-          force_refresh: false,
+          force_refresh: forceRefresh,
         }),
       });
 
@@ -104,8 +142,15 @@ export function useDashboard() {
     }
   }
 
-  async function searchDashboard() {
+  async function searchDashboard(options = {}) {
+    const { createConversation = true } = options;
+
     await fetchDashboard();
+
+    if (createConversation) {
+      publishDashboardAnalysisContext();
+    }
+
     fetchInsight();
   }
 

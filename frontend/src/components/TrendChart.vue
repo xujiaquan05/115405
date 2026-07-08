@@ -25,6 +25,8 @@ const props = defineProps({
 
 const canvasRef = ref(null);
 let chartInstance = null;
+const Y_AXIS_MAX = 25;
+const Y_AXIS_STEP = 5;
 
 const LINE_COLORS = [
   "#f25549",
@@ -133,10 +135,6 @@ function renderChart() {
   const datasets = visibleSeries.map((seriesItem, index) => {
     return buildDataset(seriesItem, labels, index);
   });
-  const values = datasets.flatMap((dataset) => dataset.data);
-  const maxValue = Math.max(100, ...values);
-  const yMax = Math.ceil(maxValue / 20) * 20;
-
   chartInstance = new Chart(canvasRef.value, {
     type: "line",
     data: {
@@ -179,7 +177,7 @@ function renderChart() {
         y: {
           display: true,
           beginAtZero: true,
-          max: yMax,
+          max: Y_AXIS_MAX,
           title: {
             display: true,
             text: "則數",
@@ -191,7 +189,7 @@ function renderChart() {
           },
           ticks: {
             precision: 0,
-            stepSize: 20,
+            stepSize: Y_AXIS_STEP,
             color: "#6b7280",
             padding: 10,
           },

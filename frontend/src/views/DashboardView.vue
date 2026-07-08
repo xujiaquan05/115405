@@ -27,6 +27,7 @@ const {
   dataStatus,
   searchDashboard,
   fetchDashboard,
+  fetchInsight,
   changeSort,
 } = useDashboard();
 
@@ -82,7 +83,7 @@ function scrollToDashboardSection(sectionId) {
 // Khi mở Dashboard lần đầu, tự động load keyword mặc định.
 onMounted(() => {
   connect();
-  searchDashboard();
+  searchDashboard({ createConversation: false });
   updateActiveSection();
   window.addEventListener("scroll", updateActiveSection, { passive: true });
   window.addEventListener("resize", updateActiveSection);

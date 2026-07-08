@@ -87,7 +87,13 @@ def _extract_topics(result_json: dict) -> list[str]:
                 if isinstance(item, str):
                     topics.append(item)
                 elif isinstance(item, dict):
-                    topic = item.get("topic") or item.get("keyword") or item.get("name")
+                    topic = (
+                        item.get("topic")
+                        or item.get("pain_point")
+                        or item.get("keyword")
+                        or item.get("name")
+                        or item.get("title")
+                    )
 
                     if topic:
                         topics.append(str(topic))

@@ -27,50 +27,105 @@ const cloudColors = [
   "#ff9f43",
 ];
 
-const cloudPositions = [
-  { left: 50, top: 50, rotate: 0 },
-  { left: 35, top: 50, rotate: 0 },
-  { left: 64, top: 46, rotate: 0 },
-  { left: 44, top: 64, rotate: 0 },
-  { left: 56, top: 34, rotate: 0 },
-  { left: 28, top: 36, rotate: 0 },
-  { left: 72, top: 59, rotate: 0 },
-  { left: 38, top: 27, rotate: 0 },
-  { left: 61, top: 72, rotate: 0 },
-  { left: 25, top: 63, rotate: 0 },
-  { left: 76, top: 32, rotate: 0 },
-  { left: 48, top: 22, rotate: 0 },
-  { left: 68, top: 22, rotate: 0 },
-  { left: 32, top: 76, rotate: 0 },
-  { left: 56, top: 56, rotate: 0 },
-  { left: 43, top: 80, rotate: 0 },
-  { left: 76, top: 75, rotate: 0 },
-  { left: 22, top: 25, rotate: 0 },
-  { left: 66, top: 82, rotate: 0 },
-  { left: 52, top: 84, rotate: 0 },
-];
+const cloudArea = {
+  width: 1000,
+  height: 330,
+  padding: 18,
+};
+
+const estimateWordWidth = (keyword, fontSize) => {
+  return [...String(keyword)].reduce((width, char) => {
+    return width + fontSize * (/[\u4e00-\u9fff]/.test(char) ? 1 : 0.58);
+  }, 18);
+};
+
+const overlaps = (box, boxes) => {
+  const spacing = 14;
+  return boxes.some((placed) => {
+    return !(
+      box.right + spacing < placed.left ||
+      box.left - spacing > placed.right ||
+      box.bottom + spacing < placed.top ||
+      box.top - spacing > placed.bottom
+    );
+  });
+};
+
+const candidatePositions = Array.from({ length: 90 }, (_, index) => {
+  if (index === 0) {
+    return { x: 500, y: 165 };
+  }
+
+  const angle = index * 2.35;
+  const radius = 22 + index * 5.2;
+
+  return {
+    x: 500 + Math.cos(angle) * radius * 1.55,
+    y: 165 + Math.sin(angle) * radius * 0.78,
+  };
+});
+
+const createWordPlacement = (keyword, preferredFontSize, placedBoxes) => {
+  for (let shrink = 0; shrink <= 12; shrink += 2) {
+    const fontSize = Math.max(16, preferredFontSize - shrink);
+    const width = estimateWordWidth(keyword, fontSize);
+    const height = fontSize * 1.08;
+
+    for (const position of candidatePositions) {
+      const box = {
+        left: position.x - width / 2,
+        right: position.x + width / 2,
+        top: position.y - height / 2,
+        bottom: position.y + height / 2,
+      };
+
+      const inside =
+        box.left >= cloudArea.padding &&
+        box.right <= cloudArea.width - cloudArea.padding &&
+        box.top >= cloudArea.padding &&
+        box.bottom <= cloudArea.height - cloudArea.padding;
+
+      if (inside && !overlaps(box, placedBoxes)) {
+        placedBoxes.push(box);
+        return {
+          fontSize,
+          left: (position.x / cloudArea.width) * 100,
+          top: (position.y / cloudArea.height) * 100,
+        };
+      }
+    }
+  }
+
+  const fallbackIndex = placedBoxes.length;
+  return {
+    fontSize: Math.max(16, preferredFontSize - 12),
+    left: 18 + (fallbackIndex % 5) * 16,
+    top: 18 + Math.floor(fallbackIndex / 5) * 16,
+  };
+};
 
 const cloudItems = computed(() => {
   const counts = props.keywords.map((item) => item.count || 0);
   const maxCount = Math.max(...counts, 1);
   const minCount = Math.min(...counts, maxCount);
   const range = Math.max(maxCount - minCount, 1);
+  const placedBoxes = [];
 
   return props.keywords.slice(0, 20).map((item, index) => {
     const weight = ((item.count || 0) - minCount) / range;
-    const fontSize = Math.round(18 + weight * 34 + Math.max(0, 6 - index) * 2);
-    const position = cloudPositions[index % cloudPositions.length];
+    const preferredFontSize = Math.round(18 + weight * 34 + Math.max(0, 6 - index) * 2);
+    const placement = createWordPlacement(item.keyword, preferredFontSize, placedBoxes);
 
     return {
       keyword: item.keyword,
       count: item.count,
       style: {
-        left: `${position.left}%`,
-        top: `${position.top}%`,
+        left: `${placement.left}%`,
+        top: `${placement.top}%`,
         color: cloudColors[index % cloudColors.length],
-        fontSize: `${fontSize}px`,
-        "--cloud-size": `${fontSize}px`,
-        transform: `translate(-50%, -50%) rotate(${position.rotate}deg)`,
+        fontSize: `${placement.fontSize}px`,
+        "--cloud-size": `${placement.fontSize}px`,
+        transform: "translate(-50%, -50%)",
         zIndex: 30 - index,
       },
     };
