@@ -177,9 +177,14 @@ async function startCrawler() {
     await fetchCrawlerStatus();
   } catch (error) {
     console.error(error);
-    state.errorMessage = error.response?.status === 409
-      ? "已有爬取任務執行中，請等待目前任務完成後再試。"
-      : "啟動爬蟲失敗，請確認網路、PTT 連線或 backend log。";
+
+    if (error.response?.status === 401) {
+      state.errorMessage = "啟動爬蟲需要登入，請先登入系統。";
+    } else if (error.response?.status === 409) {
+      state.errorMessage = "已有爬取任務執行中，請等待目前任務完成後再試。";
+    } else {
+      state.errorMessage = "啟動爬蟲失敗，請確認網路、PTT 連線或 backend log。";
+    }
   } finally {
     state.loading = false;
   }

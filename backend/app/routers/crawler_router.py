@@ -9,6 +9,7 @@ from app.core.database import SessionLocal, get_db
 from app.crawlers.ptt_crawler import PTTCrawler
 from app.models.database_models import Article, Board, CrawlLog
 from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
+from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import TARGET_BOARDS, normalize_boards
 from app.services.sentiment_service import classify_pending_sentiments
@@ -303,7 +304,10 @@ def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
         _finish_crawl()
 
 
-@router.post("/ptt")
+# 說明：
+# 觸發爬蟲會對 PTT 發出大量請求且消耗資源，
+# 屬於敏感操作，必須登入才能使用。
+@router.post("/ptt", dependencies=[Depends(get_current_user)])
 def crawl_ptt_board(
     background_tasks: BackgroundTasks,
     board: str = Query(default="BeautySalon", description="Single PTT board name"),

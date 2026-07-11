@@ -1,5 +1,22 @@
 <!-- frontend/src/components/AppNavbar.vue -->
 
+<script setup>
+import { useRouter } from "vue-router";
+import { useAuth } from "../composables/useAuth";
+
+const router = useRouter();
+const { state: authState, isAuthenticated, logout } = useAuth();
+
+function handleLogout() {
+  logout();
+  router.push("/login");
+}
+
+function goLogin() {
+  router.push("/login");
+}
+</script>
+
 <template>
   <header class="navbar">
     <div>
@@ -12,6 +29,17 @@
       <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
       <RouterLink to="/qa" class="nav-link">AI 問答</RouterLink>
       <RouterLink to="/history" class="nav-link">History</RouterLink>
+
+      <div class="navbar-user">
+        <template v-if="isAuthenticated">
+          <span class="navbar-username">{{ authState.user?.display_name || authState.user?.username }}</span>
+          <button class="navbar-auth-button" type="button" @click="handleLogout">登出</button>
+        </template>
+        <template v-else>
+          <span class="navbar-username">訪客</span>
+          <button class="navbar-auth-button" type="button" @click="goLogin">登入</button>
+        </template>
+      </div>
     </nav>
   </header>
 </template>

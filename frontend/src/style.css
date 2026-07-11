@@ -75,6 +75,275 @@ select {
   color: white;
 }
 
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 12px;
+  padding-left: 16px;
+  border-left: 1px solid #e5e7eb;
+}
+
+.navbar-username {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.navbar-auth-button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.navbar-auth-button:hover {
+  background: #f3f4f6;
+}
+
+/* 登入頁 */
+
+.login-content {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  padding: 24px;
+}
+
+.login-page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 860px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 5fr 6fr;
+}
+
+/* 左側品牌介紹面板 */
+
+.login-brand {
+  background: #eef2ff;
+  padding: 36px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.login-brand-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-brand-title h1 {
+  margin: 0;
+  font-size: 19px;
+  color: #111827;
+}
+
+.login-brand-mark {
+  font-size: 22px;
+  color: #4f46e5;
+}
+
+.login-brand-subtitle {
+  margin: 4px 0 32px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.login-feature-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.login-feature-list li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.login-feature-icon {
+  font-size: 17px;
+  color: #4f46e5;
+  line-height: 1.4;
+}
+
+.login-feature-list strong {
+  display: block;
+  font-size: 14px;
+  color: #111827;
+}
+
+.login-feature-list p {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: #6b7280;
+}
+
+.login-brand-footer {
+  margin: 32px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 右側登入表單 */
+
+.login-form-panel {
+  padding: 36px 36px 28px;
+}
+
+.login-form-panel h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #111827;
+}
+
+.login-form-hint {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.login-error {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.login-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.login-input-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.login-input-wrap input {
+  width: 100%;
+  height: 42px;
+  padding: 0 76px 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.login-input-wrap input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px #eef2ff;
+}
+
+.login-eye-button {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.login-submit-button {
+  width: 100%;
+  height: 42px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-submit-button:hover {
+  background: #1f2937;
+}
+
+.login-submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid #e5e7eb;
+}
+
+.login-guest-button {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.login-guest-button:hover {
+  background: #f3f4f6;
+}
+
+.login-footnote {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* 窄螢幕時隱藏品牌面板，只留表單 */
+@media (max-width: 760px) {
+  .login-card {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+  }
+
+  .login-brand {
+    display: none;
+  }
+}
+
 /* Common cards */
 
 .card {

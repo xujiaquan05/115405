@@ -169,9 +169,14 @@ export function useDashboard() {
       });
     } catch (error) {
       console.error(error);
-      state.errorMessage = error.response?.status === 409
-        ? "已有爬取任務執行中，請稍候再試。"
-        : "Crawler trigger failed. Please check backend status.";
+
+      if (error.response?.status === 401) {
+        state.errorMessage = "啟動爬蟲需要登入，請先登入系統。";
+      } else if (error.response?.status === 409) {
+        state.errorMessage = "已有爬取任務執行中，請稍候再試。";
+      } else {
+        state.errorMessage = "Crawler trigger failed. Please check backend status.";
+      }
     } finally {
       state.loadingCrawler = false;
     }

@@ -76,6 +76,30 @@ class Article(Base):
     author = relationship("Author", back_populates="articles")
 
 
+class User(Base):
+    """
+    說明：
+    系統登入帳號。密碼只儲存 PBKDF2 雜湊值，絕不存明文。
+    帳號由管理員建立（系統啟動時會自動建立預設 admin）。
+    """
+
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+    display_name = Column(String(100))
+
+    # 角色：admin / user，之後可用來控制權限。
+    role = Column(String(20), nullable=False, default="user")
+
+    # 停用帳號時設為 0，不直接刪除資料。
+    is_active = Column(Integer, nullable=False, default=1)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class AnalysisResult(Base):
     __tablename__ = "analysis_results"
 

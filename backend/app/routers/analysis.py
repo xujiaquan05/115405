@@ -11,6 +11,7 @@ from app.services.dashboard_service import (
     get_sentiment_distribution,
     normalize_boards,
 )
+from app.services.auth_service import get_current_user
 from app.services.llm_analysis_service import analyze_keyword_with_llm
 from app.services.sentiment_service import classify_pending_sentiments
 
@@ -77,7 +78,9 @@ def analyze_keyword(
     }
 
 
-@router.post("/sentiment/refresh")
+# 說明：
+# 手動評分會大量呼叫 Gemini（消耗 API 額度），必須登入才能使用。
+@router.post("/sentiment/refresh", dependencies=[Depends(get_current_user)])
 def refresh_sentiments(
     max_articles: int = Query(
         default=100,

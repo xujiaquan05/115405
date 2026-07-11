@@ -52,3 +52,4 @@ uritemplate==4.2.0
 urllib3==2.7.0
 uvicorn==0.46.0
 websockets==16.0
+PyJWT==2.13.0
