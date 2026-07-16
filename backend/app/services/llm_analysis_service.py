@@ -16,9 +16,9 @@ from app.services.llm_client import LLMServiceUnavailableError, generate_json_re
 
 
 CACHE_HOURS = 6
-# 2026-07-08：洞察分析提示詞還原為原始版本，
-# 更新版本號讓帶有 5W2H1E 結構的舊 cache 全部失效。
-PROMPT_CACHE_VERSION = "p20260708"
+# 2026-07-12：洞察分析提示詞改回 5W2H1E 詳細版本（QA 提示詞維持原始版），
+# 更新版本號讓舊 cache 全部失效。
+PROMPT_CACHE_VERSION = "p20260712"
 
 
 def build_cache_analysis_type(analysis_type: str, boards: list[str] | None = None) -> str:
