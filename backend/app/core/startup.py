@@ -28,6 +28,9 @@ def _apply_schema_migrations():
         connection.execute(text(
             "CREATE INDEX IF NOT EXISTS ix_articles_sentiment ON articles (sentiment)"
         ))
+        connection.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP"
+        ))
 
 
 def _seed_admin_user(db):

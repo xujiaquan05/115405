@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.rate_limit import RateLimiter
+from app.core.time_utils import taiwan_now
 from app.models.database_models import User
 from app.services.auth_service import (
     authenticate_user,
@@ -47,6 +48,10 @@ def login(
 
     if user is None:
         raise HTTPException(status_code=401, detail="帳號或密碼錯誤，請重新輸入。")
+
+    # 記錄最後登入時間（台灣時間），供後台觀察帳號活躍度。
+    user.last_login_at = taiwan_now()
+    db.commit()
 
     return {
         "status": "success",

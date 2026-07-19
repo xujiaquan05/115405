@@ -82,6 +82,58 @@ class TestAdminAccessControl:
         usernames = [u["username"] for u in response.json()["data"]["users"]]
         assert "admin" in usernames and "normal" in usernames
 
+    def test_list_includes_stats(self, client):
+        stats = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["stats"]
+        assert stats["total"] == 2
+        assert stats["admins"] == 1
+        assert stats["active"] == 2
+
+
+class TestLastLoginAndAudit:
+    def test_last_login_recorded(self, client):
+        # 登入前 last_login_at 是 None，登入後應被填上。
+        before = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        normal_before = next(u for u in before if u["username"] == "normal")
+        assert normal_before["last_login_at"] is None
+
+        auth_header(client, "normal", "user123")
+
+        after = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        normal_after = next(u for u in after if u["username"] == "normal")
+        assert normal_after["last_login_at"] is not None
+
+    def test_stats_logged_this_week(self, client):
+        auth_header(client, "normal", "user123")
+        stats = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["stats"]
+        # admin（剛剛登入）與 normal 都算本週登入。
+        assert stats["logged_this_week"] >= 2
+
+    def test_audit_log_records_create(self, client):
+        client.post(
+            "/api/admin/users",
+            json={"username": "editor", "password": "editor123"},
+            headers=admin_header(client),
+        )
+
+        logs = client.get("/api/admin/audit-logs", headers=admin_header(client)).json()["data"]["logs"]
+        assert any(
+            log["action"] == "create_user" and log["target_username"] == "editor"
+            for log in logs
+        )
+        assert logs[0]["actor_username"] == "admin"
+
+    def test_audit_log_records_delete(self, client):
+        users = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        normal_id = next(u["id"] for u in users if u["username"] == "normal")
+        client.delete(f"/api/admin/users/{normal_id}", headers=admin_header(client))
+
+        logs = client.get("/api/admin/audit-logs", headers=admin_header(client)).json()["data"]["logs"]
+        assert any(log["action"] == "delete_user" and log["target_username"] == "normal" for log in logs)
+
+    def test_audit_logs_admin_only(self, client):
+        headers = auth_header(client, "normal", "user123")
+        assert client.get("/api/admin/audit-logs", headers=headers).status_code == 403
+
 
 class TestCreateUser:
     def test_create_success(self, client):

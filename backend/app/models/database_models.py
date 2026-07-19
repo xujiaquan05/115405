@@ -97,7 +97,37 @@ class User(Base):
     # 停用帳號時設為 0，不直接刪除資料。
     is_active = Column(Integer, nullable=False, default=1)
 
+    # 最後一次成功登入的時間（台灣時間），NULL = 從未登入。
+    last_login_at = Column(DateTime)
+
     created_at = Column(DateTime, server_default=func.now())
+
+
+class AuditLog(Base):
+    """
+    說明：
+    後台操作稽核紀錄。記錄「誰、在什麼時候、對誰、做了什麼」。
+
+    actor_username 與 target_username 特意存成字串（去正規化），
+    這樣就算相關帳號日後被刪除，稽核紀錄仍然完整可讀。
+    """
+
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    actor_id = Column(Integer)
+    actor_username = Column(String(100), nullable=False)
+
+    # 動作代碼：create_user / update_user / delete_user / reset_password ...
+    action = Column(String(50), nullable=False)
+
+    target_username = Column(String(100))
+
+    # 白話說明，直接顯示給管理員看。
+    detail = Column(Text)
+
+    created_at = Column(DateTime)
 
 
 class AnalysisResult(Base):
