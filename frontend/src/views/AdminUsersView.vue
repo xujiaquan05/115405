@@ -8,59 +8,6 @@ import api from "../services/api";
 const { state: authState } = useAuth();
 const currentUserId = computed(() => authState.user?.id);
 
-// 目前登入的管理員本人資訊（我的帳號區塊用）。
-const me = computed(() => authState.user || {});
-const myInitial = computed(() => (me.value.display_name || me.value.username || "?").slice(0, 1).toUpperCase());
-const myRoleLabel = computed(() => (me.value.role === "admin" ? "系統管理員" : "一般使用者"));
-
-// 我的密碼修改表單。
-const pwForm = reactive({
-  oldPassword: "",
-  newPassword: "",
-  confirmPassword: "",
-  loading: false,
-  errorMessage: "",
-  successMessage: "",
-});
-
-async function changeMyPassword() {
-  if (pwForm.loading) return;
-
-  pwForm.errorMessage = "";
-  pwForm.successMessage = "";
-
-  if (!pwForm.oldPassword || !pwForm.newPassword || !pwForm.confirmPassword) {
-    pwForm.errorMessage = "請填寫所有欄位。";
-    return;
-  }
-  if (pwForm.newPassword.length < 6) {
-    pwForm.errorMessage = "新密碼至少需要 6 個字元。";
-    return;
-  }
-  if (pwForm.newPassword !== pwForm.confirmPassword) {
-    pwForm.errorMessage = "兩次輸入的新密碼不一致。";
-    return;
-  }
-
-  pwForm.loading = true;
-
-  try {
-    const response = await api.post("/api/auth/change-password", {
-      old_password: pwForm.oldPassword,
-      new_password: pwForm.newPassword,
-    });
-    pwForm.successMessage = response.data.message || "密碼已更新。";
-    pwForm.oldPassword = "";
-    pwForm.newPassword = "";
-    pwForm.confirmPassword = "";
-  } catch (error) {
-    console.error(error);
-    pwForm.errorMessage = error.response?.data?.detail || "密碼更新失敗，請稍後再試。";
-  } finally {
-    pwForm.loading = false;
-  }
-}
-
 const users = ref([]);
 const stats = ref({ total: 0, admins: 0, active: 0, logged_this_week: 0 });
 const auditLogs = ref([]);
@@ -291,54 +238,6 @@ onMounted(refreshAll);
 
     <p v-if="errorMessage" class="admin-message error">{{ errorMessage }}</p>
     <p v-if="successMessage" class="admin-message success">{{ successMessage }}</p>
-
-    <!-- 我的帳號（管理員本人資訊 + 修改自己的密碼） -->
-    <div class="profile-grid admin-my-account">
-      <article class="card profile-card">
-        <div class="profile-identity">
-          <div class="profile-avatar">{{ myInitial }}</div>
-          <div>
-            <strong>{{ me.display_name || me.username }}</strong>
-            <p>@{{ me.username }}</p>
-          </div>
-        </div>
-        <dl class="profile-detail-list">
-          <div>
-            <dt>角色</dt>
-            <dd><span :class="['profile-role-badge', me.role === 'admin' ? 'is-admin' : '']">{{ myRoleLabel }}</span></dd>
-          </div>
-          <div>
-            <dt>帳號 ID</dt>
-            <dd>{{ me.id }}</dd>
-          </div>
-        </dl>
-      </article>
-
-      <article class="card profile-card">
-        <h3>修改我的密碼</h3>
-        <p v-if="pwForm.errorMessage" class="profile-message error">{{ pwForm.errorMessage }}</p>
-        <p v-if="pwForm.successMessage" class="profile-message success">{{ pwForm.successMessage }}</p>
-        <form class="profile-form" @submit.prevent="changeMyPassword">
-          <label>
-            <span>舊密碼</span>
-            <input v-model="pwForm.oldPassword" type="password" autocomplete="current-password" />
-          </label>
-          <label>
-            <span>新密碼（至少 6 個字元）</span>
-            <input v-model="pwForm.newPassword" type="password" autocomplete="new-password" />
-          </label>
-          <label>
-            <span>確認新密碼</span>
-            <input v-model="pwForm.confirmPassword" type="password" autocomplete="new-password" />
-          </label>
-          <button type="submit" :disabled="pwForm.loading">
-            {{ pwForm.loading ? "更新中…" : "更新密碼" }}
-          </button>
-        </form>
-      </article>
-    </div>
-
-    <h3 class="admin-section-title">使用者總覽</h3>
 
     <!-- 統計卡片 -->
     <div class="admin-stat-grid">

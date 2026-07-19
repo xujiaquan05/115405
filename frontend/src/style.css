@@ -511,20 +511,6 @@ select {
   }
 }
 
-/* 帳號管理 — 我的帳號區塊 */
-
-.admin-my-account {
-  margin-bottom: 24px;
-}
-
-.admin-section-title {
-  margin: 0 0 14px;
-  padding-top: 20px;
-  font-size: 17px;
-  color: #111827;
-  border-top: 1px solid #e5e7eb;
-}
-
 /* 帳號管理 — 統計卡片 */
 
 .admin-stat-grid {
