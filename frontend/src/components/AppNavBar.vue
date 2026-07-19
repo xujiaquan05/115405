@@ -1,11 +1,14 @@
 <!-- frontend/src/components/AppNavbar.vue -->
 
 <script setup>
+import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 
 const router = useRouter();
 const { state: authState, isAuthenticated, logout } = useAuth();
+
+const isAdmin = computed(() => authState.user?.role === "admin");
 
 function handleLogout() {
   logout();
@@ -29,6 +32,7 @@ function goLogin() {
       <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
       <RouterLink to="/qa" class="nav-link">AI 問答</RouterLink>
       <RouterLink to="/history" class="nav-link">History</RouterLink>
+      <RouterLink v-if="isAdmin" to="/admin/users" class="nav-link">帳號管理</RouterLink>
 
       <div class="navbar-user">
         <template v-if="isAuthenticated">

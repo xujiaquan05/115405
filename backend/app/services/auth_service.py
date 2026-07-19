@@ -160,10 +160,38 @@ def get_current_user(
     return user
 
 
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """
+    FastAPI dependency：只允許 admin 角色使用。
+    非管理員一律回 403。用於後台管理相關 endpoint。
+    """
+
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="需要管理員權限。")
+
+    return current_user
+
+
 def serialize_user(user: User) -> dict:
     return {
         "id": user.id,
         "username": user.username,
         "display_name": user.display_name or user.username,
         "role": user.role,
+    }
+
+
+def serialize_user_admin(user: User) -> dict:
+    """
+    給後台使用者列表用的完整資訊，
+    比 serialize_user 多了啟用狀態與建立時間。
+    """
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "display_name": user.display_name or user.username,
+        "role": user.role,
+        "is_active": bool(user.is_active),
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }

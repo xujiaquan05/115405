@@ -274,6 +274,243 @@ select {
   }
 }
 
+/* 帳號管理頁 */
+
+.admin-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.admin-page-header h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  color: #111827;
+}
+
+.admin-page-header p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.admin-message {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.admin-message.error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-message.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-create-card {
+  margin-bottom: 20px;
+}
+
+.admin-create-card h3,
+.admin-list-header h3 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  color: #111827;
+}
+
+.admin-create-form {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.admin-create-form label span {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.admin-create-form input,
+.admin-create-form select {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.admin-create-form input:focus,
+.admin-create-form select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px #eef2ff;
+}
+
+.admin-create-form button {
+  height: 38px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-create-form button:hover {
+  background: #1f2937;
+}
+
+.admin-create-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.admin-list-header h3 {
+  margin: 0;
+}
+
+.admin-ghost-button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-ghost-button:hover {
+  background: #f3f4f6;
+}
+
+.admin-empty {
+  color: #6b7280;
+  font-size: 14px;
+  padding: 16px 0;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 10px 12px;
+  color: #6b7280;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #111827;
+  vertical-align: middle;
+}
+
+.admin-self-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4f46e5;
+  font-size: 11px;
+}
+
+.admin-role-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-role-badge.is-admin {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+.admin-status-dot {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.admin-status-dot.is-active {
+  color: #166534;
+}
+
+.admin-status-dot.is-inactive {
+  color: #991b1b;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.admin-actions button {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-actions button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.admin-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-actions button.admin-danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.admin-actions button.admin-danger:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+@media (max-width: 860px) {
+  .admin-create-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .navbar-auth-button {
   border: 1px solid #d1d5db;
   background: #ffffff;
