@@ -32,7 +32,9 @@ function goLogin() {
 
       <div class="navbar-user">
         <template v-if="isAuthenticated">
-          <span class="navbar-username">{{ authState.user?.display_name || authState.user?.username }}</span>
+          <RouterLink to="/profile" class="navbar-username navbar-username-link">
+            {{ authState.user?.display_name || authState.user?.username }}
+          </RouterLink>
           <button class="navbar-auth-button" type="button" @click="handleLogout">登出</button>
         </template>
         <template v-else>

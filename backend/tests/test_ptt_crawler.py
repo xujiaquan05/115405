@@ -53,6 +53,62 @@ class TestUniqueId:
         assert first != second
 
 
+class TestJunkTitleFilter:
+    def test_announcement_titles_are_junk(self, crawler):
+        assert crawler._is_junk_title("[公告] 板規 v3.0")
+        assert crawler._is_junk_title("Fw: [公告] 全站活動")
+        assert crawler._is_junk_title("[水桶] 違規名單 2026-07")
+        assert crawler._is_junk_title("[置底] 閒聊文")
+
+    def test_normal_titles_are_kept(self, crawler):
+        assert not crawler._is_junk_title("[心得] 玻尿酸術後一個月分享")
+        assert not crawler._is_junk_title("[問題] 皮秒雷射恢復期")
+        assert not crawler._is_junk_title("[討論] 診所報價差很多正常嗎")
+
+
+LIST_HTML = """
+<html><body>
+<div class="r-ent">
+  <div class="nrec">10</div>
+  <div class="title"><a href="/bbs/facelift/M.1.A.001.html">[心得] 音波拉提心得</a></div>
+  <div class="author">alice</div>
+</div>
+<div class="r-ent">
+  <div class="nrec"></div>
+  <div class="title"><a href="/bbs/facelift/M.2.A.002.html">[公告] 板規與發文規範</a></div>
+  <div class="author">mod</div>
+</div>
+<div class="r-ent">
+  <div class="nrec">爆</div>
+  <div class="title"><a href="/bbs/facelift/M.3.A.003.html">[問題] 雷射除斑價格</a></div>
+  <div class="author">bob</div>
+</div>
+</body></html>
+"""
+
+
+class TestParseArticleList:
+    def test_junk_articles_excluded_from_list(self, crawler, monkeypatch):
+        monkeypatch.setattr(crawler, "_safe_get", lambda url: LIST_HTML)
+
+        articles = crawler.parse_article_list("facelift", "http://fake-url")
+
+        titles = [article["title"] for article in articles]
+        assert len(articles) == 2
+        assert "[心得] 音波拉提心得" in titles
+        assert "[問題] 雷射除斑價格" in titles
+        assert all("公告" not in title for title in titles)
+
+    def test_push_counts_parsed(self, crawler, monkeypatch):
+        monkeypatch.setattr(crawler, "_safe_get", lambda url: LIST_HTML)
+
+        articles = crawler.parse_article_list("facelift", "http://fake-url")
+
+        push_by_title = {a["title"]: a["push_count"] for a in articles}
+        assert push_by_title["[心得] 音波拉提心得"] == 10
+        assert push_by_title["[問題] 雷射除斑價格"] == 100
+
+
 ARTICLE_HTML = """
 <html><body>
 <div id="main-content">

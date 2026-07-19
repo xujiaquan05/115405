@@ -11,7 +11,9 @@ from app.services.auth_service import (
     authenticate_user,
     create_access_token,
     get_current_user,
+    hash_password,
     serialize_user,
+    verify_password,
 )
 
 
@@ -64,4 +66,36 @@ def get_me(current_user: User = Depends(get_current_user)):
     return {
         "status": "success",
         "user": serialize_user(current_user),
+    }
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(..., min_length=1, max_length=200)
+    new_password: str = Field(..., min_length=6, max_length=200)
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    說明：
+    已登入使用者修改自己的密碼。
+    必須先驗證舊密碼，避免 token 被盜用時密碼被直接改走。
+    """
+
+    if not verify_password(payload.old_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="舊密碼錯誤，請重新輸入。")
+
+    if payload.old_password == payload.new_password:
+        raise HTTPException(status_code=400, detail="新密碼不可與舊密碼相同。")
+
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": "密碼已更新，下次登入請使用新密碼。",
     }

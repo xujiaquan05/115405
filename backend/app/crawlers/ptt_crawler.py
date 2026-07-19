@@ -21,6 +21,27 @@ class PTTCrawler:
 
     BASE_URL = "https://www.ptt.cc"
 
+    # 說明：
+    # 這些標題屬於版務/公告類文章，和消費者輿情無關。
+    # 在「列表頁」就先過濾掉，好處有兩個：
+    # 1. 不用進入內頁抓詳細內容（每篇省下約 1~1.5 秒的延遲）。
+    # 2. 資料庫不會被版規、公告、水桶名單等雜訊污染，
+    #    後續 LLM 分析的輸入更乾淨。
+    JUNK_TITLE_KEYWORDS = [
+        "[公告]",
+        "(公告)",
+        "[版務]",
+        "[板務]",
+        "[版規]",
+        "[板規]",
+        "[水桶]",
+        "[置底]",
+        "[申訴]",
+        "[檢舉]",
+        "[投票]",
+        "[樂透]",
+    ]
+
     def __init__(self):
         # 建立 HTTP session，讓多個 request 共用 cookie 和 header。
         self.session = requests.Session()
@@ -113,6 +134,13 @@ class PTTCrawler:
         except ValueError:
             return 0
 
+    def _is_junk_title(self, title: str) -> bool:
+        """
+        判斷標題是否屬於版務/公告類雜訊文章。
+        """
+
+        return any(keyword in title for keyword in self.JUNK_TITLE_KEYWORDS)
+
     def _generate_unique_id(self, platform: str, board: str, url: str) -> str:
         """
         產生文章唯一 ID。
@@ -159,6 +187,11 @@ class PTTCrawler:
                 continue
 
             title = title_tag.get_text(strip=True)
+
+            # 版務/公告類文章直接跳過，不進內頁、不入庫。
+            if self._is_junk_title(title):
+                continue
+
             article_url = self.BASE_URL + title_tag["href"]
 
             author_tag = entry.select_one("div.author")

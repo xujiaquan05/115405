@@ -4,12 +4,20 @@ import QAView from '../views/QAView.vue'
 import CrawlManagementView from '../views/CrawlManagementView.vue'
 import HistoryView from '../views/HistoryView.vue'
 import LoginView from '../views/LoginView.vue'
+import ProfileView from '../views/ProfileView.vue'
 
 const routes = [
   {
     path: '/login',
     name: 'Login',
     component: LoginView
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: ProfileView,
+    // 帳號資訊只有真正登入的使用者能看，訪客不行。
+    meta: { requiresAccount: true }
   },
   {
     path: '/',
@@ -48,6 +56,11 @@ router.beforeEach((to) => {
 
   if (to.path === '/login') {
     return hasToken ? { path: '/' } : true
+  }
+
+  // 需要真正帳號的頁面（例如帳號資訊），訪客一律導回登入頁。
+  if (to.meta.requiresAccount && !hasToken) {
+    return { path: '/login' }
   }
 
   if (!hasToken && !isGuest) {
