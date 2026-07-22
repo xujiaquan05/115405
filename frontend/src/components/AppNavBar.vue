@@ -29,7 +29,7 @@ function goLogin() {
 
     <nav class="navbar-links">
       <!-- RouterLink 用來切換頁面，不會重新載入整個網站。 -->
-      <RouterLink to="/" class="nav-link">Dashboard</RouterLink>
+      <RouterLink to="/dashboard" class="nav-link">Dashboard</RouterLink>
       <RouterLink to="/qa" class="nav-link">AI 問答</RouterLink>
       <RouterLink to="/history" class="nav-link">History</RouterLink>
       <RouterLink v-if="isAdmin" to="/admin/users" class="nav-link">帳號管理</RouterLink>

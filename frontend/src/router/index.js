@@ -6,8 +6,16 @@ import HistoryView from '../views/HistoryView.vue'
 import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import AdminUsersView from '../views/AdminUsersView.vue'
+import LandingView from '../views/LandingView.vue'
 
 const routes = [
+  {
+    path: '/',
+    name: 'Landing',
+    component: LandingView,
+    // 對外公開的首頁，任何人都能瀏覽。
+    meta: { public: true }
+  },
   {
     path: '/login',
     name: 'Login',
@@ -28,7 +36,7 @@ const routes = [
     meta: { requiresAdmin: true }
   },
   {
-    path: '/',
+    path: '/dashboard',
     name: 'Dashboard',
     component: DashboardView
   },
@@ -56,8 +64,9 @@ const router = createRouter({
 
 // 說明：
 // 全域路由守衛：
-// - 已登入者進 /login 直接導回 Dashboard。
-// - 其他頁面需要「已登入」或「訪客模式」，否則導到登入頁。
+// - 首頁（/）與登入頁對外公開，任何人都能看。
+// - 已登入者進 /login 直接導向 Dashboard。
+// - 其餘頁面需要「已登入」或「訪客模式」，否則導到登入頁。
 function readStoredRole() {
   try {
     return JSON.parse(localStorage.getItem('auth_user') || 'null')?.role || ''
@@ -70,14 +79,19 @@ router.beforeEach((to) => {
   const hasToken = Boolean(localStorage.getItem('auth_token'))
   const isGuest = localStorage.getItem('auth_guest') === '1'
 
-  if (to.path === '/login') {
-    return hasToken ? { path: '/' } : true
+  // 公開首頁，不設限。
+  if (to.meta.public) {
+    return true
   }
 
-  // 只有 admin 能進的頁面：非 admin 導回首頁。
+  if (to.path === '/login') {
+    return hasToken ? { path: '/dashboard' } : true
+  }
+
+  // 只有 admin 能進的頁面：未登入導登入頁，非 admin 導回 Dashboard。
   if (to.meta.requiresAdmin) {
     if (!hasToken) return { path: '/login' }
-    if (readStoredRole() !== 'admin') return { path: '/' }
+    if (readStoredRole() !== 'admin') return { path: '/dashboard' }
   }
 
   // 需要真正帳號的頁面（例如帳號資訊），訪客一律導回登入頁。

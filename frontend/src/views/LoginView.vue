@@ -27,13 +27,13 @@ async function handleLogin() {
   const success = await login(form.username.trim(), form.password);
 
   if (success) {
-    router.push("/");
+    router.push("/dashboard");
   }
 }
 
 function handleGuest() {
   enterGuestMode();
-  router.push("/");
+  router.push("/dashboard");
 }
 </script>
 
