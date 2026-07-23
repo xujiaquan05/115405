@@ -1,11 +1,43 @@
 <!-- frontend/src/views/LandingView.vue -->
 
 <script setup>
+import { onBeforeUnmount, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 
 const router = useRouter();
 const { isAuthenticated, isGuest, enterGuestMode } = useAuth();
+
+let revealObserver = null;
+
+// 說明：
+// 進場動畫。元素捲動進畫面時加上 is-visible，觸發淡入上移。
+// 若使用者偏好減少動態效果（prefers-reduced-motion），直接全部顯示。
+onMounted(() => {
+  const elements = document.querySelectorAll(".reveal");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduceMotion || !("IntersectionObserver" in window)) {
+    elements.forEach((el) => el.classList.add("is-visible"));
+    return;
+  }
+
+  revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.15 }
+  );
+
+  elements.forEach((el) => revealObserver.observe(el));
+});
+
+onBeforeUnmount(() => revealObserver?.disconnect());
 
 function goLogin() {
   router.push("/login");
@@ -93,24 +125,25 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
     <!-- Hero -->
     <section class="landing-hero">
       <div class="landing-hero-text">
-        <span class="landing-badge">AI 驅動的醫美輿情分析</span>
-        <h1>把網路上的醫美討論<br />變成可行動的行銷洞察</h1>
-        <p>
+        <span class="landing-badge hero-in" style="--d: 0ms">AI 驅動的醫美輿情分析</span>
+        <h1 class="hero-in" style="--d: 100ms">把網路上的醫美討論<br />變成可行動的行銷洞察</h1>
+        <p class="hero-in" style="--d: 200ms">
           自動爬取社群平台的醫美討論，經 AI 過濾與情緒分析後，
           依關鍵字彙整出聲量趨勢、消費者痛點與具體行銷建議，
           協助分析師與行銷人員快速掌握市場需求。
         </p>
-        <div class="landing-hero-actions">
+        <div class="landing-hero-actions hero-in" style="--d: 300ms">
           <button class="landing-btn-primary" type="button" @click="enterDashboard">立即體驗 Dashboard</button>
           <button class="landing-btn-secondary" type="button" @click="goLogin">登入系統</button>
         </div>
       </div>
-      <div class="landing-hero-visual" aria-hidden="true">
+      <div class="landing-hero-visual hero-in" style="--d: 250ms" aria-hidden="true">
         <div class="landing-keyword-cloud">
           <span
             v-for="(kw, index) in keywords"
             :key="kw"
             :class="['landing-kw', `kw-${index % 4}`]"
+            :style="{ animationDelay: `${index * 0.4}s` }"
           >{{ kw }}</span>
         </div>
       </div>
@@ -118,12 +151,17 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
 
     <!-- 功能特色 -->
     <section id="features" class="landing-section">
-      <div class="landing-section-head">
+      <div class="landing-section-head reveal">
         <h2>功能特色</h2>
         <p>從資料收集到行銷建議，一站式完成醫美輿情分析。</p>
       </div>
       <div class="landing-feature-grid">
-        <article v-for="feature in features" :key="feature.title" class="landing-feature-card">
+        <article
+          v-for="(feature, index) in features"
+          :key="feature.title"
+          class="landing-feature-card reveal"
+          :style="{ transitionDelay: `${index * 80}ms` }"
+        >
           <span class="landing-feature-icon">{{ feature.icon }}</span>
           <h3>{{ feature.title }}</h3>
           <p>{{ feature.desc }}</p>
@@ -133,13 +171,13 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
 
     <!-- 運作流程 -->
     <section id="flow" class="landing-section landing-section-alt">
-      <div class="landing-section-head">
+      <div class="landing-section-head reveal">
         <h2>運作流程</h2>
         <p>四個步驟，把零散的網路討論轉成清楚的分析報告。</p>
       </div>
       <div class="landing-step-row">
         <template v-for="(step, index) in steps" :key="step.no">
-          <div class="landing-step">
+          <div class="landing-step reveal" :style="{ transitionDelay: `${index * 120}ms` }">
             <span class="landing-step-no">{{ step.no }}</span>
             <h3>{{ step.title }}</h3>
             <p>{{ step.desc }}</p>
@@ -151,12 +189,17 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
 
     <!-- 適用對象 -->
     <section id="audience" class="landing-section">
-      <div class="landing-section-head">
+      <div class="landing-section-head reveal">
         <h2>適用對象</h2>
         <p>無論你負責分析、行銷或品牌經營，都能更快掌握市場動態。</p>
       </div>
       <div class="landing-audience-grid">
-        <article v-for="item in audiences" :key="item.title" class="landing-audience-card">
+        <article
+          v-for="(item, index) in audiences"
+          :key="item.title"
+          class="landing-audience-card reveal"
+          :style="{ transitionDelay: `${index * 100}ms` }"
+        >
           <h3>{{ item.title }}</h3>
           <p>{{ item.desc }}</p>
         </article>
@@ -164,7 +207,7 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
     </section>
 
     <!-- CTA -->
-    <section class="landing-cta">
+    <section class="landing-cta reveal">
       <h2>現在就開始分析醫美市場輿情</h2>
       <p>以訪客身分即可瀏覽 Dashboard，登入後可執行爬蟲與完整功能。</p>
       <div class="landing-hero-actions">

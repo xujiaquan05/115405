@@ -1253,6 +1253,138 @@ select {
   }
 }
 
+/* ===== Landing 動畫與互動效果 ===== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+.landing-section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* 捲動進場：淡入 + 上移 */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero 載入進場（逐項延遲，用 --d 控制） */
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hero-in {
+  opacity: 0;
+  animation: heroIn 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  animation-delay: var(--d, 0ms);
+}
+
+/* 關鍵字雲：背景漸層流動 + 陰影 */
+.landing-keyword-cloud {
+  background: linear-gradient(160deg, #eef2ff 0%, #f5f3ff 50%, #ede9fe 100%);
+  background-size: 200% 200%;
+  box-shadow: 0 24px 60px rgba(79, 70, 229, 0.14);
+  animation: cloudShift 12s ease infinite;
+}
+
+@keyframes cloudShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 關鍵字：逐個上下浮動 */
+.landing-kw {
+  animation: kwFloat 4s ease-in-out infinite;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-kw:hover {
+  transform: translateY(-4px) scale(1.06);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2);
+}
+
+@keyframes kwFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+/* 卡片 hover 抬升 */
+.landing-feature-card,
+.landing-audience-card,
+.landing-step {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.landing-feature-card:hover,
+.landing-audience-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.09);
+  border-color: #dcd9f5;
+}
+
+.landing-feature-icon {
+  transition: transform 0.25s ease;
+}
+
+.landing-feature-card:hover .landing-feature-icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+/* 按鈕互動 */
+.landing-btn-primary,
+.landing-btn-secondary,
+.landing-btn-ghost,
+.landing-nav-login {
+  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.landing-btn-primary:hover {
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.3);
+  transform: translateY(-1px);
+}
+
+.landing-btn-primary:active,
+.landing-btn-secondary:active,
+.landing-btn-ghost:active,
+.landing-nav-login:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* 尊重使用者的減少動態偏好 */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal,
+  .hero-in {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .landing-kw,
+  .landing-keyword-cloud {
+    animation: none !important;
+  }
+}
+
 .login-page {
   width: 100%;
   display: flex;
