@@ -4,6 +4,7 @@
 import { onBeforeUnmount, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
+import LogoMark from "../components/LogoMark.vue";
 
 const router = useRouter();
 const { isAuthenticated, isGuest, enterGuestMode } = useAuth();
@@ -107,10 +108,10 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
     <header class="landing-nav">
       <div class="landing-nav-inner">
         <div class="landing-brand">
-          <span class="landing-brand-mark">◍</span>
-          <div>
-            <strong>醫美時尚輿情分析系統</strong>
-            <span>Medical Beauty Opinion Dashboard</span>
+          <LogoMark :size="42" />
+          <div class="landing-brand-text">
+            <strong class="landing-wordmark">MeBOD</strong>
+            <span class="landing-brand-sub">醫美時尚輿情分析系統</span>
           </div>
         </div>
         <nav class="landing-nav-links">
@@ -222,9 +223,12 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
 
     <!-- 頁尾 -->
     <footer class="landing-footer">
-      <div>
-        <strong>醫美時尚輿情分析系統</strong>
-        <p>Medical Beauty Opinion Analysis System</p>
+      <div class="landing-footer-brand">
+        <LogoMark :size="36" />
+        <div>
+          <strong>MeBOD</strong>
+          <p>醫美時尚輿情分析系統</p>
+        </div>
       </div>
       <p class="landing-footer-note">115405 專題製作 · 資料來源：PTT（Dcard、Threads 規劃中）</p>
     </footer>

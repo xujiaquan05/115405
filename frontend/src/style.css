@@ -843,7 +843,7 @@ select {
 .landing-nav-inner {
   max-width: 1120px;
   margin: 0 auto;
-  padding: 14px 24px;
+  padding: 15px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -852,48 +852,83 @@ select {
 .landing-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.landing-brand-mark {
-  font-size: 24px;
-  color: #4f46e5;
+.logo-mark {
+  flex-shrink: 0;
 }
 
-.landing-brand strong {
-  display: block;
-  font-size: 16px;
-  color: #111827;
+.landing-brand .logo-mark {
+  border-radius: 11px;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.28);
 }
 
-.landing-brand span {
-  font-size: 11px;
+.landing-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+/* MeBOD 文字商標：靛紫漸層 */
+.landing-wordmark {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.landing-brand-sub {
+  font-size: 12px;
   color: #9ca3af;
+  margin-top: 2px;
 }
 
 .landing-nav-links {
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 26px;
 }
 
 .landing-nav-links a {
+  position: relative;
   font-size: 14px;
   color: #4b5563;
   text-decoration: none;
+  padding: 4px 0;
+}
+
+.landing-nav-links a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  transition: width 0.25s ease;
 }
 
 .landing-nav-links a:hover {
   color: #111827;
 }
 
+.landing-nav-links a:hover::after {
+  width: 100%;
+}
+
 .landing-nav-login {
   border: none;
   background: #111827;
   color: #ffffff;
-  border-radius: 8px;
-  padding: 8px 18px;
+  border-radius: 9px;
+  padding: 9px 20px;
   font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -1231,9 +1266,19 @@ select {
   gap: 12px;
 }
 
+.landing-footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .landing-footer strong {
-  font-size: 15px;
-  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .landing-footer p {
