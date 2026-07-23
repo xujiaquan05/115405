@@ -826,6 +826,8 @@ select {
 
 .landing {
   color: #111827;
+  /* 頂部淡紫色漸層 wash，往下淡出成白色，讓 hero 區更有層次。 */
+  background: linear-gradient(180deg, #f3f0ff 0%, #faf9ff 22%, #ffffff 46%);
 }
 
 /* 頂部導覽 */
@@ -1383,6 +1385,77 @@ html {
   .landing-keyword-cloud {
     animation: none !important;
   }
+}
+
+/* ===== Landing 配色強化 ===== */
+
+/* 主要按鈕與導覽登入鈕：靛紫漸層 */
+.landing-btn-primary,
+.landing-nav-login {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+.landing-btn-primary:hover,
+.landing-nav-login:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
+}
+
+/* 步驟編號圓點：漸層 */
+.landing-step-no {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+/* 功能卡片圖示：每張一種顏色，增加活潑感 */
+.landing-feature-card:nth-child(1) .landing-feature-icon {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.landing-feature-card:nth-child(2) .landing-feature-icon {
+  background: #e1f5ee;
+  color: #0f6e56;
+}
+.landing-feature-card:nth-child(3) .landing-feature-icon {
+  background: #faece7;
+  color: #c2410c;
+}
+.landing-feature-card:nth-child(4) .landing-feature-icon {
+  background: #fbeaf0;
+  color: #be185d;
+}
+.landing-feature-card:nth-child(5) .landing-feature-icon {
+  background: #faeeda;
+  color: #b45309;
+}
+.landing-feature-card:nth-child(6) .landing-feature-icon {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+/* 適用對象卡片：左側色條各異 */
+.landing-audience-card:nth-child(1) {
+  border-left-color: #4f46e5;
+}
+.landing-audience-card:nth-child(2) {
+  border-left-color: #0f6e56;
+}
+.landing-audience-card:nth-child(3) {
+  border-left-color: #be185d;
+}
+
+/* CTA 區塊：靛紫漸層背景 */
+.landing-cta {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #9333ea 100%);
+}
+
+/* CTA 內的主要按鈕改成白底靛紫字，在漸層上更醒目 */
+.landing-cta .landing-btn-primary {
+  background: #ffffff;
+  color: #4f46e5;
+}
+
+.landing-cta .landing-btn-primary:hover {
+  background: #f5f3ff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
 
 .login-page {
