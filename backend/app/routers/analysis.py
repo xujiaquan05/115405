@@ -1,11 +1,11 @@
 # backend/app/routers/analysis.py
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.database_models import AnalysisResult
+from app.models.database_models import AnalysisResult, Article
 from app.services.dashboard_service import (
     get_overview_metrics,
     get_sentiment_distribution,
@@ -102,6 +102,39 @@ def refresh_sentiments(
     return {
         "status": "success",
         "scored_count": scored_count,
+        "status_after": _sentiment_status(db),
+    }
+
+
+def _sentiment_status(db: Session) -> dict:
+    # 說明：情緒評分覆蓋狀況（總數 / 已評分 / 未評分）。
+    total = db.query(func.count(Article.id)).scalar() or 0
+    rated = (
+        db.query(func.count(Article.id))
+        .filter(Article.sentiment.isnot(None))
+        .scalar()
+        or 0
+    )
+
+    return {
+        "total": total,
+        "rated": rated,
+        "pending": total - rated,
+        "rated_percent": round(rated / total * 100, 1) if total else 0,
+    }
+
+
+@router.get("/sentiment/status")
+def sentiment_status(db: Session = Depends(get_db)):
+    """
+    說明：
+    查詢目前文章的情緒評分覆蓋狀況，供前端顯示「已評分 / 未評分」。
+    唯讀資料，不需登入。
+    """
+
+    return {
+        "status": "success",
+        "data": _sentiment_status(db),
     }
 
 

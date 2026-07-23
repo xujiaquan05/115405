@@ -5,6 +5,9 @@ import { computed, onMounted, reactive, ref } from "vue";
 
 import api from "../services/api.js";
 import { useWebSocket } from "../composables/useWebSocket.js";
+import { useAuth } from "../composables/useAuth";
+
+const { isAuthenticated } = useAuth();
 
 const boards = [
   { name: "facelift", label: "facelift 醫美整形" },
@@ -44,6 +47,16 @@ const state = reactive({
 const statusFilter = ref("all");
 const currentPage = ref(1);
 const pageSize = ref(10);
+
+// 情緒評分狀態
+const sentiment = reactive({
+  total: 0,
+  rated: 0,
+  pending: 0,
+  rated_percent: 0,
+  scoring: false,
+  message: "",
+});
 
 const filteredLogs = computed(() => {
   if (statusFilter.value === "all") {
@@ -190,6 +203,44 @@ async function startCrawler() {
   }
 }
 
+async function fetchSentimentStatus() {
+  try {
+    const response = await api.get("/api/analysis/sentiment/status");
+    Object.assign(sentiment, response.data.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function refreshSentiment() {
+  if (sentiment.scoring) return;
+
+  sentiment.scoring = true;
+  sentiment.message = "";
+
+  try {
+    const response = await api.post("/api/analysis/sentiment/refresh", null, {
+      params: { max_articles: 200 },
+    });
+
+    const scored = response.data.scored_count || 0;
+    if (response.data.status_after) {
+      Object.assign(sentiment, response.data.status_after);
+    }
+
+    sentiment.message = scored
+      ? `本次已評分 ${scored} 篇，還有 ${sentiment.pending} 篇待評分。`
+      : "目前沒有待評分的文章。";
+  } catch (error) {
+    console.error(error);
+    sentiment.message = error.response?.status === 401
+      ? "重新評分需要登入。"
+      : "評分失敗，請確認 GOOGLE_API_KEY 或 Gemini 額度。";
+  } finally {
+    sentiment.scoring = false;
+  }
+}
+
 function changeStatusFilter(event) {
   statusFilter.value = event.target.value;
   currentPage.value = 1;
@@ -200,9 +251,14 @@ function changePageSize(event) {
   currentPage.value = 1;
 }
 
+const sentimentBarWidth = computed(() => {
+  return `${Math.min(100, Math.max(0, sentiment.rated_percent))}%`;
+});
+
 onMounted(() => {
   connect();
   fetchCrawlerStatus();
+  fetchSentimentStatus();
 });
 </script>
 
@@ -352,6 +408,51 @@ onMounted(() => {
         </div>
       </section>
     </div>
+
+    <section class="sentiment-card">
+      <div class="sentiment-card-head">
+        <div>
+          <h3>情緒評分</h3>
+          <p>用 Gemini 為文章逐篇評分正負面；未評分的文章暫以推文數估算。</p>
+        </div>
+        <button
+          class="sentiment-score-button"
+          type="button"
+          :disabled="sentiment.scoring || !isAuthenticated"
+          @click="refreshSentiment"
+        >
+          {{ sentiment.scoring ? "評分中…" : "重新評分情緒" }}
+        </button>
+      </div>
+
+      <div class="sentiment-progress-line">
+        <div class="sentiment-progress-track">
+          <div class="sentiment-progress-bar" :style="{ width: sentimentBarWidth }"></div>
+        </div>
+        <strong>{{ sentiment.rated_percent }}%</strong>
+      </div>
+
+      <div class="sentiment-stat-row">
+        <div>
+          <span>文章總數</span>
+          <strong>{{ sentiment.total }}</strong>
+        </div>
+        <div>
+          <span>已評分</span>
+          <strong class="green-text">{{ sentiment.rated }}</strong>
+        </div>
+        <div>
+          <span>未評分</span>
+          <strong class="orange-text">{{ sentiment.pending }}</strong>
+        </div>
+      </div>
+
+      <p v-if="sentiment.message" class="sentiment-message">{{ sentiment.message }}</p>
+      <p v-if="!isAuthenticated" class="sentiment-hint">登入後才能手動重新評分。</p>
+      <p v-else-if="sentiment.pending > 200" class="sentiment-hint">
+        每次最多評分 200 篇，文章較多時可多按幾次直到未評分為 0。
+      </p>
+    </section>
 
     <section class="crawler-log-card">
       <div class="crawler-log-header">
