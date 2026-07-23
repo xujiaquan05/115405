@@ -1442,9 +1442,9 @@ html {
   border-left-color: #be185d;
 }
 
-/* CTA 區塊：靛紫漸層背景 */
+/* CTA 區塊：深藍灰（navy）背景 */
 .landing-cta {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #9333ea 100%);
+  background: #2d3652;
 }
 
 /* CTA 內的主要按鈕改成白底靛紫字，在漸層上更醒目 */
