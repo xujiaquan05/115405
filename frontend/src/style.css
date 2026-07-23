@@ -1074,7 +1074,16 @@ select {
   padding: 24px;
 }
 
+/* 圖示與標題同一列 */
+.landing-feature-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .landing-feature-icon {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1084,12 +1093,11 @@ select {
   background: #eef2ff;
   color: #4f46e5;
   font-size: 22px;
-  margin-bottom: 14px;
 }
 
 .landing-feature-card h3 {
   font-size: 17px;
-  margin: 0 0 8px;
+  margin: 0;
   color: #111827;
 }
 

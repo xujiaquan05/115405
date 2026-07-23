@@ -162,8 +162,10 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
           class="landing-feature-card reveal"
           :style="{ transitionDelay: `${index * 80}ms` }"
         >
-          <span class="landing-feature-icon">{{ feature.icon }}</span>
-          <h3>{{ feature.title }}</h3>
+          <div class="landing-feature-head">
+            <span class="landing-feature-icon">{{ feature.icon }}</span>
+            <h3>{{ feature.title }}</h3>
+          </div>
           <p>{{ feature.desc }}</p>
         </article>
       </div>
