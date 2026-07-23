@@ -43,6 +43,67 @@ const state = reactive({
 });
 
 const messageList = ref(null);
+const composerRef = ref(null);
+const copiedMessageId = ref(null);
+
+// 信心程度：英文轉繁中標籤。
+function confidenceLabel(conf) {
+  return { high: "高", medium: "中", low: "低" }[conf] || conf;
+}
+
+// 來源文章的情緒標籤（AI 評分結果），沒有評分就回傳 null（不顯示）。
+function sentimentInfo(sentiment) {
+  const map = {
+    positive: { label: "正面", cls: "is-positive" },
+    neutral: { label: "中性", cls: "is-neutral" },
+    negative: { label: "負面", cls: "is-negative" },
+  };
+  return map[sentiment] || null;
+}
+
+// 複製整段 AI 回答（含重點與行銷建議）到剪貼簿。
+async function copyAnswer(message) {
+  const parts = [message.answer];
+
+  if (message.key_points?.length) {
+    parts.push("\n重點整理：");
+    message.key_points.forEach((point, index) => parts.push(`${index + 1}. ${point}`));
+  }
+
+  if (message.marketing_action) {
+    parts.push(`\n行銷建議：${message.marketing_action}`);
+  }
+
+  try {
+    await navigator.clipboard.writeText(parts.join("\n"));
+    copiedMessageId.value = message.id;
+    setTimeout(() => {
+      if (copiedMessageId.value === message.id) copiedMessageId.value = null;
+    }, 1500);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Enter 送出、Shift+Enter 換行；輸入法組字中的 Enter 不送出。
+function handleComposerKeydown(event) {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    askQuestion();
+  }
+}
+
+// 輸入框隨內容自動長高（上限 120px）。
+function autoGrowComposer() {
+  const el = composerRef.value;
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+}
+
+function resetComposerHeight() {
+  if (composerRef.value) composerRef.value.style.height = "auto";
+}
 
 const activeConversation = computed(() => {
   return state.conversations.find((conversation) => conversation.id === state.activeConversationId) || null;
@@ -307,6 +368,7 @@ async function askQuestion(questionText = state.question) {
   }
 
   state.question = "";
+  resetComposerHeight();
   state.errorMessage = "";
   state.loading = true;
 
@@ -347,7 +409,7 @@ async function askQuestion(questionText = state.question) {
     console.error(error);
     state.errorMessage = error.response?.status === 429
       ? "提問太頻繁，請稍等一分鐘再試。"
-      : "AI Q&A failed. Please check backend, database, or Gemini API settings.";
+      : "AI 問答發生錯誤，請確認後端、資料庫或 Gemini API 設定。";
   } finally {
     state.loading = false;
     await scrollToBottom();
@@ -398,7 +460,7 @@ function handleDashboardContextCreated(event) {
           class="chat-message"
           :class="message.role"
         >
-          <div v-if="message.role === 'assistant'" class="message-avatar">
+          <div v-if="message.role === 'assistant'" class="message-avatar" aria-hidden="true">
             AI
           </div>
 
@@ -407,10 +469,21 @@ function handleDashboardContextCreated(event) {
           </div>
 
           <div v-else class="assistant-bubble">
-            <p class="qa-answer">{{ message.answer }}</p>
+            <div class="assistant-bubble-top">
+              <p class="qa-answer">{{ message.answer }}</p>
+              <button
+                v-if="message.answer"
+                class="qa-copy-button"
+                type="button"
+                aria-label="複製回答"
+                @click="copyAnswer(message)"
+              >
+                {{ copiedMessageId === message.id ? "已複製" : "複製" }}
+              </button>
+            </div>
 
             <div v-if="message.key_points?.length" class="qa-block">
-              <h3>Key Points</h3>
+              <h3>重點整理</h3>
               <ul>
                 <li v-for="point in message.key_points" :key="point">
                   {{ point }}
@@ -419,7 +492,8 @@ function handleDashboardContextCreated(event) {
             </div>
 
             <div v-if="message.marketing_action" class="qa-action">
-              {{ message.marketing_action }}
+              <span class="qa-action-label">行銷建議</span>
+              <span>{{ message.marketing_action }}</span>
             </div>
 
             <div v-if="message.sources?.length" class="qa-block source-toggle-block">
@@ -445,6 +519,10 @@ function handleDashboardContextCreated(event) {
                   <strong>{{ source.title }}</strong>
                   <span>
                     {{ source.board }} · {{ source.author }} · 推 {{ source.push_count }}
+                    <em
+                      v-if="sentimentInfo(source.sentiment)"
+                      :class="['source-sentiment', sentimentInfo(source.sentiment).cls]"
+                    >{{ sentimentInfo(source.sentiment).label }}</em>
                   </span>
                   <small>{{ source.published_at }}</small>
                 </a>
@@ -452,15 +530,19 @@ function handleDashboardContextCreated(event) {
             </div>
 
             <div v-if="message.confidence" class="confidence-row">
-              Confidence: {{ message.confidence }}
+              信心程度
+              <span :class="['confidence-badge', `is-${message.confidence}`]">
+                {{ confidenceLabel(message.confidence) }}
+              </span>
             </div>
           </div>
         </article>
 
         <article v-if="state.loading" class="chat-message assistant">
-          <div class="message-avatar">AI</div>
+          <div class="message-avatar" aria-hidden="true">AI</div>
           <div class="assistant-bubble loading-bubble">
-            Analyzing Dashboard context...
+            <span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            正在分析 Dashboard 資料…
           </div>
         </article>
       </div>
@@ -479,12 +561,20 @@ function handleDashboardContextCreated(event) {
         </div>
 
         <form class="qa-input-row" @submit.prevent="askQuestion()">
-          <input
+          <textarea
+            ref="composerRef"
             v-model="state.question"
-            type="text"
-            placeholder="問目前 Dashboard 的分析結果..."
-          />
-          <button class="qa-send-button" type="submit" :disabled="state.loading">
+            rows="1"
+            placeholder="問目前 Dashboard 的分析結果…（Enter 送出，Shift+Enter 換行）"
+            @keydown="handleComposerKeydown"
+            @input="autoGrowComposer"
+          ></textarea>
+          <button
+            class="qa-send-button"
+            type="submit"
+            :disabled="state.loading || !state.question.trim()"
+            aria-label="送出問題"
+          >
             ↑
           </button>
         </form>

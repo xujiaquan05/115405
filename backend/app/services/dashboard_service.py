@@ -440,6 +440,7 @@ def get_hot_articles(
             "board": article.board.name if article.board else "",
             "author": article.author.username if article.author else "unknown",
             "push_count": article.push_count,
+            "sentiment": article.sentiment,
             "published_at": article.published_at.strftime("%Y-%m-%d %H:%M:%S")
             if article.published_at else None,
             "url": article.url,
