@@ -4,12 +4,26 @@
 import { computed, onMounted, reactive, ref } from "vue";
 
 import api from "../services/api.js";
+import { useAuth } from "../composables/useAuth";
+
+const { isAuthenticated } = useAuth();
 
 const tabs = [
   { id: "list", label: "歷史列表" },
   { id: "compare", label: "並排比較" },
   { id: "trend", label: "趨勢圖" },
 ];
+
+// 分析類型英文轉繁中標籤。
+const ANALYSIS_TYPE_LABELS = {
+  overview: "綜合分析",
+  trend: "趨勢分析",
+  sentiment: "情緒分析",
+};
+
+function analysisTypeLabel(type) {
+  return ANALYSIS_TYPE_LABELS[type] || type;
+}
 
 const state = reactive({
   activeTab: "list",
@@ -22,6 +36,8 @@ const selectedIds = ref([]);
 const starredIds = ref(JSON.parse(localStorage.getItem("history-starred-ids") || "[]"));
 const historyPage = ref(1);
 const historyPageSize = 15;
+const searchText = ref("");
+const showStarredOnly = ref(false);
 
 const sortedRecords = computed(() => {
   return [...state.records].sort((a, b) => {
@@ -34,6 +50,17 @@ const sortedRecords = computed(() => {
   });
 });
 
+// 依關鍵字搜尋與「只看已加星」篩選後的清單。
+const filteredRecords = computed(() => {
+  const keyword = searchText.value.trim().toLowerCase();
+
+  return sortedRecords.value.filter((record) => {
+    const matchKeyword = !keyword || (record.keyword || "").toLowerCase().includes(keyword);
+    const matchStar = !showStarredOnly.value || starredIds.value.includes(record.id);
+    return matchKeyword && matchStar;
+  });
+});
+
 const selectedRecords = computed(() => {
   return selectedIds.value
     .map((id) => state.records.find((record) => record.id === id))
@@ -41,13 +68,18 @@ const selectedRecords = computed(() => {
 });
 
 const historyTotalPages = computed(() => {
-  return Math.max(1, Math.ceil(sortedRecords.value.length / historyPageSize));
+  return Math.max(1, Math.ceil(filteredRecords.value.length / historyPageSize));
 });
 
 const pagedHistoryRecords = computed(() => {
-  const start = (historyPage.value - 1) * historyPageSize;
-  return sortedRecords.value.slice(start, start + historyPageSize);
+  const page = Math.min(historyPage.value, historyTotalPages.value);
+  const start = (page - 1) * historyPageSize;
+  return filteredRecords.value.slice(start, start + historyPageSize);
 });
+
+function resetHistoryPage() {
+  historyPage.value = 1;
+}
 
 const comparePair = computed(() => {
   return selectedRecords.value.length === 2
@@ -138,6 +170,33 @@ const trendStats = computed(() => {
 const scorePolyline = computed(() => buildPolyline("sentiment_score", false));
 const negativePolyline = computed(() => buildPolyline("negative_ratio"));
 
+// 圖上資料點（HTML overlay），帶 tooltip 顯示數值與日期。
+// 用 % 定位，和 SVG 的 0~100 座標一致。
+const trendPoints = computed(() => {
+  const records = trendRecords.value;
+  const total = records.length;
+
+  if (total === 0) return [];
+
+  return records.map((record, index) => {
+    const x = total === 1 ? 50 : (index / (total - 1)) * 100;
+    const score = Math.max(0, Math.min(100, Number(record.sentiment_score || 0)));
+    const neg = Math.max(0, Math.min(100, Number(record.negative_ratio || 0)));
+    const dateLabel = formatDate(record.created_at).slice(5, 10);
+
+    return {
+      id: record.id,
+      x,
+      // 分數越高越靠上（y 越小）；負面越低越靠上，和折線一致。
+      scoreY: 100 - score,
+      negativeY: neg,
+      score,
+      negative: neg,
+      dateLabel,
+    };
+  });
+});
+
 function formatDate(value) {
   if (!value) return "-";
 
@@ -180,6 +239,23 @@ function toggleStar(recordId) {
   }
 
   localStorage.setItem("history-starred-ids", JSON.stringify(starredIds.value));
+}
+
+async function deleteRecord(recordId) {
+  if (!window.confirm("確定要刪除這筆分析紀錄嗎？此動作無法復原。")) return;
+
+  try {
+    await api.delete(`/api/analysis/history/${recordId}`);
+    state.records = state.records.filter((record) => record.id !== recordId);
+    selectedIds.value = selectedIds.value.filter((id) => id !== recordId);
+    starredIds.value = starredIds.value.filter((id) => id !== recordId);
+    localStorage.setItem("history-starred-ids", JSON.stringify(starredIds.value));
+  } catch (error) {
+    console.error(error);
+    state.errorMessage = error.response?.status === 401
+      ? "刪除紀錄需要登入。"
+      : "刪除失敗，請稍後再試。";
+  }
 }
 
 function goToCompare() {
@@ -276,6 +352,20 @@ onMounted(fetchHistory);
         </div>
       </div>
 
+      <div class="history-toolbar">
+        <input
+          v-model="searchText"
+          class="history-search"
+          type="text"
+          placeholder="🔍 搜尋關鍵字"
+          @input="resetHistoryPage"
+        />
+        <label class="history-star-filter">
+          <input v-model="showStarredOnly" type="checkbox" @change="resetHistoryPage" />
+          只看已加星
+        </label>
+      </div>
+
       <div v-if="state.loading" class="skeleton history-skeleton"></div>
 
       <div v-else class="history-table-wrap">
@@ -290,6 +380,7 @@ onMounted(fetchHistory);
               <th>情緒分數</th>
               <th>負面比例</th>
               <th>摘要</th>
+              <th v-if="isAuthenticated">操作</th>
             </tr>
           </thead>
 
@@ -298,6 +389,7 @@ onMounted(fetchHistory);
               <td>
                 <input
                   type="checkbox"
+                  :aria-label="`選取 ${record.keyword}`"
                   :checked="selectedIds.includes(record.id)"
                   @change="toggleRecord(record.id)"
                 />
@@ -306,6 +398,7 @@ onMounted(fetchHistory);
                 <button
                   class="history-star-button"
                   type="button"
+                  :aria-label="starredIds.includes(record.id) ? '取消加星' : '加星'"
                   :class="{ active: starredIds.includes(record.id) }"
                   @click="toggleStar(record.id)"
                 >
@@ -315,13 +408,18 @@ onMounted(fetchHistory);
               <td>{{ formatDate(record.created_at) }}</td>
               <td>
                 <strong>{{ record.keyword }}</strong>
-                <small>{{ record.days }} 天 · {{ record.analysis_type }}</small>
+                <small>{{ record.days }} 天 · {{ analysisTypeLabel(record.analysis_type) }}</small>
               </td>
               <td>{{ record.article_count }}</td>
               <td>
                 <span :class="['history-score-pill', getScoreClass(record.sentiment_score)]">
                   {{ record.sentiment_score }}
                 </span>
+                <small
+                  v-if="record.ai_rated_percent != null"
+                  class="history-coverage"
+                  title="AI 逐篇評分的覆蓋率，越高分數越可信"
+                >AI {{ record.ai_rated_percent }}%</small>
               </td>
               <td>
                 <span :class="['history-score-pill', getNegativeClass(record.negative_ratio)]">
@@ -329,20 +427,30 @@ onMounted(fetchHistory);
                 </span>
               </td>
               <td class="history-summary-cell">{{ record.summary }}</td>
+              <td v-if="isAuthenticated">
+                <button
+                  class="history-delete-button"
+                  type="button"
+                  aria-label="刪除紀錄"
+                  @click="deleteRecord(record.id)"
+                >
+                  刪除
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
 
-        <div v-if="!sortedRecords.length" class="empty-state">
-          尚無歷史分析紀錄。
+        <div v-if="!filteredRecords.length" class="empty-state">
+          {{ state.records.length ? "沒有符合條件的紀錄。" : "尚無歷史分析紀錄。" }}
         </div>
       </div>
 
-      <div v-if="sortedRecords.length > historyPageSize" class="history-pagination">
+      <div v-if="filteredRecords.length > historyPageSize" class="history-pagination">
         <div>
           <button
             type="button"
-            :disabled="historyPage === 1"
+            :disabled="historyPage <= 1"
             @click="historyPage -= 1"
           >
             ‹
@@ -350,13 +458,13 @@ onMounted(fetchHistory);
           <span>{{ historyPage }} / {{ historyTotalPages }}</span>
           <button
             type="button"
-            :disabled="historyPage === historyTotalPages"
+            :disabled="historyPage >= historyTotalPages"
             @click="historyPage += 1"
           >
             ›
           </button>
         </div>
-        <span>每頁最多 {{ historyPageSize }} 筆，共 {{ sortedRecords.length }} 筆</span>
+        <span>每頁最多 {{ historyPageSize }} 筆，共 {{ filteredRecords.length }} 筆</span>
       </div>
 
       <div v-if="selectedIds.length === 2" class="compare-hint-bar">
@@ -453,15 +561,45 @@ onMounted(fetchHistory);
           <span class="negative">負面比例</span>
         </div>
 
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="History sentiment trend chart">
-          <line x1="0" y1="20" x2="100" y2="20" />
-          <line x1="0" y1="50" x2="100" y2="50" />
-          <line x1="0" y1="80" x2="100" y2="80" />
-          <polyline class="score-line" :points="scorePolyline" />
-          <polyline class="negative-line" :points="negativePolyline" />
-        </svg>
+        <div v-if="!trendPoints.length" class="empty-state">
+          尚無足夠紀錄可繪製趨勢。
+        </div>
 
-        <div class="history-chart-labels">
+        <div v-else class="history-chart-body">
+          <div class="history-chart-yaxis">
+            <span>100</span>
+            <span>50</span>
+            <span>0</span>
+          </div>
+
+          <div class="history-chart-plot">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="情緒分數與負面比例趨勢圖">
+              <line x1="0" y1="0" x2="100" y2="0" />
+              <line x1="0" y1="50" x2="100" y2="50" />
+              <line x1="0" y1="100" x2="100" y2="100" />
+              <polyline class="score-line" :points="scorePolyline" />
+              <polyline class="negative-line" :points="negativePolyline" />
+            </svg>
+
+            <!-- HTML 資料點 overlay：避免被 SVG 拉伸變形，並提供 tooltip。 -->
+            <span
+              v-for="point in trendPoints"
+              :key="`s-${point.id}`"
+              class="chart-dot score-dot"
+              :style="{ left: `${point.x}%`, top: `${point.scoreY}%` }"
+              :title="`${point.dateLabel}｜情緒分數 ${point.score}`"
+            ></span>
+            <span
+              v-for="point in trendPoints"
+              :key="`n-${point.id}`"
+              class="chart-dot negative-dot"
+              :style="{ left: `${point.x}%`, top: `${point.negativeY}%` }"
+              :title="`${point.dateLabel}｜負面比例 ${point.negative}%`"
+            ></span>
+          </div>
+        </div>
+
+        <div v-if="trendPoints.length" class="history-chart-labels">
           <span v-for="record in trendRecords" :key="record.id">
             {{ formatDate(record.created_at).slice(5, 10) }}
           </span>

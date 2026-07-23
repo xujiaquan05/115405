@@ -1,6 +1,6 @@
 # backend/app/routers/analysis.py
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -155,15 +155,25 @@ def _extract_summary(result_json: dict) -> str:
     )
 
 
-def _extract_sentiment_score(result_json: dict, sentiment: dict) -> int:
-    raw_score = result_json.get("sentiment_score")
+def compute_sentiment_score(sentiment: dict) -> int:
+    """
+    說明：
+    情緒分數（Net Sentiment Score），統一以「文章情緒分布」計算，
+    不採用 LLM 自己回報的 sentiment_score —— 這樣不論分析類型
+    （overview / trend / sentiment），同一個關鍵字都會得到一致的分數。
 
-    if isinstance(raw_score, (int, float)):
-        return int(max(0, min(100, round(raw_score))))
+    公式：50 + (正面% − 負面%) / 2
+      - 50  = 中性
+      - 100 = 全部正面
+      - 0   = 全部負面
+
+    正面% 與 負面% 來自 get_sentiment_distribution，
+    已優先採用 Gemini 逐篇評分的結果（未評分才 fallback 推文數）。
+    """
 
     positive = float(sentiment.get("positive") or 0)
     negative = float(sentiment.get("negative") or 0)
-    score = 50 + (positive * 0.5) - (negative * 0.5)
+    score = 50 + (positive - negative) / 2
 
     return int(max(0, min(100, round(score))))
 
@@ -181,7 +191,10 @@ def _serialize_history_record(record: AnalysisResult, db: Session) -> dict:
         "days": record.days,
         "created_at": record.created_at.isoformat() if record.created_at else None,
         "article_count": overview.get("total_articles", 0),
-        "sentiment_score": _extract_sentiment_score(result_json, sentiment),
+        "sentiment_score": compute_sentiment_score(sentiment),
+        # AI 評分覆蓋率：這批文章有多少 % 是 Gemini 真正評過情緒的，
+        # 覆蓋率越高，情緒分數越可信。
+        "ai_rated_percent": round(float(sentiment.get("ai_rated_percent") or 0), 1),
         "negative_ratio": negative_ratio,
         "topics": _extract_topics(result_json),
         "summary": _extract_summary(result_json),
@@ -207,4 +220,25 @@ def analysis_history(
         "data": {
             "records": items,
         },
+    }
+
+
+# 說明：
+# 刪除一筆分析歷史紀錄（AnalysisResult）。屬於寫入操作，需登入才能使用。
+@router.delete("/history/{record_id}", dependencies=[Depends(get_current_user)])
+def delete_history_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+):
+    record = db.query(AnalysisResult).filter(AnalysisResult.id == record_id).first()
+
+    if record is None:
+        raise HTTPException(status_code=404, detail="找不到此分析紀錄。")
+
+    db.delete(record)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": "分析紀錄已刪除。",
     }

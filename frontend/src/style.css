@@ -4170,6 +4170,7 @@ button:disabled {
 }
 
 .history-trend-chart svg {
+  display: block;
   width: 100%;
   height: 300px;
   overflow: visible;
@@ -4201,6 +4202,108 @@ button:disabled {
   margin-top: 10px;
   color: #64748b;
   font-size: 12px;
+}
+
+/* History 工具列（搜尋 + 篩選） */
+.history-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.history-search {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  min-width: 200px;
+  background: #ffffff;
+}
+
+.history-search:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px #eef2ff;
+}
+
+.history-star-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+/* AI 評分覆蓋率 */
+.history-coverage {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* 刪除按鈕 */
+.history-delete-button {
+  border: 1px solid #fecaca;
+  background: #ffffff;
+  color: #b91c1c;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.history-delete-button:hover {
+  background: #fee2e2;
+}
+
+/* 趨勢圖：Y 軸 + 資料點 */
+.history-chart-body {
+  display: flex;
+  gap: 10px;
+}
+
+.history-chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 300px;
+  min-width: 26px;
+  text-align: right;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.history-chart-plot {
+  position: relative;
+  flex: 1;
+}
+
+.chart-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.chart-dot:hover {
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+.chart-dot.score-dot {
+  background: #0f9f6e;
+}
+
+.chart-dot.negative-dot {
+  background: #ef4444;
 }
 
 .history-stat-grid {
