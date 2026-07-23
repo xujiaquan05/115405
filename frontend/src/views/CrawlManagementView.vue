@@ -38,6 +38,7 @@ const form = reactive({
 const state = reactive({
   loading: false,
   refreshing: false,
+  resetting: false,
   errorMessage: "",
   summary: {},
   logs: [],
@@ -241,6 +242,30 @@ async function refreshSentiment() {
   }
 }
 
+async function resetCrawl() {
+  if (state.resetting) return;
+
+  if (!window.confirm("確定要停止並重置目前的爬取狀態嗎？卡住的任務會被標記為失敗。")) return;
+
+  state.resetting = true;
+  state.errorMessage = "";
+
+  try {
+    await api.post("/api/crawler/reset");
+    // 清掉前端 WebSocket 端的執行中狀態，避免按鈕仍被鎖住。
+    websocketState.crawler.status = "idle";
+    websocketState.crawler.active = false;
+    await fetchCrawlerStatus();
+  } catch (error) {
+    console.error(error);
+    state.errorMessage = error.response?.status === 401
+      ? "重置需要登入。"
+      : "重置失敗，請稍後再試。";
+  } finally {
+    state.resetting = false;
+  }
+}
+
 function changeStatusFilter(event) {
   statusFilter.value = event.target.value;
   currentPage.value = 1;
@@ -374,7 +399,18 @@ onMounted(() => {
               {{ getStatusText(isRunning ? "running" : state.summary.status) }}
             </strong>
           </div>
-          <span>開始時間：{{ formatDateTime(state.summary.running_started_at) }}</span>
+          <div class="crawler-panel-header-right">
+            <span>開始時間：{{ formatDateTime(state.summary.running_started_at) }}</span>
+            <button
+              v-if="isRunning"
+              class="crawler-reset-button"
+              type="button"
+              :disabled="state.resetting"
+              @click="resetCrawl"
+            >
+              {{ state.resetting ? "重置中…" : "停止並重置" }}
+            </button>
+          </div>
         </div>
 
         <p class="crawler-current-board">

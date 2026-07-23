@@ -341,3 +341,43 @@ def crawl_ptt_board(
         "start_page": start_page,
         "message": "爬取任務已開始，進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
     }
+
+
+# 說明：
+# 停止並重置爬取狀態。用在爬取「卡住」時（例如後端在爬取途中被重啟，
+# DB 留下一筆永遠是 running 的紀錄，導致前端一直顯示執行中、無法開新任務）。
+#
+# 做兩件事：
+# 1. 清掉記憶體中的執行旗標，讓新的爬取可以開始。
+# 2. 把 DB 裡卡住的 running 紀錄標記為 failed。
+# 注意：若真的有背景執行緒還在跑，Python 無法強制中斷它，但重置後
+# 仍可開新任務；卡住的舊任務會自行結束或出錯。
+@router.post("/reset", dependencies=[Depends(get_current_user)])
+def reset_crawl(db: Session = Depends(get_db)):
+    global _crawl_running
+
+    with _crawl_state_lock:
+        _crawl_running = False
+
+    stuck_logs = db.query(CrawlLog).filter(CrawlLog.status == "running").all()
+
+    for log in stuck_logs:
+        log.status = "failed"
+        log.error_message = "手動重置爬取狀態"
+        if log.finished_at is None:
+            log.finished_at = datetime.now()
+
+    db.commit()
+
+    websocket_manager.broadcast_sync({
+        "type": "crawler_failed",
+        "platform": "ptt",
+        "board": "-",
+        "error": "手動重置爬取狀態",
+    })
+
+    return {
+        "status": "success",
+        "reset_count": len(stuck_logs),
+        "message": "已重置爬取狀態，現在可以開始新的爬取。",
+    }

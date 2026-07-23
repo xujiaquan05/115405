@@ -3272,6 +3272,38 @@ button:disabled {
   font-size: 13px;
 }
 
+.crawler-panel-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.crawler-panel-header-right > span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.crawler-reset-button {
+  border: 1px solid #fecaca;
+  background: #ffffff;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.crawler-reset-button:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.crawler-reset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .crawler-current-board {
   margin-bottom: 14px !important;
   color: #475569 !important;
