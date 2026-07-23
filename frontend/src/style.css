@@ -1124,10 +1124,19 @@ select {
   border: 1px solid #eef0f4;
   border-radius: 14px;
   padding: 22px;
-  text-align: center;
+  text-align: left;
+}
+
+/* 步驟編號與標題同一列 */
+.landing-step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .landing-step-no {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1137,12 +1146,11 @@ select {
   background: #4f46e5;
   color: #ffffff;
   font-weight: 700;
-  margin-bottom: 12px;
 }
 
 .landing-step h3 {
   font-size: 16px;
-  margin: 0 0 6px;
+  margin: 0;
   color: #111827;
 }
 

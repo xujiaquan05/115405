@@ -180,8 +180,10 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
       <div class="landing-step-row">
         <template v-for="(step, index) in steps" :key="step.no">
           <div class="landing-step reveal" :style="{ transitionDelay: `${index * 120}ms` }">
-            <span class="landing-step-no">{{ step.no }}</span>
-            <h3>{{ step.title }}</h3>
+            <div class="landing-step-head">
+              <span class="landing-step-no">{{ step.no }}</span>
+              <h3>{{ step.title }}</h3>
+            </div>
             <p>{{ step.desc }}</p>
           </div>
           <span v-if="index < steps.length - 1" class="landing-step-arrow" aria-hidden="true">→</span>
