@@ -23,7 +23,7 @@ function goLogin() {
 
 <template>
   <header class="navbar">
-    <RouterLink to="/dashboard" class="navbar-brand">
+    <RouterLink to="/" class="navbar-brand">
       <LogoMark :size="36" />
       <div>
         <span class="navbar-wordmark">MeBOD</span>
