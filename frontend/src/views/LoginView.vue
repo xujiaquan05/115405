@@ -4,6 +4,7 @@
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
+import LogoMark from "../components/LogoMark.vue";
 
 const router = useRouter();
 const { state: authState, login, enterGuestMode } = useAuth();
@@ -45,8 +46,11 @@ function handleGuest() {
       <aside class="login-brand">
         <div>
           <div class="login-brand-title">
-            <span class="login-brand-mark">◍</span>
-            <h1>醫美時尚輿情分析系統</h1>
+            <LogoMark :size="40" />
+            <div>
+              <strong class="login-wordmark">MeBOD</strong>
+              <h1>醫美時尚輿情分析系統</h1>
+            </div>
           </div>
           <p class="login-brand-subtitle">Medical Beauty Opinion Dashboard</p>
 

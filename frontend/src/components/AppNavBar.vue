@@ -4,6 +4,7 @@
 import { computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
+import LogoMark from "./LogoMark.vue";
 
 const router = useRouter();
 const { state: authState, isAuthenticated, logout } = useAuth();
@@ -22,10 +23,13 @@ function goLogin() {
 
 <template>
   <header class="navbar">
-    <div>
-      <h1 class="navbar-title">醫美時尚輿情分析系統</h1>
-      <p class="navbar-subtitle">Medical Beauty Opinion Dashboard</p>
-    </div>
+    <RouterLink to="/dashboard" class="navbar-brand">
+      <LogoMark :size="36" />
+      <div>
+        <span class="navbar-wordmark">MeBOD</span>
+        <p class="navbar-subtitle">醫美時尚輿情分析系統</p>
+      </div>
+    </RouterLink>
 
     <nav class="navbar-links">
       <!-- RouterLink 用來切換頁面，不會重新載入整個網站。 -->

@@ -46,6 +46,24 @@ select {
   align-items: center;
 }
 
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+}
+
+.navbar-wordmark {
+  display: block;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 .navbar-title {
   margin: 0;
   font-size: 22px;
@@ -53,9 +71,9 @@ select {
 }
 
 .navbar-subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .navbar-links {
@@ -1553,14 +1571,19 @@ html {
 }
 
 .login-brand-title h1 {
-  margin: 0;
-  font-size: 19px;
+  margin: 2px 0 0;
+  font-size: 16px;
   color: #111827;
 }
 
-.login-brand-mark {
-  font-size: 22px;
-  color: #4f46e5;
+.login-wordmark {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .login-brand-subtitle {
