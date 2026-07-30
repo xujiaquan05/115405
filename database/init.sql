@@ -109,6 +109,7 @@ CREATE TABLE crawl_logs (
 
     new_count INTEGER DEFAULT 0,
     skipped_count INTEGER DEFAULT 0,
+    filtered_count INTEGER DEFAULT 0,
 
     error_message TEXT,
 
