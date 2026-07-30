@@ -7,6 +7,7 @@ import LoginView from '../views/LoginView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import AdminUsersView from '../views/AdminUsersView.vue'
 import LandingView from '../views/LandingView.vue'
+import MonitorView from '../views/MonitorView.vue'
 
 const routes = [
   {
@@ -34,6 +35,13 @@ const routes = [
     component: AdminUsersView,
     // 帳號管理只有 admin 能進。
     meta: { requiresAdmin: true }
+  },
+  {
+    path: '/monitor',
+    name: 'Monitor',
+    component: MonitorView,
+    // 監控預警需要真正登入（訪客不行）。
+    meta: { requiresAccount: true }
   },
   {
     path: '/dashboard',

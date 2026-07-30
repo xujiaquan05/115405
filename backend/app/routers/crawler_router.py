@@ -12,6 +12,7 @@ from app.services.article_service import create_article, get_or_create_board, ge
 from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import TARGET_BOARDS, normalize_boards
+from app.services.relevance_filter import evaluate_article_relevance
 from app.services.sentiment_service import classify_pending_sentiments
 from app.websocket.manager import websocket_manager
 
@@ -33,7 +34,7 @@ def _serialize_crawl_log(log: CrawlLog):
     started_at = log.started_at
     finished_at = log.finished_at
     duration_seconds = None
-    handled_count = (log.new_count or 0) + (log.skipped_count or 0)
+    handled_count = (log.new_count or 0) + (log.skipped_count or 0) + (log.filtered_count or 0)
     estimated_pages = max(1, (handled_count + 19) // 20) if handled_count else None
 
     if started_at and finished_at:
@@ -50,6 +51,7 @@ def _serialize_crawl_log(log: CrawlLog):
         "pages": estimated_pages,
         "new_count": log.new_count or 0,
         "skipped_count": log.skipped_count or 0,
+        "filtered_count": log.filtered_count or 0,
         "error_message": log.error_message,
         "duration_seconds": duration_seconds,
     }
@@ -102,6 +104,13 @@ def get_crawler_status(
         or 0
     )
 
+    today_filtered_count = (
+        db.query(func.coalesce(func.sum(CrawlLog.filtered_count), 0))
+        .filter(CrawlLog.started_at >= today_start)
+        .scalar()
+        or 0
+    )
+
     running_log = (
         db.query(CrawlLog)
         .outerjoin(CrawlLog.board)
@@ -127,6 +136,7 @@ def get_crawler_status(
                 "last_crawled_ago": _format_elapsed_minutes(last_log.started_at if last_log else latest_article_at),
                 "today_new_count": today_new_count,
                 "today_skipped_count": today_skipped_count,
+                "today_filtered_count": today_filtered_count,
                 "running_board": running_log.board.name if running_log and running_log.board else None,
                 "running_started_at": _format_datetime(running_log.started_at if running_log else None),
             },
@@ -171,8 +181,15 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
 
         new_count = 0
         skipped_count = 0
+        filtered_count = 0
 
         for item in crawled_articles:
+            relevance = evaluate_article_relevance(item)
+
+            if not relevance.is_relevant:
+                filtered_count += 1
+                continue
+
             _, is_new = create_article(
                 db=db,
                 unique_id=item["unique_id"],
@@ -197,6 +214,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
             status="success",
             new_count=new_count,
             skipped_count=skipped_count,
+            filtered_count=filtered_count,
         )
 
         result = {
@@ -208,6 +226,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
             "total_crawled": len(crawled_articles),
             "new_count": new_count,
             "skipped_count": skipped_count,
+            "filtered_count": filtered_count,
         }
 
         websocket_manager.broadcast_sync({
@@ -221,6 +240,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
             "board": board,
             "new_count": new_count,
             "skipped_count": skipped_count,
+            "filtered_count": filtered_count,
         })
 
         return result

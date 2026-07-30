@@ -31,6 +31,12 @@ def _apply_schema_migrations():
         connection.execute(text(
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP"
         ))
+        connection.execute(text(
+            "ALTER TABLE crawl_logs ADD COLUMN IF NOT EXISTS filtered_count INTEGER DEFAULT 0"
+        ))
+        connection.execute(text(
+            "ALTER TABLE crawl_logs ADD COLUMN IF NOT EXISTS filtered_count INTEGER DEFAULT 0"
+        ))
 
 
 def _seed_admin_user(db):

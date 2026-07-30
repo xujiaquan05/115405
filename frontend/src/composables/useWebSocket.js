@@ -32,6 +32,7 @@ const state = reactive({
     crawledCount: 0,
     newCount: 0,
     skippedCount: 0,
+    filteredCount: 0,
     status: "idle",
   },
 
@@ -70,6 +71,7 @@ function applyMessage(event) {
     state.crawler.crawledCount = 0;
     state.crawler.newCount = 0;
     state.crawler.skippedCount = 0;
+    state.crawler.filteredCount = 0;
     state.crawler.status = "running";
     addNotification("info", `Crawler started: ${event.board}`);
     return;
@@ -91,10 +93,11 @@ function applyMessage(event) {
     state.crawler.progress = 100;
     state.crawler.newCount = event.new_count || 0;
     state.crawler.skippedCount = event.skipped_count || 0;
+    state.crawler.filteredCount = event.filtered_count || 0;
     state.crawler.status = "completed";
     addNotification(
       "success",
-      `Crawler completed: ${event.new_count || 0} new, ${event.skipped_count || 0} skipped`
+      `Crawler completed: ${event.new_count || 0} new, ${event.skipped_count || 0} skipped, ${event.filtered_count || 0} filtered`
     );
     return;
   }

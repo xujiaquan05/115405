@@ -340,6 +340,17 @@ onMounted(() => {
         </div>
         <span class="crawler-stat-icon orange">▤</span>
       </article>
+
+      <article class="crawler-stat-card">
+        <div>
+          <span class="crawler-stat-label">不相關過濾數</span>
+          <strong class="crawler-stat-number muted-text">
+            {{ websocketState.crawler.filteredCount || state.summary.today_filtered_count || 0 }}
+          </strong>
+          <small>爬取後不寫入資料庫</small>
+        </div>
+        <span class="crawler-stat-icon blue">⌕</span>
+      </article>
     </div>
 
     <div class="crawler-work-grid">
@@ -517,6 +528,7 @@ onMounted(() => {
               <th>爬取頁數</th>
               <th>新增文章數</th>
               <th>跳過重複數</th>
+              <th>不相關過濾數</th>
               <th>錯誤訊息</th>
               <th>操作</th>
             </tr>
@@ -533,6 +545,7 @@ onMounted(() => {
               <td>{{ log.pages || "-" }}</td>
               <td>{{ log.new_count }}</td>
               <td>{{ log.skipped_count }}</td>
+              <td>{{ log.filtered_count || 0 }}</td>
               <td :class="{ 'crawler-error-text': log.error_message }">
                 {{ log.error_message || "-" }}
               </td>

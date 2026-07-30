@@ -10,9 +10,10 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.core.startup import initialize_database
 from app.routers.crawler_router import router as crawler_router
-from app.routers import admin, analysis, auth, dashboard, export, qa, websocket
+from app.routers import admin, analysis, auth, dashboard, export, monitor, qa, websocket
 
 
 # 說明：
@@ -21,7 +22,9 @@ from app.routers import admin, analysis, auth, dashboard, export, qa, websocket
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     initialize_database()
+    start_scheduler()
     yield
+    shutdown_scheduler()
 
 
 app = FastAPI(
@@ -62,6 +65,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(monitor.router)
 app.include_router(crawler_router)
 app.include_router(dashboard.router)
 app.include_router(analysis.router)

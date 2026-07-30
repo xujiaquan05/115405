@@ -146,6 +146,55 @@ class AnalysisResult(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class WatchKeyword(Base):
+    """
+    說明：
+    監控關鍵字。系統會定期（或手動）針對這些關鍵字檢查輿情，
+    當負面聲量或情緒惡化時自動產生預警。
+    """
+
+    __tablename__ = "watch_keywords"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    keyword = Column(String(255), nullable=False)
+    days = Column(Integer, nullable=False, default=7)
+
+    # 1 = 啟用監控，0 = 暫停。
+    enabled = Column(Integer, nullable=False, default=1)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class Alert(Base):
+    """
+    說明：
+    輿情預警紀錄。當某個監控關鍵字的負面比例 / 情緒分數 / 聲量
+    達到警戒門檻時建立一筆，供行銷人員即時掌握公關風險。
+    """
+
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    keyword = Column(String(255), nullable=False)
+
+    # 等級：warning / critical。
+    level = Column(String(20), nullable=False)
+
+    title = Column(String(255), nullable=False)
+    detail = Column(Text)
+
+    # 觸發當下的指標快照。
+    negative_ratio = Column(Integer, default=0)
+    sentiment_score = Column(Integer, default=0)
+    article_count = Column(Integer, default=0)
+
+    is_read = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime)
+
+
 class CrawlLog(Base):
     __tablename__ = "crawl_logs"
 
@@ -158,6 +207,7 @@ class CrawlLog(Base):
 
     new_count = Column(Integer, default=0)
     skipped_count = Column(Integer, default=0)
+    filtered_count = Column(Integer, default=0)
 
     error_message = Column(Text)
 

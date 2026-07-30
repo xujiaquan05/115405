@@ -17,6 +17,7 @@ def create_crawl_log(db, platform_id=None, board_id=None, status="running"):
         status=status,
         new_count=0,
         skipped_count=0,
+        filtered_count=0,
         started_at=datetime.now()
     )
 
@@ -33,6 +34,7 @@ def finish_crawl_log(
     status="success",
     new_count=0,
     skipped_count=0,
+    filtered_count=0,
     error_message=None
 ):
     """
@@ -48,6 +50,7 @@ def finish_crawl_log(
     crawl_log.status = status
     crawl_log.new_count = new_count
     crawl_log.skipped_count = skipped_count
+    crawl_log.filtered_count = filtered_count
     crawl_log.error_message = error_message
     crawl_log.finished_at = datetime.now()
 
