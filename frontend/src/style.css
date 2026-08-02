@@ -3382,6 +3382,494 @@ button:disabled {
   }
 }
 
+/* ========== 競品比較頁 ========== */
+
+.compare-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.compare-header h2 {
+  margin: 0 0 4px;
+  font-size: 22px;
+  color: #111827;
+}
+
+.compare-header p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.compare-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.compare-toolbar input {
+  flex: 1;
+  min-width: 220px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+}
+
+.compare-toolbar select {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+}
+
+.compare-toolbar input:focus,
+.compare-toolbar select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px #eef2ff;
+}
+
+.compare-toolbar button {
+  height: 40px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.compare-toolbar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.compare-card {
+  background: #ffffff;
+  border: 1px solid #eef0f4;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.compare-card h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.compare-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.compare-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.compare-score-pill.good {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.compare-score-pill.neutral {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.compare-score-pill.bad {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.compare-score-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.compare-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.compare-metric strong {
+  font-size: 18px;
+  color: #111827;
+}
+
+.compare-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef0f4;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.compare-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: #4f46e5;
+}
+
+.compare-senti-bar {
+  display: flex;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  background: #eef0f4;
+}
+
+.compare-senti-bar .seg.pos {
+  background: #22c55e;
+}
+
+.compare-senti-bar .seg.neu {
+  background: #cbd5e1;
+}
+
+.compare-senti-bar .seg.neg {
+  background: #ef4444;
+}
+
+.compare-senti-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.compare-metric-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.compare-metric-row > div {
+  flex: 1;
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.compare-metric-row span {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.compare-metric-row strong {
+  font-size: 16px;
+  color: #111827;
+}
+
+.compare-metric-row strong.up {
+  color: #166534;
+}
+
+.compare-metric-row strong.down {
+  color: #b91c1c;
+}
+
+.compare-coverage {
+  margin: 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ========== Dashboard 匯出報告按鈕 ========== */
+
+.dashboard-search-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.dashboard-search-row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-report-button {
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dashboard-report-button:hover {
+  background: #f3f4f6;
+}
+
+/* ========== 報告頁（可列印 / 存 PDF） ========== */
+
+.report-view {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.report-toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.report-back {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.report-print {
+  border: none;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.report-loading {
+  color: #6b7280;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.report-doc {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 36px 40px;
+}
+
+.report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #111827;
+  margin-bottom: 24px;
+}
+
+.report-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-brand strong {
+  display: block;
+  font-size: 18px;
+  color: #111827;
+}
+
+.report-brand span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.report-meta {
+  text-align: right;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.report-meta p {
+  margin: 2px 0;
+}
+
+.report-section {
+  margin-bottom: 24px;
+}
+
+.report-section h3 {
+  font-size: 16px;
+  color: #111827;
+  margin: 0 0 12px;
+  padding-left: 10px;
+  border-left: 4px solid #4f46e5;
+}
+
+.report-section h4 {
+  font-size: 14px;
+  color: #374151;
+  margin: 0 0 8px;
+}
+
+.report-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.report-stat-grid > div {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
+.report-stat-grid span {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.report-stat-grid strong {
+  font-size: 22px;
+  color: #111827;
+}
+
+.report-senti-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #eef0f4;
+}
+
+.report-senti-bar .seg.pos { background: #22c55e; }
+.report-senti-bar .seg.neu { background: #cbd5e1; }
+.report-senti-bar .seg.neg { background: #ef4444; }
+
+.report-senti-legend {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.report-summary {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #374151;
+  margin: 0;
+}
+
+.report-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.report-two-col ul,
+.report-suggestions,
+.report-articles {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.7;
+}
+
+.report-two-col li,
+.report-suggestions li,
+.report-articles li {
+  margin-bottom: 8px;
+}
+
+.report-two-col li span,
+.report-suggestions li span {
+  display: block;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.report-suggestions li small,
+.report-articles li small {
+  display: block;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.report-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.report-keywords span {
+  background: #eef2ff;
+  color: #4338ca;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.report-keywords em {
+  font-style: normal;
+  color: #818cf8;
+}
+
+.report-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* 列印：隱藏系統導覽與工具列，讓報告獨佔版面 */
+@media print {
+  .navbar,
+  .report-toolbar {
+    display: none !important;
+  }
+
+  .main-content {
+    max-width: none;
+    padding: 0;
+  }
+
+  .report-view {
+    max-width: none;
+  }
+
+  .report-doc {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+}
+
 .crawler-stat-card {
   min-height: 126px;
   display: flex;

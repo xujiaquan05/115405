@@ -45,6 +45,7 @@ function goLogin() {
       <!-- RouterLink 用來切換頁面，不會重新載入整個網站。 -->
       <RouterLink to="/dashboard" class="nav-link">Dashboard</RouterLink>
       <RouterLink to="/qa" class="nav-link">AI 問答</RouterLink>
+      <RouterLink to="/compare" class="nav-link">競品比較</RouterLink>
       <RouterLink to="/history" class="nav-link">History</RouterLink>
       <RouterLink v-if="isAuthenticated" to="/monitor" class="nav-link nav-link-alert">
         監控預警

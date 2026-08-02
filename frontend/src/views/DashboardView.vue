@@ -2,6 +2,7 @@
 
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 
 import SearchBar from "../components/SearchBar.vue";
 import MetricsRow from "../components/MetricsRow.vue";
@@ -30,6 +31,12 @@ const {
   fetchInsight,
   changeSort,
 } = useDashboard();
+
+const router = useRouter();
+
+function goReport() {
+  router.push({ path: "/report", query: { keyword: state.keyword, days: state.days } });
+}
 
 const {
   state: websocketState,
@@ -119,7 +126,12 @@ watch(
 
     <div class="dashboard-page">
       <div id="dashboard-overview" class="dashboard-section" data-dashboard-section>
-        <SearchBar />
+        <div class="dashboard-search-row">
+          <SearchBar />
+          <button class="dashboard-report-button" type="button" @click="goReport">
+            匯出報告
+          </button>
+        </div>
 
         <p v-if="state.errorMessage" class="error-message">
           {{ state.errorMessage }}
