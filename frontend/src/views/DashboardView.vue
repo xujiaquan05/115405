@@ -126,12 +126,12 @@ watch(
 
     <div class="dashboard-page">
       <div id="dashboard-overview" class="dashboard-section" data-dashboard-section>
-        <div class="dashboard-search-row">
-          <SearchBar />
+        <div class="dashboard-report-bar">
           <button class="dashboard-report-button" type="button" @click="goReport">
             匯出報告
           </button>
         </div>
+        <SearchBar />
 
         <p v-if="state.errorMessage" class="error-message">
           {{ state.errorMessage }}
