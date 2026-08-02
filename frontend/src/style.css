@@ -3478,26 +3478,20 @@ button:disabled {
 
 /* ========== Dashboard 匯出報告按鈕 ========== */
 
-.dashboard-search-row {
+.dashboard-report-bar {
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-
-.dashboard-search-row > :first-child {
-  flex: 1;
-  min-width: 0;
+  justify-content: flex-end;
+  margin-bottom: 10px;
 }
 
 .dashboard-report-button {
-  flex-shrink: 0;
-  height: 44px;
-  padding: 0 18px;
+  height: 36px;
+  padding: 0 16px;
   border: 1px solid #d1d5db;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #ffffff;
   color: #374151;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
