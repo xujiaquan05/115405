@@ -3478,13 +3478,19 @@ button:disabled {
 
 /* ========== Dashboard 匯出報告按鈕 ========== */
 
-.dashboard-report-bar {
+.dashboard-search-row {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.dashboard-search-row > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .dashboard-report-button {
+  flex-shrink: 0;
   height: 36px;
   padding: 0 16px;
   border: 1px solid #d1d5db;
