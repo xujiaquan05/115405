@@ -22,63 +22,6 @@ router = APIRouter(
 )
 
 
-@router.get("/compare")
-def compare_keywords(
-    keywords: list[str] = Query(
-        ...,
-        description="要比較的關鍵字，重複此參數帶入多個（例如競品品牌或不同療程）",
-    ),
-    days: int = Query(default=30, ge=1, le=365),
-    boards: list[str] | None = Query(default=None),
-    db: Session = Depends(get_db),
-):
-    """
-    說明：
-    競品/多關鍵字比較。針對每個關鍵字回傳可並排比較的指標，
-    讓行銷人員一眼看出「我 vs 競品」的聲量與口碑差異。
-
-    唯讀資料，不需登入。最多比較 5 個關鍵字。
-    """
-
-    selected_boards = normalize_boards(boards) if boards else None
-
-    # 去重、去空白、限制最多 5 個，避免一次算太多。
-    seen = []
-    for raw in keywords:
-        kw = (raw or "").strip()
-        if kw and kw not in seen:
-            seen.append(kw)
-    seen = seen[:5]
-
-    if not seen:
-        raise HTTPException(status_code=400, detail="請至少提供一個關鍵字。")
-
-    results = []
-    for keyword in seen:
-        overview = get_overview_metrics(db=db, keyword=keyword, days=days, boards=selected_boards)
-        sentiment = get_sentiment_distribution(db=db, keyword=keyword, days=days, boards=selected_boards)
-
-        results.append({
-            "keyword": keyword,
-            "article_count": overview.get("total_articles", 0),
-            "avg_push_count": overview.get("avg_push_count", 0),
-            "growth_rate": overview.get("growth_rate", 0),
-            "sentiment_score": compute_sentiment_score(sentiment),
-            "positive": sentiment.get("positive", 0),
-            "neutral": sentiment.get("neutral", 0),
-            "negative": sentiment.get("negative", 0),
-            "ai_rated_percent": round(float(sentiment.get("ai_rated_percent") or 0), 1),
-        })
-
-    return {
-        "status": "success",
-        "data": {
-            "days": days,
-            "results": results,
-        },
-    }
-
-
 @router.get("/keyword")
 def analyze_keyword(
     keyword: str = Query(

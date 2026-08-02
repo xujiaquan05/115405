@@ -8,7 +8,6 @@ import ProfileView from '../views/ProfileView.vue'
 import AdminUsersView from '../views/AdminUsersView.vue'
 import LandingView from '../views/LandingView.vue'
 import MonitorView from '../views/MonitorView.vue'
-import CompareView from '../views/CompareView.vue'
 import ReportView from '../views/ReportView.vue'
 
 const routes = [
@@ -54,11 +53,6 @@ const routes = [
     path: '/qa',
     name: 'QA',
     component: QAView
-  },
-  {
-    path: '/compare',
-    name: 'Compare',
-    component: CompareView
   },
   {
     path: '/report',
