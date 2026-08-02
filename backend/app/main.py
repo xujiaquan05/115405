@@ -13,7 +13,7 @@ from app.core.database import get_db
 from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.core.startup import initialize_database
 from app.routers.crawler_router import router as crawler_router
-from app.routers import admin, analysis, auth, dashboard, export, monitor, qa, websocket
+from app.routers import admin, analysis, articles, auth, dashboard, export, monitor, qa, websocket
 
 
 # 說明：
@@ -71,6 +71,7 @@ app.include_router(dashboard.router)
 app.include_router(analysis.router)
 app.include_router(websocket.router)
 app.include_router(qa.router)
+app.include_router(articles.router)
 app.include_router(export.router)
 
 

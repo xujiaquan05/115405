@@ -465,9 +465,12 @@ def get_frequent_keywords(
     - 計算每個 BEAUTY_KEYWORDS 出現在幾篇文章中
     - 由高到低排序
 
-    這是容易理解的簡化版本；
-    之後若要更精準，可以改用 jieba 或 CKIP 做中文斷詞。
+    以 jieba 中文斷詞統計詞頻，能自動浮現新興討論詞，
+    不再侷限於固定的 BEAUTY_KEYWORDS 清單。
     """
+
+    # 延遲載入，避免 dashboard_service 與 keyword_extractor 互相 import。
+    from app.services.keyword_extractor import extract_keywords
 
     start_date, end_date = get_date_range(days)
 
@@ -481,33 +484,12 @@ def get_frequent_keywords(
     )
     articles = apply_board_filter(articles, boards).all()
 
-    keyword_count = {}
-
-    for beauty_keyword in BEAUTY_KEYWORDS:
-        count = 0
-
-        for article in articles:
-            title = article.title or ""
-            content = article.content or ""
-            text = title + " " + content
-
-            if beauty_keyword in text:
-                count += 1
-
-        if count > 0:
-            keyword_count[beauty_keyword] = count
-
-    result = [
-        {
-            "keyword": key,
-            "count": value,
-        }
-        for key, value in keyword_count.items()
+    texts = [
+        f"{article.title or ''} {article.content or ''}"
+        for article in articles
     ]
 
-    result.sort(key=lambda item: item["count"], reverse=True)
-
-    return result[:20]
+    return extract_keywords(texts, top_n=20)
 
 
 def get_data_status(

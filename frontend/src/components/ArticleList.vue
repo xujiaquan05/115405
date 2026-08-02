@@ -2,6 +2,13 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+
+const router = useRouter();
+
+function goDetail(article) {
+  router.push(`/article/${article.id}`);
+}
 
 const props = defineProps({
   articles: {
@@ -107,6 +114,7 @@ function getSource(article) {
             <th>回文數</th>
             <th>日期</th>
             <th>摘要</th>
+            <th>詳情</th>
           </tr>
         </thead>
 
@@ -149,6 +157,12 @@ function getSource(article) {
 
             <td class="article-preview-cell">
               {{ article.preview }}
+            </td>
+
+            <td>
+              <button class="article-detail-btn" type="button" @click="goDetail(article)">
+                詳情
+              </button>
             </td>
           </tr>
         </tbody>

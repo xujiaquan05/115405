@@ -9,6 +9,7 @@ import AdminUsersView from '../views/AdminUsersView.vue'
 import LandingView from '../views/LandingView.vue'
 import MonitorView from '../views/MonitorView.vue'
 import ReportView from '../views/ReportView.vue'
+import ArticleDetailView from '../views/ArticleDetailView.vue'
 
 const routes = [
   {
@@ -58,6 +59,11 @@ const routes = [
     path: '/report',
     name: 'Report',
     component: ReportView
+  },
+  {
+    path: '/article/:id',
+    name: 'ArticleDetail',
+    component: ArticleDetailView
   },
   {
     path: '/crawl',
