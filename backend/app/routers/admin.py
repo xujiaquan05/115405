@@ -12,6 +12,7 @@ from app.core.database import get_db
 from app.core.scheduler import reschedule_daily_job
 from app.core.time_utils import taiwan_now
 from app.models.database_models import Alert, Article, Board, CrawlLog, User, WatchKeyword
+from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.audit_service import list_recent_audits, record_audit
 from app.services.auth_service import (
     hash_password,
@@ -87,17 +88,18 @@ def list_users(db: Session = Depends(get_db)):
 @router.get("/audit-logs", dependencies=[Depends(require_admin)])
 def get_audit_logs(
     limit: int = Query(default=50, ge=1, le=200),
+    action: str | None = Query(default=None, description="只看某一類操作，例如 create_user"),
     db: Session = Depends(get_db),
 ):
     """
     說明：
-    列出最近的後台操作稽核紀錄，最新的排前面。
+    列出最近的後台操作稽核紀錄，最新的排前面；可用 action 篩選類型。
     """
 
     return {
         "status": "success",
         "data": {
-            "logs": list_recent_audits(db, limit=limit),
+            "logs": list_recent_audits(db, limit=limit, action=action),
         },
     }
 
@@ -360,3 +362,123 @@ def write_settings(
     db.commit()
 
     return {"status": "success", "data": updated}
+
+
+# ── 看板管理 ────────────────────────────────────────────────
+
+def _serialize_board(board, article_count: int) -> dict:
+    return {
+        "id": board.id,
+        "name": board.name,
+        "display_name": board.display_name or board.name,
+        "is_active": bool(board.is_active),
+        "article_count": article_count,
+    }
+
+
+@router.get("/boards", dependencies=[Depends(require_admin)])
+def list_boards(db: Session = Depends(get_db)):
+    """列出所有看板，含文章數與啟用狀態。"""
+    rows = (
+        db.query(Board, func.count(Article.id))
+        .outerjoin(Article, Article.board_id == Board.id)
+        .group_by(Board.id)
+        .order_by(desc(Board.is_active), Board.name)
+        .all()
+    )
+    return {
+        "status": "success",
+        "data": {"boards": [_serialize_board(b, c) for b, c in rows]},
+    }
+
+
+class CreateBoardRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    display_name: str | None = Field(default=None, max_length=100)
+
+
+@router.post("/boards", dependencies=[Depends(require_admin)])
+def create_board(
+    payload: CreateBoardRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    name = payload.name.strip()
+
+    existing = db.query(Board).filter(Board.name == name).first()
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="此看板已存在。")
+
+    platform = get_or_create_platform(db, "ptt")
+    board = get_or_create_board(db, platform.id, name)
+    board.display_name = (payload.display_name or "").strip() or name
+    board.url = f"https://www.ptt.cc/bbs/{name}/index.html"
+    board.is_active = 1
+
+    record_audit(db, actor=current_admin, action="create_board",
+                 target_username=None, detail=f"新增爬取看板「{name}」")
+    db.commit()
+    db.refresh(board)
+
+    return {"status": "success", "board": _serialize_board(board, 0)}
+
+
+class UpdateBoardRequest(BaseModel):
+    is_active: bool | None = None
+    display_name: str | None = Field(default=None, max_length=100)
+
+
+@router.patch("/boards/{board_id}", dependencies=[Depends(require_admin)])
+def update_board(
+    board_id: int,
+    payload: UpdateBoardRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if board is None:
+        raise HTTPException(status_code=404, detail="找不到此看板。")
+
+    changes = []
+    if payload.is_active is not None:
+        board.is_active = 1 if payload.is_active else 0
+        changes.append("啟用爬取" if payload.is_active else "停用爬取")
+    if payload.display_name is not None:
+        board.display_name = payload.display_name.strip() or board.name
+        changes.append("修改顯示名稱")
+
+    if changes:
+        record_audit(db, actor=current_admin, action="update_board",
+                     target_username=None, detail=f"看板「{board.name}」：" + "、".join(changes))
+
+    article_count = db.query(func.count(Article.id)).filter(Article.board_id == board.id).scalar() or 0
+    db.commit()
+    db.refresh(board)
+
+    return {"status": "success", "board": _serialize_board(board, article_count)}
+
+
+@router.delete("/boards/{board_id}", dependencies=[Depends(require_admin)])
+def delete_board(
+    board_id: int,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if board is None:
+        raise HTTPException(status_code=404, detail="找不到此看板。")
+
+    article_count = db.query(func.count(Article.id)).filter(Article.board_id == board.id).scalar() or 0
+    if article_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"此看板已有 {article_count} 篇文章，無法刪除；可改為「停用」。",
+        )
+
+    name = board.name
+    db.delete(board)
+    record_audit(db, actor=current_admin, action="delete_board",
+                 target_username=None, detail=f"刪除看板「{name}」")
+    db.commit()
+
+    return {"status": "success", "message": "看板已刪除。"}

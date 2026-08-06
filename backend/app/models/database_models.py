@@ -28,6 +28,10 @@ class Board(Base):
     name = Column(String(100), nullable=False)
     display_name = Column(String(100))
     url = Column(Text)
+
+    # 1 = 列為自動爬取目標，0 = 暫停爬取此看板。
+    is_active = Column(Integer, nullable=False, default=1)
+
     created_at = Column(DateTime, server_default=func.now())
 
     platform = relationship("Platform", back_populates="boards")

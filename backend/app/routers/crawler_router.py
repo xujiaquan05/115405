@@ -9,6 +9,7 @@ from app.core.database import SessionLocal, get_db
 from app.crawlers.ptt_crawler import PTTCrawler
 from app.models.database_models import Article, Board, CrawlLog
 from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
+from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import TARGET_BOARDS, normalize_boards
@@ -327,7 +328,7 @@ def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
 # 說明：
 # 觸發爬蟲會對 PTT 發出大量請求且消耗資源，
 # 屬於敏感操作，必須登入才能使用。
-@router.post("/ptt", dependencies=[Depends(get_current_user)])
+@router.post("/ptt")
 def crawl_ptt_board(
     background_tasks: BackgroundTasks,
     board: str = Query(default="BeautySalon", description="Single PTT board name"),
@@ -340,6 +341,8 @@ def crawl_ptt_board(
         default=None,
         description="PTT page number. If empty, crawler starts from latest index.html",
     ),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     selected_boards = normalize_boards(boards) if boards else [board]
     selected_boards = [name for name in selected_boards if name in TARGET_BOARDS]
@@ -349,6 +352,15 @@ def crawl_ptt_board(
 
     if not _try_start_crawl():
         raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
+
+    record_audit(
+        db,
+        actor=current_user,
+        action="trigger_crawl",
+        target_username=None,
+        detail=f"觸發爬取：{'、'.join(selected_boards)}（{pages} 頁）",
+    )
+    db.commit()
 
     background_tasks.add_task(_run_crawl_job, selected_boards, pages, start_page)
 
@@ -372,14 +384,22 @@ def crawl_ptt_board(
 # 2. 把 DB 裡卡住的 running 紀錄標記為 failed。
 # 注意：若真的有背景執行緒還在跑，Python 無法強制中斷它，但重置後
 # 仍可開新任務；卡住的舊任務會自行結束或出錯。
-@router.post("/reset", dependencies=[Depends(get_current_user)])
-def reset_crawl(db: Session = Depends(get_db)):
+@router.post("/reset")
+def reset_crawl(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     global _crawl_running
 
     with _crawl_state_lock:
         _crawl_running = False
 
     stuck_logs = db.query(CrawlLog).filter(CrawlLog.status == "running").all()
+
+    record_audit(
+        db,
+        actor=current_user,
+        action="reset_crawl",
+        target_username=None,
+        detail=f"重置爬取狀態（清除 {len(stuck_logs)} 筆卡住紀錄）",
+    )
 
     for log in stuck_logs:
         log.status = "failed"

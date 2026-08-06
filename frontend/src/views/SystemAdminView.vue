@@ -7,9 +7,39 @@ import api from "../services/api.js";
 const tabs = [
   { id: "overview", label: "系統總覽" },
   { id: "settings", label: "系統設定" },
+  { id: "boards", label: "看板管理" },
+  { id: "audit", label: "操作紀錄" },
 ];
 
 const activeTab = ref("overview");
+
+// 看板管理
+const boards = ref([]);
+const newBoard = reactive({ name: "", display_name: "" });
+
+// 操作紀錄
+const auditLogs = ref([]);
+const auditFilter = ref("all");
+const AUDIT_ACTIONS = [
+  { value: "all", label: "全部操作" },
+  { value: "create_user", label: "建立帳號" },
+  { value: "update_user", label: "修改帳號" },
+  { value: "delete_user", label: "刪除帳號" },
+  { value: "update_settings", label: "修改設定" },
+  { value: "create_board", label: "新增看板" },
+  { value: "update_board", label: "調整看板" },
+  { value: "delete_board", label: "刪除看板" },
+  { value: "trigger_crawl", label: "觸發爬取" },
+  { value: "reset_crawl", label: "重置爬取" },
+  { value: "refresh_sentiment", label: "重新評分" },
+  { value: "add_watch_keyword", label: "新增監控" },
+  { value: "delete_watch_keyword", label: "移除監控" },
+  { value: "delete_history", label: "刪除紀錄" },
+];
+
+function auditActionLabel(action) {
+  return AUDIT_ACTIONS.find((a) => a.value === action)?.label || action;
+}
 
 const overview = ref(null);
 const settings = reactive({
@@ -94,6 +124,72 @@ function formatTime(value) {
   }).format(new Date(value));
 }
 
+// ── 看板管理 ──
+async function fetchBoards() {
+  try {
+    const response = await api.get("/api/admin/boards");
+    boards.value = response.data.data.boards;
+  } catch (error) {
+    console.error(error);
+    flash("看板列表載入失敗。", "error");
+  }
+}
+
+async function addBoard() {
+  const name = newBoard.name.trim();
+  if (!name) return;
+  try {
+    await api.post("/api/admin/boards", { name, display_name: newBoard.display_name.trim() || null });
+    newBoard.name = "";
+    newBoard.display_name = "";
+    flash(`已新增看板「${name}」。`, "success");
+    await fetchBoards();
+  } catch (error) {
+    console.error(error);
+    flash(error.response?.status === 409 ? "此看板已存在。" : "新增失敗。", "error");
+  }
+}
+
+async function toggleBoard(board) {
+  try {
+    await api.patch(`/api/admin/boards/${board.id}`, { is_active: !board.is_active });
+    await fetchBoards();
+  } catch (error) {
+    console.error(error);
+    flash("更新失敗。", "error");
+  }
+}
+
+async function deleteBoard(board) {
+  if (!window.confirm(`確定要刪除看板「${board.name}」嗎？`)) return;
+  try {
+    await api.delete(`/api/admin/boards/${board.id}`);
+    flash(`已刪除看板「${board.name}」。`, "success");
+    await fetchBoards();
+  } catch (error) {
+    console.error(error);
+    flash(error.response?.status === 409 ? error.response.data.detail : "刪除失敗。", "error");
+  }
+}
+
+// ── 操作紀錄 ──
+async function fetchAudit() {
+  try {
+    const params = { limit: 100 };
+    if (auditFilter.value !== "all") params.action = auditFilter.value;
+    const response = await api.get("/api/admin/audit-logs", { params });
+    auditLogs.value = response.data.data.logs;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+function switchTab(id) {
+  activeTab.value = id;
+  if (id === "boards" && !boards.value.length) fetchBoards();
+  if (id === "audit") fetchAudit();
+}
+
 onMounted(() => {
   fetchOverview();
   fetchSettings();
@@ -113,7 +209,7 @@ onMounted(() => {
         :key="tab.id"
         type="button"
         :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
+        @click="switchTab(tab.id)"
       >
         {{ tab.label }}
       </button>
@@ -217,6 +313,84 @@ onMounted(() => {
       <button class="sysadmin-save" type="button" :disabled="state.saving" @click="saveSettings">
         {{ state.saving ? "儲存中…" : "儲存設定" }}
       </button>
+    </div>
+
+    <!-- 看板管理 -->
+    <div v-else-if="activeTab === 'boards'">
+      <article class="card sysadmin-settings-card">
+        <h3>新增看板</h3>
+        <p class="sysadmin-hint">看板名稱需與 PTT 網址一致（例如 BeautySalon、MakeUp）。停用的看板不會納入每日自動爬取。</p>
+        <div class="sysadmin-board-form">
+          <input v-model="newBoard.name" type="text" placeholder="看板代號（PTT board）" />
+          <input v-model="newBoard.display_name" type="text" placeholder="顯示名稱（選填）" />
+          <button type="button" :disabled="!newBoard.name.trim()" @click="addBoard">新增</button>
+        </div>
+      </article>
+
+      <article class="card sysadmin-settings-card">
+        <h3>看板清單</h3>
+        <p v-if="!boards.length" class="sysadmin-empty">尚無看板資料。</p>
+        <table v-else class="sysadmin-table">
+          <thead>
+            <tr>
+              <th>看板</th>
+              <th>顯示名稱</th>
+              <th>文章數</th>
+              <th>狀態</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="board in boards" :key="board.id">
+              <td>{{ board.name }}</td>
+              <td>{{ board.display_name || "—" }}</td>
+              <td>{{ board.article_count }}</td>
+              <td>
+                <span :class="['sysadmin-badge', board.is_active ? 'on' : 'off']">
+                  {{ board.is_active ? "爬取中" : "已停用" }}
+                </span>
+              </td>
+              <td class="sysadmin-actions">
+                <button type="button" class="link" @click="toggleBoard(board)">
+                  {{ board.is_active ? "停用" : "啟用" }}
+                </button>
+                <button type="button" class="link danger" @click="deleteBoard(board)">刪除</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+    </div>
+
+    <!-- 操作紀錄 -->
+    <div v-else-if="activeTab === 'audit'">
+      <article class="card sysadmin-settings-card">
+        <div class="sysadmin-audit-head">
+          <h3>操作紀錄</h3>
+          <select v-model="auditFilter" @change="fetchAudit">
+            <option v-for="opt in AUDIT_ACTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          </select>
+        </div>
+        <p v-if="!auditLogs.length" class="sysadmin-empty">沒有符合條件的紀錄。</p>
+        <table v-else class="sysadmin-table">
+          <thead>
+            <tr>
+              <th>時間</th>
+              <th>操作者</th>
+              <th>動作</th>
+              <th>內容</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="log in auditLogs" :key="log.id">
+              <td>{{ formatTime(log.created_at) }}</td>
+              <td>{{ log.actor_username || "系統" }}</td>
+              <td><span class="sysadmin-badge">{{ auditActionLabel(log.action) }}</span></td>
+              <td>{{ log.detail || "—" }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
     </div>
   </section>
 </template>

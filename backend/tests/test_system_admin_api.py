@@ -94,3 +94,25 @@ class TestSettingsApi:
     def test_empty_update_rejected(self, client):
         h = auth_header(client, "admin", "admin123")
         assert client.put("/api/admin/settings", json={}, headers=h).status_code == 400
+
+
+class TestAuditLog:
+    def test_settings_change_is_audited_and_filterable(self, client):
+        h = auth_header(client, "admin", "admin123")
+        client.put("/api/admin/settings", json={"auto_crawl_hour": 9}, headers=h)
+
+        # 沒過濾：應含 update_settings
+        logs = client.get("/api/admin/audit-logs", headers=h).json()["data"]["logs"]
+        assert any(log["action"] == "update_settings" for log in logs)
+
+        # 過濾 update_settings
+        filtered = client.get("/api/admin/audit-logs", params={"action": "update_settings"}, headers=h).json()["data"]["logs"]
+        assert filtered and all(log["action"] == "update_settings" for log in filtered)
+
+        # 過濾不存在的動作 → 空
+        none = client.get("/api/admin/audit-logs", params={"action": "no_such_action"}, headers=h).json()["data"]["logs"]
+        assert none == []
+
+    def test_audit_logs_admin_only(self, client):
+        normal = auth_header(client, "normal", "user123")
+        assert client.get("/api/admin/audit-logs", headers=normal).status_code == 403

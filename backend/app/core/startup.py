@@ -35,7 +35,7 @@ def _apply_schema_migrations():
             "ALTER TABLE crawl_logs ADD COLUMN IF NOT EXISTS filtered_count INTEGER DEFAULT 0"
         ))
         connection.execute(text(
-            "ALTER TABLE crawl_logs ADD COLUMN IF NOT EXISTS filtered_count INTEGER DEFAULT 0"
+            "ALTER TABLE boards ADD COLUMN IF NOT EXISTS is_active INTEGER DEFAULT 1"
         ))
 
 

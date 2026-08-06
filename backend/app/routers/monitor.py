@@ -15,6 +15,7 @@ from app.services.alert_service import (
     serialize_alert,
     serialize_watch_keyword,
 )
+from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user, require_admin
 
 
@@ -41,7 +42,11 @@ def list_keywords(db: Session = Depends(get_db)):
 
 
 @router.post("/keywords", dependencies=[Depends(get_current_user)])
-def add_keyword(payload: WatchKeywordRequest, db: Session = Depends(get_db)):
+def add_keyword(
+    payload: WatchKeywordRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     keyword = payload.keyword.strip()
 
     existing = db.query(WatchKeyword).filter(WatchKeyword.keyword == keyword).first()
@@ -50,6 +55,8 @@ def add_keyword(payload: WatchKeywordRequest, db: Session = Depends(get_db)):
 
     watch = WatchKeyword(keyword=keyword, days=payload.days, enabled=1)
     db.add(watch)
+    record_audit(db, actor=current_user, action="add_watch_keyword",
+                 target_username=None, detail=f"新增監控關鍵字「{keyword}」")
     db.commit()
     db.refresh(watch)
 
@@ -83,12 +90,19 @@ def update_keyword(
 
 
 @router.delete("/keywords/{keyword_id}", dependencies=[Depends(get_current_user)])
-def delete_keyword(keyword_id: int, db: Session = Depends(get_db)):
+def delete_keyword(
+    keyword_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     watch = db.query(WatchKeyword).filter(WatchKeyword.id == keyword_id).first()
     if watch is None:
         raise HTTPException(status_code=404, detail="找不到此監控關鍵字。")
 
+    name = watch.keyword
     db.delete(watch)
+    record_audit(db, actor=current_user, action="delete_watch_keyword",
+                 target_username=None, detail=f"移除監控關鍵字「{name}」")
     db.commit()
 
     return {"status": "success", "message": "已移除監控關鍵字。"}

@@ -13,7 +13,7 @@ from app.services.article_service import (
     get_or_create_board,
     get_or_create_platform,
 )
-from app.services.dashboard_service import TARGET_BOARDS
+from app.services.dashboard_service import get_active_board_names
 from app.services.sentiment_service import classify_pending_sentiments
 from app.services.settings_service import get_setting
 
@@ -38,7 +38,7 @@ def _crawl_all_boards(db, pages: int) -> int:
     platform = get_or_create_platform(db, "ptt")
     new_total = 0
 
-    for board_name in TARGET_BOARDS:
+    for board_name in get_active_board_names(db):
         try:
             get_or_create_board(db, platform.id, board_name)
             articles = crawler.crawl_board(board=board_name, pages=pages)

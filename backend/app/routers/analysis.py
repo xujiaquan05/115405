@@ -11,6 +11,7 @@ from app.services.dashboard_service import (
     get_sentiment_distribution,
     normalize_boards,
 )
+from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user
 from app.services.llm_analysis_service import analyze_keyword_with_llm
 from app.services.sentiment_service import classify_pending_sentiments
@@ -80,7 +81,7 @@ def analyze_keyword(
 
 # 說明：
 # 手動評分會大量呼叫 Gemini（消耗 API 額度），必須登入才能使用。
-@router.post("/sentiment/refresh", dependencies=[Depends(get_current_user)])
+@router.post("/sentiment/refresh")
 def refresh_sentiments(
     max_articles: int = Query(
         default=100,
@@ -89,6 +90,7 @@ def refresh_sentiments(
         description="這次最多送給 Gemini 評分的未評分文章數",
     ),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     """
     說明：
@@ -98,6 +100,15 @@ def refresh_sentiments(
     """
 
     scored_count = classify_pending_sentiments(db, max_articles=max_articles)
+
+    record_audit(
+        db,
+        actor=current_user,
+        action="refresh_sentiment",
+        target_username=None,
+        detail=f"手動重新評分情緒（本次 {scored_count} 篇）",
+    )
+    db.commit()
 
     return {
         "status": "success",
@@ -258,17 +269,26 @@ def analysis_history(
 
 # 說明：
 # 刪除一筆分析歷史紀錄（AnalysisResult）。屬於寫入操作，需登入才能使用。
-@router.delete("/history/{record_id}", dependencies=[Depends(get_current_user)])
+@router.delete("/history/{record_id}")
 def delete_history_record(
     record_id: int,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     record = db.query(AnalysisResult).filter(AnalysisResult.id == record_id).first()
 
     if record is None:
         raise HTTPException(status_code=404, detail="找不到此分析紀錄。")
 
+    keyword = record.keyword
     db.delete(record)
+    record_audit(
+        db,
+        actor=current_user,
+        action="delete_history",
+        target_username=None,
+        detail=f"刪除分析紀錄「{keyword}」",
+    )
     db.commit()
 
     return {

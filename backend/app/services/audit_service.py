@@ -41,9 +41,14 @@ def serialize_audit(log: AuditLog) -> dict:
     }
 
 
-def list_recent_audits(db: Session, limit: int = 50) -> list[dict]:
+def list_recent_audits(db: Session, limit: int = 50, action: str | None = None) -> list[dict]:
+    query = db.query(AuditLog)
+
+    if action:
+        query = query.filter(AuditLog.action == action)
+
     logs = (
-        db.query(AuditLog)
+        query
         .order_by(desc(AuditLog.created_at), desc(AuditLog.id))
         .limit(limit)
         .all()
