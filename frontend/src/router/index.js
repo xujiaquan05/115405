@@ -10,6 +10,7 @@ import LandingView from '../views/LandingView.vue'
 import MonitorView from '../views/MonitorView.vue'
 import ReportView from '../views/ReportView.vue'
 import ArticleDetailView from '../views/ArticleDetailView.vue'
+import SystemAdminView from '../views/SystemAdminView.vue'
 
 const routes = [
   {
@@ -36,6 +37,13 @@ const routes = [
     name: 'AdminUsers',
     component: AdminUsersView,
     // 帳號管理只有 admin 能進。
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/admin/system',
+    name: 'SystemAdmin',
+    component: SystemAdminView,
+    // 系統管理只有 admin 能進。
     meta: { requiresAdmin: true }
   },
   {

@@ -51,6 +51,7 @@ function goLogin() {
         <span v-if="alertState.unreadCount" class="nav-alert-badge">{{ alertState.unreadCount }}</span>
       </RouterLink>
       <RouterLink v-if="isAdmin" to="/admin/users" class="nav-link">帳號管理</RouterLink>
+      <RouterLink v-if="isAdmin" to="/admin/system" class="nav-link">系統管理</RouterLink>
 
       <div class="navbar-user">
         <template v-if="isAuthenticated">

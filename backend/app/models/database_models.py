@@ -146,6 +146,21 @@ class AnalysisResult(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class Setting(Base):
+    """
+    說明：
+    系統設定的 key-value 表。讓管理員能在後台調整預警門檻、
+    自動爬取排程等參數，不必改程式碼或環境變數後重新部署。
+    值一律存成字串，由 settings_service 依型別解析。
+    """
+
+    __tablename__ = "settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(Text)
+    updated_at = Column(DateTime)
+
+
 class WatchKeyword(Base):
     """
     說明：

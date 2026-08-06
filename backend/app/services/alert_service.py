@@ -13,19 +13,15 @@ from app.services.dashboard_service import (
     get_overview_metrics,
     get_sentiment_distribution,
 )
+from app.services.settings_service import get_setting
 
 
 logger = logging.getLogger(__name__)
 
 # 說明：
-# 預警門檻，可用環境變數覆寫。
-# - WARNING：負面比例達此值 → 黃色警示
-# - CRITICAL：負面比例達此值 → 紅色危機
-# - MIN_ARTICLES：文章太少時不預警，避免小樣本雜訊
-# - DEDUPE_HOURS：同一關鍵字在這段時間內不重複建立預警
-WARNING_NEGATIVE = float(os.getenv("ALERT_WARNING_NEGATIVE", "25"))
-CRITICAL_NEGATIVE = float(os.getenv("ALERT_CRITICAL_NEGATIVE", "40"))
-MIN_ARTICLES = int(os.getenv("ALERT_MIN_ARTICLES", "5"))
+# 預警門檻改由「系統設定」提供，管理員可在後台即時調整；
+# settings_service 的預設值仍沿用原本的環境變數。
+# DEDUPE_HOURS 不常調整，維持環境變數即可：同一關鍵字這段時間內不重複預警。
 DEDUPE_HOURS = int(os.getenv("ALERT_DEDUPE_HOURS", "12"))
 
 
@@ -50,15 +46,20 @@ def evaluate_keyword(db: Session, keyword: str, days: int) -> dict:
     sentiment = get_sentiment_distribution(db=db, keyword=keyword, days=days)
     overview = get_overview_metrics(db=db, keyword=keyword, days=days)
 
+    # 門檻即時從系統設定讀取，管理員在後台調整後立即生效。
+    warning_negative = get_setting(db, "alert_warning_negative")
+    critical_negative = get_setting(db, "alert_critical_negative")
+    min_articles = get_setting(db, "alert_min_articles")
+
     negative_ratio = round(float(sentiment.get("negative") or 0), 1)
     score = _net_sentiment_score(sentiment)
     article_count = int(overview.get("total_articles") or 0)
 
     level = None
-    if article_count >= MIN_ARTICLES:
-        if negative_ratio >= CRITICAL_NEGATIVE:
+    if article_count >= min_articles:
+        if negative_ratio >= critical_negative:
             level = "critical"
-        elif negative_ratio >= WARNING_NEGATIVE:
+        elif negative_ratio >= warning_negative:
             level = "warning"
 
     return {

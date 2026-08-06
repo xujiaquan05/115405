@@ -1,5 +1,6 @@
 # backend/app/routers/admin.py
 
+import os
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,14 +9,16 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.scheduler import reschedule_daily_job
 from app.core.time_utils import taiwan_now
-from app.models.database_models import User
+from app.models.database_models import Alert, Article, Board, CrawlLog, User, WatchKeyword
 from app.services.audit_service import list_recent_audits, record_audit
 from app.services.auth_service import (
     hash_password,
     require_admin,
     serialize_user_admin,
 )
+from app.services.settings_service import get_all_settings, get_setting, update_settings
 
 
 router = APIRouter(
@@ -242,3 +245,118 @@ def delete_user(
         "status": "success",
         "message": "使用者已刪除。",
     }
+
+
+# ── 系統總覽 ────────────────────────────────────────────────
+
+@router.get("/system-overview", dependencies=[Depends(require_admin)])
+def system_overview(db: Session = Depends(get_db)):
+    """
+    說明：
+    後台系統總覽：一次回傳資料庫、Gemini、文章、情緒覆蓋、爬取、
+    排程、使用者與預警等營運指標，讓管理員一眼掌握全站狀態。
+    """
+
+    # 以下查詢若能成功，即代表資料庫連線正常。
+    total_articles = db.query(func.count(Article.id)).scalar() or 0
+    rated_articles = (
+        db.query(func.count(Article.id)).filter(Article.sentiment.isnot(None)).scalar() or 0
+    )
+
+    # 各看板文章數
+    board_counts = [
+        {"board": name, "count": count}
+        for name, count in (
+            db.query(Board.name, func.count(Article.id))
+            .outerjoin(Article, Article.board_id == Board.id)
+            .group_by(Board.name)
+            .order_by(desc(func.count(Article.id)))
+            .all()
+        )
+    ]
+
+    last_crawl = (
+        db.query(CrawlLog)
+        .order_by(desc(CrawlLog.started_at))
+        .first()
+    )
+
+    return {
+        "status": "success",
+        "data": {
+            "database": "connected",
+            "gemini_configured": bool(os.getenv("GOOGLE_API_KEY")),
+            "articles": {
+                "total": total_articles,
+                "rated": rated_articles,
+                "rated_percent": round(rated_articles / total_articles * 100, 1) if total_articles else 0,
+                "by_board": board_counts,
+            },
+            "last_crawl": {
+                "status": last_crawl.status if last_crawl else None,
+                "board": last_crawl.board.name if last_crawl and last_crawl.board else None,
+                "time": last_crawl.started_at.isoformat() if last_crawl and last_crawl.started_at else None,
+            },
+            "scheduler": {
+                "enabled": bool(get_setting(db, "auto_crawl_enabled")),
+                "hour": get_setting(db, "auto_crawl_hour"),
+                "pages": get_setting(db, "auto_crawl_pages"),
+            },
+            "users": _user_stats(db),
+            "monitor": {
+                "watch_keywords": db.query(func.count(WatchKeyword.id)).scalar() or 0,
+                "unread_alerts": db.query(func.count(Alert.id)).filter(Alert.is_read == 0).scalar() or 0,
+            },
+        },
+    }
+
+
+# ── 系統設定 ────────────────────────────────────────────────
+
+class SettingsRequest(BaseModel):
+    alert_warning_negative: float | None = Field(default=None, ge=0, le=100)
+    alert_critical_negative: float | None = Field(default=None, ge=0, le=100)
+    alert_min_articles: int | None = Field(default=None, ge=1, le=1000)
+    auto_crawl_enabled: bool | None = None
+    auto_crawl_hour: int | None = Field(default=None, ge=0, le=23)
+    auto_crawl_pages: int | None = Field(default=None, ge=1, le=20)
+
+
+@router.get("/settings", dependencies=[Depends(require_admin)])
+def read_settings(db: Session = Depends(get_db)):
+    return {"status": "success", "data": get_all_settings(db)}
+
+
+@router.put("/settings", dependencies=[Depends(require_admin)])
+def write_settings(
+    payload: SettingsRequest,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(require_admin),
+):
+    """
+    說明：
+    更新系統設定（只更新有帶入的欄位）。若調整了排程時間，
+    會即時重排每日任務。所有變更寫入稽核紀錄。
+    """
+
+    values = {k: v for k, v in payload.model_dump().items() if v is not None}
+
+    if not values:
+        raise HTTPException(status_code=400, detail="沒有要更新的設定。")
+
+    updated = update_settings(db, values)
+
+    # 若改了執行時間，即時套用到排程。
+    if "auto_crawl_hour" in values:
+        reschedule_daily_job(int(values["auto_crawl_hour"]))
+
+    record_audit(
+        db,
+        actor=current_admin,
+        action="update_settings",
+        target_username=None,
+        detail="更新了系統設定：" + "、".join(values.keys()),
+    )
+    db.commit()
+
+    return {"status": "success", "data": updated}

@@ -159,7 +159,7 @@ def run_daily_now():
     讓 demo 不必等到排程時間。僅管理員可用。
     """
 
-    threading.Thread(target=run_daily_job, daemon=True).start()
+    threading.Thread(target=lambda: run_daily_job(force=True), daemon=True).start()
 
     return {
         "status": "success",

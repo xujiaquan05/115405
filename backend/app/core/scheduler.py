@@ -15,18 +15,15 @@ from app.services.article_service import (
 )
 from app.services.dashboard_service import TARGET_BOARDS
 from app.services.sentiment_service import classify_pending_sentiments
+from app.services.settings_service import get_setting
 
 
 logger = logging.getLogger(__name__)
 
 # 說明：
-# 每日自動任務的設定，可用環境變數覆寫：
-# - AUTO_CRAWL_ENABLED：是否啟用排程（預設 true）
-# - AUTO_CRAWL_HOUR   ：每天幾點執行（台灣時間，預設 3 點）
-# - AUTO_CRAWL_PAGES  ：每個看板爬幾頁（預設 2）
-AUTO_CRAWL_ENABLED = os.getenv("AUTO_CRAWL_ENABLED", "true").lower() == "true"
-AUTO_CRAWL_HOUR = int(os.getenv("AUTO_CRAWL_HOUR", "3"))
-AUTO_CRAWL_PAGES = int(os.getenv("AUTO_CRAWL_PAGES", "2"))
+# 每日自動任務的設定（是否啟用 / 幾點執行 / 每個看板爬幾頁）
+# 改由「系統設定」提供，管理員可在後台調整；預設值仍沿用環境變數。
+JOB_ID = "daily_opinion_job"
 
 _scheduler: BackgroundScheduler | None = None
 
@@ -67,20 +64,28 @@ def _crawl_all_boards(db, pages: int) -> int:
     return new_total
 
 
-def run_daily_job(pages: int = AUTO_CRAWL_PAGES) -> dict:
+def run_daily_job(pages: int | None = None, force: bool = False) -> dict:
     """
     每日自動任務：
     1. 爬取所有看板最新文章
     2. 用 Gemini 為新文章評情緒
     3. 對監控關鍵字執行風險評估、必要時建立預警
 
+    啟用狀態與爬取頁數即時從系統設定讀取。
+    force=True 時忽略「停用」設定（手動觸發時使用）。
     自行開關 DB session；任何步驟出錯都會記 log，不讓整個任務中斷。
     """
 
     db = SessionLocal()
 
     try:
-        new_articles = _crawl_all_boards(db, pages)
+        if not force and not get_setting(db, "auto_crawl_enabled"):
+            logger.info("Daily job skipped: auto_crawl_enabled is off")
+            return {"skipped": True}
+
+        effective_pages = pages if pages is not None else get_setting(db, "auto_crawl_pages")
+
+        new_articles = _crawl_all_boards(db, effective_pages)
         scored = classify_pending_sentiments(db)
         alerts = run_alert_checks(db)
 
@@ -95,33 +100,59 @@ def run_daily_job(pages: int = AUTO_CRAWL_PAGES) -> dict:
         db.close()
 
 
+def _read_schedule_hour() -> int:
+    # 從系統設定讀取排程時間（開獨立 session）。
+    db = SessionLocal()
+    try:
+        return int(get_setting(db, "auto_crawl_hour"))
+    finally:
+        db.close()
+
+
 def start_scheduler():
     """
     在 FastAPI 啟動時呼叫，掛上每日自動任務。
+    排程一律建立；實際是否執行由 run_daily_job 依系統設定 auto_crawl_enabled 決定，
+    這樣管理員在後台開關時不需重啟。
     Render 免費方案閒置會休眠，排程可能不會準時觸發；
     可用 /api/monitor/run-now 手動執行來示範。
     """
 
     global _scheduler
 
-    if not AUTO_CRAWL_ENABLED:
-        logger.info("Auto crawl scheduler disabled (AUTO_CRAWL_ENABLED=false)")
-        return
-
     if _scheduler is not None:
         return
 
+    hour = _read_schedule_hour()
     _scheduler = BackgroundScheduler(timezone="Asia/Taipei")
     _scheduler.add_job(
         run_daily_job,
         trigger="cron",
-        hour=AUTO_CRAWL_HOUR,
+        hour=hour,
         minute=0,
-        id="daily_opinion_job",
+        id=JOB_ID,
         replace_existing=True,
     )
     _scheduler.start()
-    logger.info("Scheduler started: daily job at %02d:00 (Asia/Taipei)", AUTO_CRAWL_HOUR)
+    logger.info("Scheduler started: daily job at %02d:00 (Asia/Taipei)", hour)
+
+
+def reschedule_daily_job(hour: int) -> bool:
+    """
+    重新設定每日任務的執行時間。管理員在後台改「執行時間」後呼叫。
+    以 try/except 包住，避免排程操作失敗影響到 API 請求。
+    """
+
+    if _scheduler is None:
+        return False
+
+    try:
+        _scheduler.reschedule_job(JOB_ID, trigger="cron", hour=hour, minute=0)
+        logger.info("Daily job rescheduled to %02d:00 (Asia/Taipei)", hour)
+        return True
+    except Exception:
+        logger.exception("Failed to reschedule daily job")
+        return False
 
 
 def shutdown_scheduler():
