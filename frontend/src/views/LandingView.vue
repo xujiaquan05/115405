@@ -128,11 +128,19 @@ const faqs = [
   },
 ];
 
-// 預設全部收合（-1），點「+」才展開該題，再點一次收合。
-const openFaq = ref(-1);
+// 預設全部收合。可同時展開多題：展開某題不會收合其他已展開的題目。
+const openFaqs = ref([]);
+
+function isFaqOpen(index) {
+  return openFaqs.value.includes(index);
+}
 
 function toggleFaq(index) {
-  openFaq.value = openFaq.value === index ? -1 : index;
+  if (openFaqs.value.includes(index)) {
+    openFaqs.value = openFaqs.value.filter((i) => i !== index);
+  } else {
+    openFaqs.value = [...openFaqs.value, index];
+  }
 }
 </script>
 
@@ -258,13 +266,13 @@ function toggleFaq(index) {
           v-for="(item, index) in faqs"
           :key="item.q"
           class="landing-faq-item reveal"
-          :class="{ open: openFaq === index }"
+          :class="{ open: isFaqOpen(index) }"
           :style="{ transitionDelay: `${index * 60}ms` }"
         >
           <button
             class="landing-faq-q"
             type="button"
-            :aria-expanded="openFaq === index"
+            :aria-expanded="isFaqOpen(index)"
             @click="toggleFaq(index)"
           >
             <span>{{ item.q }}</span>
