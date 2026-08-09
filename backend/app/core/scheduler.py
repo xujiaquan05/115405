@@ -14,6 +14,7 @@ from app.services.article_service import (
     get_or_create_platform,
 )
 from app.services.dashboard_service import get_active_crawl_targets
+from app.services.relevance_filter import evaluate_article_relevance
 from app.services.sentiment_service import classify_pending_sentiments
 from app.services.settings_service import get_setting
 
@@ -45,6 +46,10 @@ def _crawl_all_boards(db, pages: int) -> int:
             articles = crawler.crawl_board(board=board_name, pages=pages)
 
             for item in articles:
+                # 先過濾不相關 / 版務公告文，通過後才寫入 DB（與手動爬取一致）。
+                if not evaluate_article_relevance(item).is_relevant:
+                    continue
+
                 _, is_new = create_article(
                     db=db,
                     unique_id=item["unique_id"],
