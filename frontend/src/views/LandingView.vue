@@ -128,7 +128,8 @@ const faqs = [
   },
 ];
 
-const openFaq = ref(0);
+// 預設全部收合（-1），點「+」才展開該題，再點一次收合。
+const openFaq = ref(-1);
 
 function toggleFaq(index) {
   openFaq.value = openFaq.value === index ? -1 : index;
@@ -269,8 +270,10 @@ function toggleFaq(index) {
             <span>{{ item.q }}</span>
             <span class="landing-faq-icon" aria-hidden="true"></span>
           </button>
-          <div v-show="openFaq === index" class="landing-faq-a">
-            <p>{{ item.a }}</p>
+          <div class="landing-faq-a">
+            <div class="landing-faq-a-inner">
+              <p>{{ item.a }}</p>
+            </div>
           </div>
         </article>
       </div>

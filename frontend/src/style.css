@@ -1349,12 +1349,21 @@ select {
   opacity: 0;
 }
 
+/* 展開動畫：用 max-height 由 0 平滑撐開，展開後內容保持顯示
+   （不會閃現後消失）。max-height 取足夠大的值以避免行動裝置換行後被裁切。 */
 .landing-faq-a {
-  padding: 0 22px 20px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
 }
 
-.landing-faq-a p {
+.landing-faq-item.open .landing-faq-a {
+  max-height: 320px;
+}
+
+.landing-faq-a-inner p {
   margin: 0;
+  padding: 2px 22px 20px;
   font-size: 14.5px;
   line-height: 1.8;
   color: #4b5563;
