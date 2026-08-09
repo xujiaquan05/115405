@@ -1,7 +1,7 @@
 <!-- frontend/src/views/LandingView.vue -->
 
 <script setup>
-import { onBeforeUnmount, onMounted } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 import LogoMark from "../components/LogoMark.vue";
@@ -99,6 +99,40 @@ const audiences = [
 ];
 
 const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻", "電波", "術後保養", "醫美診所"];
+
+// 常見問題（FAQ）。以點擊展開的手風琴呈現。
+const faqs = [
+  {
+    q: "系統的資料從哪裡來？",
+    a: "目前自動爬取 PTT 十大美容相關看板，以及 Dcard 的醫美、美妝、穿搭看板；架構已預留 Threads 等平台擴充。爬取當下即濾除公告、版務與交易等雜訊，只保留與醫美、時尚消費相關的真實討論。",
+  },
+  {
+    q: "情緒分析是怎麼判讀的？準確嗎？",
+    a: "由 Gemini 逐篇判讀正面 / 中性 / 負面，比單純用推文數估算更貼近真實語意。尚未評分的文章會暫以推文數作為過渡指標，每篇的 AI 覆蓋率也會顯示，方便你評估分數可信度。",
+  },
+  {
+    q: "需要登入才能使用嗎？",
+    a: "以訪客身分即可瀏覽 Dashboard、關鍵字分析與趨勢圖表。登入後才能執行爬蟲、重新評分等寫入操作；帳號管理、系統設定與看板管理等後台功能則僅限管理員。",
+  },
+  {
+    q: "資料多久更新一次？",
+    a: "系統每天固定時間自動爬取、分析並檢查輿情風險；管理員可在「系統管理 → 系統設定」調整執行時間與每個看板的爬取頁數，也能隨時手動觸發爬取。",
+  },
+  {
+    q: "可以追蹤特定品牌或療程嗎？",
+    a: "可以。在「輿情監控」新增想追蹤的關鍵字，系統會定期評估其聲量與負面比例，一旦達到警示或危機門檻就主動產生預警，協助你及早掌握公關風險。",
+  },
+  {
+    q: "這是商業產品嗎？資料可以商用嗎？",
+    a: "本系統為 115405 學術專題製作，資料僅供研究與分析示範之用。使用時請尊重各來源平台的服務條款與 robots.txt，並以合理頻率爬取。",
+  },
+];
+
+const openFaq = ref(0);
+
+function toggleFaq(index) {
+  openFaq.value = openFaq.value === index ? -1 : index;
+}
 </script>
 
 <template>
@@ -118,6 +152,7 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
           <a href="#features">功能特色</a>
           <a href="#flow">運作流程</a>
           <a href="#audience">適用對象</a>
+          <a href="#faq">常見問題</a>
           <button class="landing-nav-login" type="button" @click="goLogin">登入系統</button>
         </nav>
       </div>
@@ -207,6 +242,36 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
         >
           <h3>{{ item.title }}</h3>
           <p>{{ item.desc }}</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- 常見問題 -->
+    <section id="faq" class="landing-section landing-section-alt">
+      <div class="landing-section-head reveal">
+        <h2>常見問題</h2>
+        <p>關於資料來源、分析方式與使用權限的常見疑問。</p>
+      </div>
+      <div class="landing-faq-list">
+        <article
+          v-for="(item, index) in faqs"
+          :key="item.q"
+          class="landing-faq-item reveal"
+          :class="{ open: openFaq === index }"
+          :style="{ transitionDelay: `${index * 60}ms` }"
+        >
+          <button
+            class="landing-faq-q"
+            type="button"
+            :aria-expanded="openFaq === index"
+            @click="toggleFaq(index)"
+          >
+            <span>{{ item.q }}</span>
+            <span class="landing-faq-icon" aria-hidden="true"></span>
+          </button>
+          <div v-show="openFaq === index" class="landing-faq-a">
+            <p>{{ item.a }}</p>
+          </div>
         </article>
       </div>
     </section>
