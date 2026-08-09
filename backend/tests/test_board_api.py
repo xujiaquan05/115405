@@ -13,7 +13,7 @@ from app.main import app
 from app.models.database_models import Article, Board, Platform, User
 from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password
-from app.services.dashboard_service import get_active_board_names
+from app.services.dashboard_service import get_active_board_names, get_active_crawl_targets
 
 
 @pytest.fixture
@@ -102,3 +102,48 @@ class TestBoards:
     def test_boards_admin_only(self, client):
         c, _ = client
         assert c.get("/api/admin/boards").status_code in (401, 403)
+
+
+class TestBoardPlatform:
+    def test_list_includes_platform(self, client):
+        c, _ = client
+        boards = c.get("/api/admin/boards", headers=admin_header(c)).json()["data"]["boards"]
+        assert all(b["platform"] == "ptt" for b in boards)
+
+    def test_create_dcard_board(self, client):
+        c, _ = client
+        resp = c.post("/api/admin/boards",
+                      json={"name": "dressup", "display_name": "穿搭", "platform": "dcard"},
+                      headers=admin_header(c))
+        assert resp.status_code == 200
+        board = resp.json()["board"]
+        assert board["platform"] == "dcard"
+
+    def test_same_name_different_platform_allowed(self, client):
+        # ptt 已有 facelift；在 dcard 平台建立同名 facelift 應被允許（不衝突）。
+        c, _ = client
+        resp = c.post("/api/admin/boards",
+                      json={"name": "facelift", "platform": "dcard"},
+                      headers=admin_header(c))
+        assert resp.status_code == 200
+        assert resp.json()["board"]["platform"] == "dcard"
+
+    def test_invalid_platform_rejected(self, client):
+        c, _ = client
+        resp = c.post("/api/admin/boards",
+                      json={"name": "foo", "platform": "weibo"},
+                      headers=admin_header(c))
+        assert resp.status_code == 400
+
+    def test_active_crawl_targets_include_platform_pairs(self, client):
+        c, TestSession = client
+        c.post("/api/admin/boards",
+               json={"name": "makeup", "platform": "dcard"},
+               headers=admin_header(c))
+
+        db = TestSession()
+        targets = get_active_crawl_targets(db)
+        db.close()
+
+        assert ("dcard", "makeup") in targets
+        assert ("ptt", "facelift") in targets

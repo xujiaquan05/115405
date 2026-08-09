@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, func, or_, desc
 
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Article, Board
+from app.models.database_models import Article, Board, Platform
 
 
 TARGET_BOARDS = [
@@ -21,6 +21,16 @@ TARGET_BOARDS = [
     "Mancare",
     "teeth_salon",
 ]
+
+
+# Dcard 目標看板（alias → 顯示名稱）。挑選與「時尚 / 醫美」高度相關的板。
+# alias 取自 Dcard 網址 dcard.tw/f/{alias}：
+#   facelift = 醫美、makeup = 美妝、dressup = 穿搭。
+DCARD_BOARDS = {
+    "facelift": "醫美",
+    "makeup": "美妝",
+    "dressup": "穿搭",
+}
 
 
 # 醫美 / 美容相關的關鍵字清單。
@@ -57,6 +67,24 @@ def get_active_board_names(db) -> list[str]:
     """
     names = [name for (name,) in db.query(Board.name).filter(Board.is_active == 1).all()]
     return names or TARGET_BOARDS
+
+
+def get_active_crawl_targets(db) -> list[tuple[str, str]]:
+    """
+    說明：
+    回傳目前「啟用中」的爬取目標，格式為 (平台名稱, 看板名稱)。
+    因為不同平台（ptt / dcard）可能有同名看板（例如兩邊都有 facelift），
+    爬取時必須帶著平台資訊才能挑對爬蟲。
+    若 DB 尚無任何啟用看板，退回預設的 PTT TARGET_BOARDS，確保系統可用。
+    """
+    rows = (
+        db.query(Platform.name, Board.name)
+        .join(Board, Board.platform_id == Platform.id)
+        .filter(Board.is_active == 1)
+        .all()
+    )
+    targets = [(platform_name, board_name) for platform_name, board_name in rows]
+    return targets or [("ptt", name) for name in TARGET_BOARDS]
 
 
 def split_keyword_terms(keyword: str) -> list[str]:

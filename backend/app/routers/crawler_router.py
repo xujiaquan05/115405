@@ -6,13 +6,13 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal, get_db
-from app.crawlers.ptt_crawler import PTTCrawler
-from app.models.database_models import Article, Board, CrawlLog
+from app.crawlers.registry import get_crawler
+from app.models.database_models import Article, Board, CrawlLog, Platform
 from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
 from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
-from app.services.dashboard_service import TARGET_BOARDS, normalize_boards
+from app.services.dashboard_service import DCARD_BOARDS, TARGET_BOARDS, normalize_boards
 from app.services.relevance_filter import evaluate_article_relevance
 from app.services.sentiment_service import classify_pending_sentiments
 from app.websocket.manager import websocket_manager
@@ -150,11 +150,11 @@ def get_crawler_status(
     }
 
 
-def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
+def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page: int | None):
     crawl_log = None
 
     try:
-        platform = get_or_create_platform(db, "ptt")
+        platform = get_or_create_platform(db, platform_name)
         board_obj = get_or_create_board(db, platform.id, board)
 
         crawl_log = create_crawl_log(
@@ -166,13 +166,13 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
 
         websocket_manager.broadcast_sync({
             "type": "crawler_started",
-            "platform": "ptt",
+            "platform": platform_name,
             "board": board,
             "pages": pages,
             "start_page": start_page,
         })
 
-        crawler = PTTCrawler()
+        crawler = get_crawler(platform_name)
         crawled_articles = crawler.crawl_board(
             board=board,
             pages=pages,
@@ -220,7 +220,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
 
         result = {
             "success": True,
-            "platform": "ptt",
+            "platform": platform_name,
             "board": board,
             "pages": pages,
             "start_page": start_page,
@@ -237,7 +237,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
 
         websocket_manager.broadcast_sync({
             "type": "stats_updated",
-            "platform": "ptt",
+            "platform": platform_name,
             "board": board,
             "new_count": new_count,
             "skipped_count": skipped_count,
@@ -257,7 +257,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
 
         websocket_manager.broadcast_sync({
             "type": "crawler_failed",
-            "platform": "ptt",
+            "platform": platform_name,
             "board": board,
             "pages": pages,
             "start_page": start_page,
@@ -266,7 +266,7 @@ def _crawl_one_board(db, board: str, pages: int, start_page: int | None):
 
         return {
             "success": False,
-            "platform": "ptt",
+            "platform": platform_name,
             "board": board,
             "error": str(error),
         }
@@ -298,7 +298,7 @@ def _finish_crawl():
         _crawl_running = False
 
 
-def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
+def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page: int | None):
     # 說明：
     # background task 在 response 送出後才執行，
     # 必須自己開關獨立的 session，不能用 request 的 session。
@@ -306,7 +306,13 @@ def _run_crawl_job(boards: list[str], pages: int, start_page: int | None):
 
     try:
         for board_name in boards:
-            _crawl_one_board(db=db, board=board_name, pages=pages, start_page=start_page)
+            _crawl_one_board(
+                db=db,
+                platform_name=platform_name,
+                board=board_name,
+                pages=pages,
+                start_page=start_page,
+            )
 
         # 說明：
         # 爬取結束後，用 Gemini 為新文章評情緒
@@ -358,11 +364,11 @@ def crawl_ptt_board(
         actor=current_user,
         action="trigger_crawl",
         target_username=None,
-        detail=f"觸發爬取：{'、'.join(selected_boards)}（{pages} 頁）",
+        detail=f"觸發爬取（PTT）：{'、'.join(selected_boards)}（{pages} 頁）",
     )
     db.commit()
 
-    background_tasks.add_task(_run_crawl_job, selected_boards, pages, start_page)
+    background_tasks.add_task(_run_crawl_job, "ptt", selected_boards, pages, start_page)
 
     return {
         "success": True,
@@ -372,6 +378,64 @@ def crawl_ptt_board(
         "pages": pages,
         "start_page": start_page,
         "message": "爬取任務已開始，進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
+    }
+
+
+def _active_dcard_boards(db: Session) -> list[str]:
+    """回傳目前啟用中的 Dcard 看板 alias 清單（管理員可在後台調整）。"""
+    rows = (
+        db.query(Board.name)
+        .join(Platform, Board.platform_id == Platform.id)
+        .filter(Platform.name == "dcard", Board.is_active == 1)
+        .all()
+    )
+    names = [name for (name,) in rows]
+    return names or list(DCARD_BOARDS.keys())
+
+
+# 說明：
+# 觸發 Dcard 爬蟲。Dcard 位於 Cloudflare 之後，必須開真實瀏覽器（headed），
+# 每次僅允許一個爬取任務執行（與 PTT 共用同一個執行旗標）。屬於敏感操作，需登入。
+@router.post("/dcard")
+def crawl_dcard_board(
+    background_tasks: BackgroundTasks,
+    board: str = Query(default="makeup", description="Single Dcard forum alias"),
+    boards: list[str] | None = Query(
+        default=None,
+        description="Multiple Dcard forum aliases. Repeat this query parameter for more than one.",
+    ),
+    pages: int = Query(default=1, ge=1, le=10, description="約每頁 30 篇，pages 越大爬越多"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    allowed = set(_active_dcard_boards(db))
+    requested = boards if boards else [board]
+    selected_boards = [name for name in dict.fromkeys(requested) if name in allowed]
+
+    if not selected_boards:
+        raise HTTPException(status_code=400, detail="沒有可爬取的 Dcard 看板，請確認看板名稱或是否已啟用。")
+
+    if not _try_start_crawl():
+        raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
+
+    record_audit(
+        db,
+        actor=current_user,
+        action="trigger_crawl",
+        target_username=None,
+        detail=f"觸發爬取（Dcard）：{'、'.join(selected_boards)}（約 {pages * 30} 篇）",
+    )
+    db.commit()
+
+    background_tasks.add_task(_run_crawl_job, "dcard", selected_boards, pages, None)
+
+    return {
+        "success": True,
+        "started": True,
+        "platform": "dcard",
+        "boards": selected_boards,
+        "pages": pages,
+        "message": "Dcard 爬取任務已開始（會開啟瀏覽器視窗），進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
     }
 
 

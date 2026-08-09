@@ -15,7 +15,11 @@ const activeTab = ref("overview");
 
 // 看板管理
 const boards = ref([]);
-const newBoard = reactive({ name: "", display_name: "" });
+const newBoard = reactive({ name: "", display_name: "", platform: "ptt" });
+const PLATFORM_LABELS = { ptt: "PTT", dcard: "Dcard" };
+function platformLabel(name) {
+  return PLATFORM_LABELS[name] || name;
+}
 
 // 操作紀錄
 const auditLogs = ref([]);
@@ -139,7 +143,11 @@ async function addBoard() {
   const name = newBoard.name.trim();
   if (!name) return;
   try {
-    await api.post("/api/admin/boards", { name, display_name: newBoard.display_name.trim() || null });
+    await api.post("/api/admin/boards", {
+      name,
+      display_name: newBoard.display_name.trim() || null,
+      platform: newBoard.platform,
+    });
     newBoard.name = "";
     newBoard.display_name = "";
     flash(`已新增看板「${name}」。`, "success");
@@ -319,9 +327,17 @@ onMounted(() => {
     <div v-else-if="activeTab === 'boards'">
       <article class="card sysadmin-settings-card">
         <h3>新增看板</h3>
-        <p class="sysadmin-hint">看板名稱需與 PTT 網址一致（例如 BeautySalon、MakeUp）。停用的看板不會納入每日自動爬取。</p>
+        <p class="sysadmin-hint">
+          看板代號需與網址一致：PTT 例如 <code>BeautySalon</code>、<code>MakeUp</code>；
+          Dcard 例如 <code>facelift</code>（醫美）、<code>makeup</code>（美妝）、<code>dressup</code>（穿搭）。
+          停用的看板不會納入每日自動爬取。
+        </p>
         <div class="sysadmin-board-form">
-          <input v-model="newBoard.name" type="text" placeholder="看板代號（PTT board）" />
+          <select v-model="newBoard.platform" class="sysadmin-platform-select">
+            <option value="ptt">PTT</option>
+            <option value="dcard">Dcard</option>
+          </select>
+          <input v-model="newBoard.name" type="text" placeholder="看板代號（board / forum alias）" />
           <input v-model="newBoard.display_name" type="text" placeholder="顯示名稱（選填）" />
           <button type="button" :disabled="!newBoard.name.trim()" @click="addBoard">新增</button>
         </div>
@@ -333,6 +349,7 @@ onMounted(() => {
         <table v-else class="sysadmin-table">
           <thead>
             <tr>
+              <th>平台</th>
               <th>看板</th>
               <th>顯示名稱</th>
               <th>文章數</th>
@@ -342,6 +359,7 @@ onMounted(() => {
           </thead>
           <tbody>
             <tr v-for="board in boards" :key="board.id">
+              <td><span class="sysadmin-badge platform">{{ platformLabel(board.platform) }}</span></td>
               <td>{{ board.name }}</td>
               <td>{{ board.display_name || "—" }}</td>
               <td>{{ board.article_count }}</td>

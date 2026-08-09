@@ -10,7 +10,7 @@ from app.models import database_models  # noqa: F401
 from app.models.database_models import User
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.auth_service import hash_password
-from app.services.dashboard_service import TARGET_BOARDS
+from app.services.dashboard_service import DCARD_BOARDS, TARGET_BOARDS
 
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,16 @@ def initialize_database():
             board = get_or_create_board(db, platform.id, board_name)
             board.display_name = board_name
             board.url = f"https://www.ptt.cc/bbs/{board_name}/index.html"
+
+        # Dcard 平台與時尚 / 醫美相關看板（醫美 facelift、美妝 makeup、穿搭 dressup）。
+        dcard_platform = get_or_create_platform(db, "dcard")
+        dcard_platform.display_name = "Dcard"
+        dcard_platform.base_url = "https://www.dcard.tw"
+
+        for alias, display_name in DCARD_BOARDS.items():
+            board = get_or_create_board(db, dcard_platform.id, alias)
+            board.display_name = display_name
+            board.url = f"https://www.dcard.tw/f/{alias}"
 
         _seed_admin_user(db)
 

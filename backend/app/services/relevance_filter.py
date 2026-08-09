@@ -10,6 +10,9 @@ FOCUSED_BOARDS = {
     "NailSalon",
     "Mancare",
     "teeth_salon",
+    # Dcard 時尚 / 醫美相關看板（alias 為小寫）
+    "makeup",
+    "dressup",
 }
 
 BROAD_BOARDS = {

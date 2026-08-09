@@ -9,18 +9,26 @@ import { useAuth } from "../composables/useAuth";
 
 const { isAuthenticated } = useAuth();
 
-const boards = [
-  { name: "facelift", label: "facelift 醫美整形" },
-  { name: "BeautySalon", label: "BeautySalon 醫美板" },
-  { name: "MakeUp", label: "MakeUp 彩妝保養板" },
-  { name: "Mix_Match", label: "Mix_Match 穿搭板" },
-  { name: "fashion", label: "fashion 時尚板" },
-  { name: "Brand", label: "Brand 精品品牌板" },
-  { name: "e-shopping", label: "e-shopping 網購板" },
-  { name: "NailSalon", label: "NailSalon 美甲板" },
-  { name: "Mancare", label: "Mancare 男性保養板" },
-  { name: "teeth_salon", label: "teeth_salon 牙齒美容板" },
-];
+// 各平台的看板清單。PTT 用 requests 直接爬；Dcard 需開真實瀏覽器（較慢）。
+const boardsByPlatform = {
+  ptt: [
+    { name: "facelift", label: "facelift 醫美整形" },
+    { name: "BeautySalon", label: "BeautySalon 醫美板" },
+    { name: "MakeUp", label: "MakeUp 彩妝保養板" },
+    { name: "Mix_Match", label: "Mix_Match 穿搭板" },
+    { name: "fashion", label: "fashion 時尚板" },
+    { name: "Brand", label: "Brand 精品品牌板" },
+    { name: "e-shopping", label: "e-shopping 網購板" },
+    { name: "NailSalon", label: "NailSalon 美甲板" },
+    { name: "Mancare", label: "Mancare 男性保養板" },
+    { name: "teeth_salon", label: "teeth_salon 牙齒美容板" },
+  ],
+  dcard: [
+    { name: "facelift", label: "facelift 醫美" },
+    { name: "makeup", label: "makeup 美妝" },
+    { name: "dressup", label: "dressup 穿搭" },
+  ],
+};
 
 const pageSizeOptions = [10, 20, 50];
 
@@ -30,10 +38,20 @@ const {
 } = useWebSocket();
 
 const form = reactive({
+  platform: "ptt",
   board: "BeautySalon",
   pages: 5,
   range: "latest",
 });
+
+// 目前平台可選的看板清單。
+const boards = computed(() => boardsByPlatform[form.platform] || []);
+
+// 切換平台時，把選取的看板重設為該平台的第一個。
+function changePlatform(event) {
+  form.platform = event.target.value;
+  form.board = boards.value[0]?.name || "";
+}
 
 const state = reactive({
   loading: false,
@@ -77,7 +95,7 @@ const pagedLogs = computed(() => {
 });
 
 const selectedBoardLabel = computed(() => {
-  return boards.find((board) => board.name === form.board)?.label || form.board;
+  return boards.value.find((board) => board.name === form.board)?.label || form.board;
 });
 
 const runningProgress = computed(() => {
@@ -181,7 +199,7 @@ async function startCrawler() {
   form.pages = Math.max(1, Number(form.pages) || 1);
 
   try {
-    await api.post("/api/crawler/ptt", null, {
+    await api.post(`/api/crawler/${form.platform}`, null, {
       params: {
         board: form.board,
         pages: form.pages,
@@ -197,7 +215,7 @@ async function startCrawler() {
     } else if (error.response?.status === 409) {
       state.errorMessage = "已有爬取任務執行中，請等待目前任務完成後再試。";
     } else {
-      state.errorMessage = "啟動爬蟲失敗，請確認網路、PTT 連線或 backend log。";
+      state.errorMessage = "啟動爬蟲失敗，請確認網路、來源網站連線或 backend log。";
     }
   } finally {
     state.loading = false;
@@ -291,7 +309,7 @@ onMounted(() => {
   <section class="crawl-page">
     <div class="crawl-page-header">
       <h2>爬蟲管理</h2>
-      <p>管理 PTT 看板資料爬取、即時進度與執行紀錄。</p>
+      <p>管理 PTT 與 Dcard 看板資料爬取、即時進度與執行紀錄。</p>
     </div>
 
     <p v-if="state.errorMessage" class="error-message">
@@ -360,6 +378,14 @@ onMounted(() => {
 
         <form class="crawler-form" @submit.prevent="startCrawler">
           <label>
+            <span>平台選擇</span>
+            <select :value="form.platform" @change="changePlatform">
+              <option value="ptt">PTT</option>
+              <option value="dcard">Dcard</option>
+            </select>
+          </label>
+
+          <label>
             <span>看板選擇</span>
             <select v-model="form.board">
               <option
@@ -373,7 +399,7 @@ onMounted(() => {
           </label>
 
           <label>
-            <span>爬取頁數</span>
+            <span>{{ form.platform === "dcard" ? "爬取頁數（每頁約 30 篇）" : "爬取頁數" }}</span>
             <input
               v-model.number="form.pages"
               type="number"
@@ -399,6 +425,9 @@ onMounted(() => {
 
         <div class="crawler-tip">
           可自行輸入要爬取的頁數，系統會依照你填寫的數量執行。
+          <template v-if="form.platform === 'dcard'">
+            <br />Dcard 位於 Cloudflare 之後，爬取時會自動開啟一個瀏覽器視窗，請勿關閉；速度較慢屬正常。
+          </template>
         </div>
       </section>
 

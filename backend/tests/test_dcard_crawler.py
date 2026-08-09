@@ -1,0 +1,133 @@
+# backend/tests/test_dcard_crawler.py
+
+from datetime import datetime
+
+import pytest
+
+from app.crawlers.dcard_crawler import DcardCrawler
+
+
+@pytest.fixture
+def crawler():
+    return DcardCrawler()
+
+
+# 一份模擬 Dcard globalPaging/page 回應（含重複 id 用來驗證去重）。
+SAMPLE_BODIES = [
+    {
+        "widgets": [
+            {
+                "forumList": {
+                    "items": [
+                        {"post": {
+                            "id": 1001,
+                            "title": "玻尿酸心得分享",
+                            "excerpt": "這間診所的醫師很細心",
+                            "likeCount": 25,
+                            "createdAt": "2026-01-05T12:00:00.000Z",
+                            "anonymousSchool": "某大學",
+                        }},
+                        {"post": {
+                            "id": 1002,
+                            "title": "冬季穿搭",
+                            "excerpt": "大衣推薦",
+                            "likeCount": 4,
+                            "createdAt": "2026-01-06T09:30:00Z",
+                        }},
+                    ]
+                }
+            }
+        ]
+    },
+    {
+        "widgets": [
+            {
+                "forumList": {
+                    "items": [
+                        # 重複的 id 1001，應該被去重（只留一筆）
+                        {"post": {
+                            "id": 1001,
+                            "title": "玻尿酸心得分享(更新)",
+                            "excerpt": "追蹤一個月",
+                            "likeCount": 30,
+                            "createdAt": "2026-01-05T12:00:00.000Z",
+                        }},
+                    ]
+                }
+            }
+        ]
+    },
+]
+
+
+class TestExtractPosts:
+    def test_dedupes_by_id(self):
+        posts = DcardCrawler._extract_posts(SAMPLE_BODIES)
+        ids = sorted(p["id"] for p in posts)
+        assert ids == [1001, 1002]
+
+    def test_ignores_garbage_bodies(self):
+        assert DcardCrawler._extract_posts([None, {}, {"widgets": []}, 123]) == []
+
+    def test_handles_missing_forumlist(self):
+        bodies = [{"widgets": [{"somethingElse": {}}]}]
+        assert DcardCrawler._extract_posts(bodies) == []
+
+
+class TestParseDt:
+    def test_parses_iso_with_ms_and_z(self):
+        parsed = DcardCrawler._parse_dt("2026-01-05T12:00:00.000Z")
+        assert parsed == datetime(2026, 1, 5, 12, 0, 0)
+        assert parsed.tzinfo is None  # 統一存成 naive datetime
+
+    def test_invalid_returns_none(self):
+        assert DcardCrawler._parse_dt("not-a-date") is None
+        assert DcardCrawler._parse_dt(None) is None
+        assert DcardCrawler._parse_dt(12345) is None
+
+
+class TestUniqueId:
+    def test_same_input_same_id(self, crawler):
+        first = crawler._generate_unique_id("dcard", "makeup", "http://x/1")
+        second = crawler._generate_unique_id("dcard", "makeup", "http://x/1")
+        assert first == second
+
+    def test_different_url_different_id(self, crawler):
+        first = crawler._generate_unique_id("dcard", "makeup", "http://x/1")
+        second = crawler._generate_unique_id("dcard", "makeup", "http://x/2")
+        assert first != second
+
+
+class TestToArticle:
+    def test_maps_fields_to_project_shape(self, crawler):
+        post = {
+            "id": 1001,
+            "title": "玻尿酸心得分享",
+            "excerpt": "這間診所的醫師很細心",
+            "likeCount": 25,
+            "createdAt": "2026-01-05T12:00:00.000Z",
+            "anonymousSchool": "某大學",
+        }
+
+        art = crawler._to_article(post, "makeup")
+        assert art["platform_name"] == "dcard"
+        assert art["board_name"] == "makeup"
+        assert art["title"] == "玻尿酸心得分享"
+        assert art["content"] == "這間診所的醫師很細心"
+        assert art["push_count"] == 25  # likeCount → push_count
+        assert art["author_username"] == "某大學"
+        assert art["url"] == "https://www.dcard.tw/f/makeup/p/1001"
+        assert art["published_at"] == datetime(2026, 1, 5, 12, 0, 0)
+        assert art["unique_id"]  # 有值即可
+
+    def test_author_falls_back_to_anonymous(self, crawler):
+        post = {"id": 5, "title": "t", "excerpt": "e", "likeCount": 0, "createdAt": None}
+        art = crawler._to_article(post, "dressup")
+        assert art["author_username"] == "Dcard 匿名"
+        assert art["published_at"] is None
+        assert art["content"] == "e"
+
+    def test_missing_like_count_defaults_zero(self, crawler):
+        art = crawler._to_article({"id": 9, "title": "t"}, "facelift")
+        assert art["push_count"] == 0
+        assert art["content"] == ""

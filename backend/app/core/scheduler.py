@@ -6,14 +6,14 @@ import os
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.database import SessionLocal
-from app.crawlers.ptt_crawler import PTTCrawler
+from app.crawlers.registry import get_crawler
 from app.services.alert_service import run_alert_checks
 from app.services.article_service import (
     create_article,
     get_or_create_board,
     get_or_create_platform,
 )
-from app.services.dashboard_service import get_active_board_names
+from app.services.dashboard_service import get_active_crawl_targets
 from app.services.sentiment_service import classify_pending_sentiments
 from app.services.settings_service import get_setting
 
@@ -30,17 +30,18 @@ _scheduler: BackgroundScheduler | None = None
 
 def _crawl_all_boards(db, pages: int) -> int:
     """
-    爬取所有目標看板各 pages 頁，回傳新增文章數。
-    出錯的看板會跳過，不影響其他看板。
+    爬取所有啟用中的目標看板各 pages 頁（跨平台：ptt / dcard），回傳新增文章數。
+    依平台挑選對應爬蟲；出錯的看板會跳過，不影響其他看板。
     """
 
-    crawler = PTTCrawler()
-    platform = get_or_create_platform(db, "ptt")
     new_total = 0
 
-    for board_name in get_active_board_names(db):
+    for platform_name, board_name in get_active_crawl_targets(db):
         try:
+            platform = get_or_create_platform(db, platform_name)
             get_or_create_board(db, platform.id, board_name)
+
+            crawler = get_crawler(platform_name)
             articles = crawler.crawl_board(board=board_name, pages=pages)
 
             for item in articles:

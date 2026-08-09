@@ -371,6 +371,7 @@ def _serialize_board(board, article_count: int) -> dict:
         "id": board.id,
         "name": board.name,
         "display_name": board.display_name or board.name,
+        "platform": board.platform.name if board.platform else "ptt",
         "is_active": bool(board.is_active),
         "article_count": article_count,
     }
@@ -395,6 +396,8 @@ def list_boards(db: Session = Depends(get_db)):
 class CreateBoardRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     display_name: str | None = Field(default=None, max_length=100)
+    # 平台：ptt（PTT 看板）或 dcard（Dcard 論壇）。
+    platform: str = Field(default="ptt")
 
 
 @router.post("/boards", dependencies=[Depends(require_admin)])
@@ -404,19 +407,32 @@ def create_board(
     current_admin: User = Depends(require_admin),
 ):
     name = payload.name.strip()
+    platform_name = (payload.platform or "ptt").strip().lower()
+    if platform_name not in ("ptt", "dcard"):
+        raise HTTPException(status_code=400, detail="平台只能是 ptt 或 dcard。")
 
-    existing = db.query(Board).filter(Board.name == name).first()
+    platform = get_or_create_platform(db, platform_name)
+
+    # 看板名稱在「同一平台內」唯一即可；不同平台可有同名看板（例如兩邊都有 facelift）。
+    existing = (
+        db.query(Board)
+        .filter(Board.platform_id == platform.id, Board.name == name)
+        .first()
+    )
     if existing is not None:
         raise HTTPException(status_code=409, detail="此看板已存在。")
 
-    platform = get_or_create_platform(db, "ptt")
     board = get_or_create_board(db, platform.id, name)
     board.display_name = (payload.display_name or "").strip() or name
-    board.url = f"https://www.ptt.cc/bbs/{name}/index.html"
+    if platform_name == "dcard":
+        board.url = f"https://www.dcard.tw/f/{name}"
+    else:
+        board.url = f"https://www.ptt.cc/bbs/{name}/index.html"
     board.is_active = 1
 
     record_audit(db, actor=current_admin, action="create_board",
-                 target_username=None, detail=f"新增爬取看板「{name}」")
+                 target_username=None,
+                 detail=f"新增爬取看板「{name}」（{platform_name}）")
     db.commit()
     db.refresh(board)
 
