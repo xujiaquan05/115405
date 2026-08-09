@@ -10,9 +10,6 @@ FOCUSED_BOARDS = {
     "NailSalon",
     "Mancare",
     "teeth_salon",
-    # Dcard 時尚 / 醫美相關看板（alias 為小寫）
-    "makeup",
-    "dressup",
 }
 
 BROAD_BOARDS = {
@@ -23,6 +20,11 @@ BROAD_BOARDS = {
 TITLE_WEIGHT = 3
 CONTENT_WEIGHT = 1
 FOCUSED_BOARD_WEIGHT = 1
+
+# Dcard 較嚴格門檻：Dcard 內容只有摘要（excerpt）且較生活化，
+# 不像 PTT 給「整板加權」，一律需要關鍵字命中分數達到此門檻才收錄。
+# 門檻 2 表示：標題含 1 個領域關鍵字（×3）即可，或內文摘要含 2 個以上。
+DCARD_MIN_SCORE = 2
 
 BEAUTY_FASHION_KEYWORDS = [
     "醫美",
@@ -109,6 +111,7 @@ def _count_keyword_score(text: str, weight: int) -> int:
 
 
 def evaluate_article_relevance(article: dict) -> RelevanceResult:
+    platform = (article.get("platform_name") or "ptt").lower()
     board = article.get("board_name") or ""
     title = article.get("title") or ""
     content = article.get("content") or ""
@@ -120,15 +123,31 @@ def evaluate_article_relevance(article: dict) -> RelevanceResult:
     score = _count_keyword_score(title, TITLE_WEIGHT)
     score += _count_keyword_score(content, CONTENT_WEIGHT)
 
-    if board in FOCUSED_BOARDS:
-        score += FOCUSED_BOARD_WEIGHT
-
+    # 硬排除（廣告 / 版務 / 交易）：所有平台一致。
     if has_hard_exclude and not has_domain_keyword:
         return RelevanceResult(
             is_relevant=False,
             score=score,
             reason="hard_exclude_without_domain_keyword",
         )
+
+    # Dcard：不採「整板加權」，一律需關鍵字命中達門檻才收錄（較嚴格）。
+    if platform == "dcard":
+        if score >= DCARD_MIN_SCORE:
+            return RelevanceResult(
+                is_relevant=True,
+                score=score,
+                reason="dcard_keyword_match",
+            )
+        return RelevanceResult(
+            is_relevant=False,
+            score=score,
+            reason="dcard_low_relevance",
+        )
+
+    # PTT：專注看板整板都與主題相關，給予加權。
+    if board in FOCUSED_BOARDS:
+        score += FOCUSED_BOARD_WEIGHT
 
     if board in FOCUSED_BOARDS and score >= 1:
         return RelevanceResult(
