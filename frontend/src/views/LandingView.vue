@@ -265,9 +265,8 @@ function toggleFaq(index) {
         <article
           v-for="(item, index) in faqs"
           :key="item.q"
-          class="landing-faq-item reveal"
+          class="landing-faq-item"
           :class="{ open: isFaqOpen(index) }"
-          :style="{ transitionDelay: `${index * 60}ms` }"
         >
           <button
             class="landing-faq-q"
