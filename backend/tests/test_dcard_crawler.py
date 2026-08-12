@@ -131,3 +131,25 @@ class TestToArticle:
         art = crawler._to_article({"id": 9, "title": "t"}, "facelift")
         assert art["push_count"] == 0
         assert art["content"] == ""
+
+    def test_full_content_overrides_excerpt(self, crawler):
+        post = {"id": 7, "title": "t", "excerpt": "摘要"}
+        art = crawler._to_article(post, "makeup", content="這是進內頁抓到的完整全文")
+        assert art["content"] == "這是進內頁抓到的完整全文"
+
+    def test_falls_back_to_excerpt_when_no_full_content(self, crawler):
+        post = {"id": 7, "title": "t", "excerpt": "摘要"}
+        # content=None 或空字串 → 退回 excerpt
+        assert crawler._to_article(post, "makeup", content=None)["content"] == "摘要"
+        assert crawler._to_article(post, "makeup", content="")["content"] == "摘要"
+
+
+class TestCleanContent:
+    def test_strips_and_collapses_blank_lines(self):
+        raw = "  第一行  \n\n\n  第二行  \n   \n第三行  "
+        assert DcardCrawler._clean_content(raw) == "第一行\n第二行\n第三行"
+
+    def test_empty_or_none(self):
+        assert DcardCrawler._clean_content(None) == ""
+        assert DcardCrawler._clean_content("") == ""
+        assert DcardCrawler._clean_content("   \n  \n ") == ""

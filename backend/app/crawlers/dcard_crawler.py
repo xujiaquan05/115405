@@ -10,6 +10,8 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
 資料路徑（實測）：
 - 文章列表：/f/{alias} 頁 → 回應 'globalPaging/page'
              → widgets[].forumList.items[].post
+- 完整內文：進入 /f/{alias}/p/{id} 貼文頁，從 DOM 的 <article> 取出全文
+             （Dcard 沒有穩定的內文 API，改讀 DOM）。
 
 為了讓下游流程（relevance_filter → create_article → Gemini 情緒評分）
 不必修改，本爬蟲輸出的欄位刻意對齊 PTTCrawler：
@@ -19,7 +21,9 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
 注意：
 - Dcard 文章多為匿名，沒有帳號名稱；此處以「學校 or 匿名」當作者。
 - push_count 對應 Dcard 的 likeCount（Dcard 沒有負推，皆為非負值）。
-- 內文採用列表回傳的 excerpt（摘要），避免逐篇進入內頁（每篇約 30 秒）拖慢整體。
+- 內文預設抓「完整全文」（fetch_full_content=True）：逐篇進入內頁讀取，
+  分析更精準但較慢（每篇多花數秒）；讀取失敗時自動退回列表的 excerpt（摘要）。
+  若要追求速度，可用 fetch_full_content=False 只取 excerpt。
 """
 
 import hashlib
@@ -50,11 +54,20 @@ class DcardCrawler:
         "window.chrome = { runtime: {} };"
     )
 
-    def __init__(self, headless: bool = False, min_delay: float = 1.5, max_delay: float = 3.5):
+    def __init__(
+        self,
+        headless: bool = False,
+        min_delay: float = 1.5,
+        max_delay: float = 3.5,
+        fetch_full_content: bool = True,
+    ):
         # headless 預設 False：Dcard 會擋 headless。除非測試/特殊情況才開 True。
         self.headless = headless
         self.min_delay = min_delay
         self.max_delay = max_delay
+        # fetch_full_content=True：逐篇進內頁抓完整內文（較慢但分析更準）；
+        # False：只取列表的 excerpt（較快）。
+        self.fetch_full_content = fetch_full_content
 
     # ── 純函式工具（不需瀏覽器，便於單元測試） ──────────────────
 
@@ -98,8 +111,12 @@ class DcardCrawler:
 
         return list(posts.values())
 
-    def _to_article(self, post: dict, board: str) -> dict:
-        """把 Dcard 的 post 物件轉成本專案統一的文章 dict。"""
+    def _to_article(self, post: dict, board: str, content: str | None = None) -> dict:
+        """把 Dcard 的 post 物件轉成本專案統一的文章 dict。
+
+        content：若有傳入（進內頁抓到的完整全文）就採用；
+        否則退回列表回傳的 excerpt（摘要）。
+        """
         post_id = post.get("id")
         url = f"{self.BASE_URL}/f/{board}/p/{post_id}"
         author = post.get("anonymousSchool") or post.get("school") or "Dcard 匿名"
@@ -109,12 +126,46 @@ class DcardCrawler:
             "board_name": board,
             "author_username": author,
             "title": post.get("title") or "",
-            "content": post.get("excerpt") or "",
+            "content": content or post.get("excerpt") or "",
             "url": url,
             "push_count": post.get("likeCount") or 0,
             "published_at": self._parse_dt(post.get("createdAt")),
             "unique_id": self._generate_unique_id("dcard", board, url),
         }
+
+    @staticmethod
+    def _clean_content(text: str | None) -> str:
+        """整理從 DOM 取出的內文：去除前後空白、壓縮多餘空行。"""
+        if not text:
+            return ""
+        lines = [line.strip() for line in text.splitlines()]
+        return "\n".join(line for line in lines if line).strip()
+
+    def _fetch_post_content(self, page, board: str, post_id) -> str | None:
+        """進入單篇貼文頁，從 DOM 的 <article> 取出完整內文。
+
+        任何錯誤（頁面載入逾時、找不到 article、貼文被刪等）都回傳 None，
+        由呼叫端退回 excerpt，不影響整體爬取。
+        """
+        url = f"{self.BASE_URL}/f/{board}/p/{post_id}"
+
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+        except Exception:
+            pass  # SPA 可能較慢，仍嘗試往下讀取
+
+        try:
+            page.wait_for_selector("article", timeout=15_000)
+        except Exception:
+            return None
+
+        try:
+            element = page.query_selector("article")
+            if element is None:
+                return None
+            return self._clean_content(element.inner_text())
+        except Exception:
+            return None
 
     def _sleep(self) -> None:
         time.sleep(random.uniform(self.min_delay, self.max_delay))
@@ -150,6 +201,7 @@ class DcardCrawler:
             ) from error
 
         bodies: list = []
+        articles: list = []
 
         def on_response(resp):
             if "globalPaging/page" in resp.url:
@@ -220,6 +272,32 @@ class DcardCrawler:
                         "crawled_count": current,
                         "progress": round(min(current / max_posts, 1) * 100, 2),
                     })
+
+            posts = self._extract_posts(bodies)[:max_posts]
+
+            if not self.fetch_full_content:
+                # 快速模式：只用列表回傳的 excerpt 當內文。
+                articles = [self._to_article(post, board) for post in posts]
+            else:
+                # 完整模式：逐篇進入內頁抓 <article> 全文（較慢）。
+                # 先停止監聽列表回應，避免內頁的 JSON 不斷累積。
+                page.remove_listener("response", on_response)
+                total = len(posts)
+
+                for i, post in enumerate(posts):
+                    content = self._fetch_post_content(page, board, post.get("id"))
+                    articles.append(self._to_article(post, board, content=content))
+                    self._sleep()  # 禮貌性延遲，降低被 Dcard 擋的機率
+
+                    if progress_callback:
+                        progress_callback({
+                            "type": "crawler_progress",
+                            "board": board,
+                            "current_page": i + 1,
+                            "total_pages": total,
+                            "crawled_count": i + 1,
+                            "progress": round((i + 1) / total * 100, 2) if total else 100.0,
+                        })
         finally:
             if browser is not None:
                 try:
@@ -228,5 +306,4 @@ class DcardCrawler:
                     pass
             playwright.stop()
 
-        posts = self._extract_posts(bodies)[:max_posts]
-        return [self._to_article(post, board) for post in posts]
+        return articles
