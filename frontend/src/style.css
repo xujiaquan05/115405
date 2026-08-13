@@ -4579,41 +4579,307 @@ button:disabled {
 
 /* Q&A */
 
+/* ===== AI 問答：雙欄版面（左：對話紀錄，右：聊天） ===== */
 .qa-page {
-  display: block;
-  min-height: calc(100vh - 150px);
-  padding-left: 0;
-  padding-bottom: 180px;
+  display: flex;
+  gap: 16px;
+  height: calc(100vh - 168px);
+  min-height: 520px;
+  position: relative;
 }
 
-.qa-chat-area {
+/* 側邊：對話紀錄 */
+.qa-sidebar {
+  flex: 0 0 268px;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #eef0f4;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.qa-new-chat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.qa-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #9ca3af;
+}
+
+.qa-search .qa-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.qa-search input {
+  flex: 1;
   min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: #111827;
+}
+
+.qa-conversation-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 -6px;
+  padding: 0 6px;
+}
+
+.qa-conv-empty {
+  color: #9ca3af;
+  font-size: 13px;
+  text-align: center;
+  padding: 16px 0;
+}
+
+.qa-conversation-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 8px 9px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.qa-conversation-item:hover {
+  background: #f5f6fa;
+}
+
+.qa-conversation-item.active {
+  background: #eef2ff;
+}
+
+.qa-conv-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qa-conv-title-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.qa-pin-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  color: #7c3aed;
+}
+
+.qa-conv-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1f2933;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qa-conv-time {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.qa-conv-rename {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #4f46e5;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13.5px;
+  outline: none;
+}
+
+.qa-conv-menu-btn {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.qa-conversation-item:hover .qa-conv-menu-btn,
+.qa-conversation-item.active .qa-conv-menu-btn {
+  opacity: 1;
+}
+
+.qa-conv-menu-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.qa-conv-menu {
+  position: absolute;
+  top: 38px;
+  right: 8px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 26px rgba(17, 24, 39, 0.12);
+  overflow: hidden;
+}
+
+.qa-conv-menu button {
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.qa-conv-menu button:hover {
+  background: #f3f4f6;
+}
+
+.qa-conv-menu button.danger {
+  color: #b91c1c;
+}
+
+.qa-sidebar-backdrop {
+  display: none;
+}
+
+/* 主聊天區 */
+.qa-chat-area {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #eef0f4;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .qa-header {
-  max-width: 840px;
-  width: 100%;
-  margin: 0 auto;
-  padding-top: 16px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.qa-header-text {
+  min-width: 0;
 }
 
 .qa-header h2 {
   margin: 0;
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
 }
 
 .qa-header p {
-  margin: 8px 0 0;
+  margin: 3px 0 0;
   color: #6b7280;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qa-sidebar-toggle {
+  display: none;
+  flex-shrink: 0;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 6px;
+  color: #374151;
+  cursor: pointer;
+}
+
+/* 通用 icon */
+.qa-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* 回答上的 icon 動作鈕（重新生成 / 複製） */
+.qa-icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #6b7280;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.qa-icon-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.qa-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qa-icon-btn.is-copied {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.qa-icon-btn .qa-icon {
+  width: 15px;
+  height: 15px;
 }
 
 .quick-question-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  max-width: 840px;
+  margin: 0 auto 10px;
 }
 
 .quick-question {
@@ -4634,10 +4900,10 @@ button:disabled {
 
 .chat-panel {
   flex: 1;
-  min-height: 430px;
+  min-height: 0;
   overflow-y: auto;
   background: #ffffff;
-  padding: 12px 0 24px;
+  padding: 16px 20px;
 }
 
 .chat-message {
@@ -4957,18 +5223,12 @@ button:disabled {
 }
 
 .qa-composer {
-  position: fixed;
-  left: 50%;
-  bottom: 24px;
-  z-index: 30;
-  max-width: 840px;
-  width: min(840px, calc(100vw - 48px));
+  flex-shrink: 0;
+  width: 100%;
   margin: 0;
-  padding: 12px;
-  transform: translateX(-50%);
+  padding: 12px 20px 16px;
   background: #ffffff;
-  border-radius: 22px;
-  box-shadow: 0 -10px 30px rgba(255, 255, 255, 0.95);
+  border-top: 1px solid #eef0f4;
 }
 
 .qa-input-row {
@@ -4976,6 +5236,8 @@ button:disabled {
   grid-template-columns: 1fr 42px;
   gap: 8px;
   align-items: end;
+  max-width: 840px;
+  margin: 0 auto;
   border: 1px solid #d8dcd6;
   border-radius: 24px;
   background: #ffffff;
@@ -5727,15 +5989,50 @@ button:disabled {
   }
 
   .qa-page {
-    padding-left: 0;
-    padding-bottom: 230px;
+    height: calc(100vh - 120px);
+    min-height: 460px;
+    gap: 0;
+  }
+
+  /* 行動版：側欄變成從左側滑出的抽屜 */
+  .qa-sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 40;
+    border-radius: 16px;
+    transform: translateX(-108%);
+    transition: transform 0.25s ease;
+    box-shadow: 0 20px 40px rgba(17, 24, 39, 0.18);
+  }
+
+  .qa-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .qa-sidebar-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    background: rgba(17, 24, 39, 0.35);
+  }
+
+  .qa-sidebar-toggle {
+    display: inline-flex;
   }
 
   .qa-composer {
-    left: 50%;
-    bottom: 14px;
-    width: calc(100vw - 24px);
-    padding: 10px;
+    padding: 10px 12px 14px;
+  }
+
+  .chat-panel {
+    padding: 12px;
+  }
+
+  .quick-question-row {
+    grid-template-columns: 1fr;
   }
 
   .section-header {

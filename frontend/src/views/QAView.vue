@@ -52,6 +52,16 @@ const messageList = ref(null);
 const composerRef = ref(null);
 const copiedMessageId = ref(null);
 
+// 行動版：側邊「對話紀錄」抽屜開關（桌機一律顯示）。
+const showSidebar = ref(false);
+function toggleSidebar() {
+  showSidebar.value = !showSidebar.value;
+}
+function startNewChat() {
+  createConversation();
+  showSidebar.value = false;
+}
+
 // 信心程度：英文轉繁中標籤。
 function confidenceLabel(conf) {
   return { high: "高", medium: "中", low: "低" }[conf] || conf;
@@ -263,6 +273,7 @@ function selectConversation(conversationId) {
   state.activeConversationId = conversationId;
   state.openMenuId = null;
   state.editingConversationId = null;
+  showSidebar.value = false;  // 行動版選完自動收起抽屜
   nextTick(scrollToBottom);
 }
 
@@ -510,12 +521,93 @@ function handleDashboardContextCreated(event) {
 
 <template>
   <section class="qa-page">
+    <!-- 行動版抽屜遮罩 -->
+    <div v-if="showSidebar" class="qa-sidebar-backdrop" @click="showSidebar = false"></div>
+
+    <!-- 側邊：對話紀錄 -->
+    <aside class="qa-sidebar" :class="{ open: showSidebar }">
+      <button class="qa-new-chat" type="button" @click="startNewChat">
+        <svg class="qa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        新對話
+      </button>
+
+      <div class="qa-search">
+        <svg class="qa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input v-model="state.searchText" type="text" placeholder="搜尋對話…" />
+      </div>
+
+      <div class="qa-conversation-list">
+        <p v-if="!filteredConversations.length" class="qa-conv-empty">沒有符合的對話。</p>
+
+        <div
+          v-for="conversation in filteredConversations"
+          :key="conversation.id"
+          class="qa-conversation-item"
+          :class="{ active: conversation.id === state.activeConversationId }"
+          @click="selectConversation(conversation.id)"
+        >
+          <input
+            v-if="state.editingConversationId === conversation.id"
+            v-model="state.editingTitle"
+            class="qa-conv-rename"
+            type="text"
+            @click.stop
+            @keydown.enter="finishRenameConversation(conversation.id)"
+            @blur="finishRenameConversation(conversation.id)"
+          />
+
+          <template v-else>
+            <div class="qa-conv-body">
+              <div class="qa-conv-title-row">
+                <svg v-if="conversation.pinned" class="qa-pin-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M14 4v5l3 3v2h-5v5l-1 1-1-1v-5H4v-2l3-3V4z" />
+                </svg>
+                <span class="qa-conv-title">{{ conversation.title }}</span>
+              </div>
+              <span class="qa-conv-time">{{ formatConversationTime(conversation.updatedAt) }}</span>
+            </div>
+
+            <button
+              class="qa-conv-menu-btn"
+              type="button"
+              aria-label="更多操作"
+              @click.stop="toggleConversationMenu(conversation.id)"
+            >
+              <svg class="qa-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" />
+              </svg>
+            </button>
+
+            <div v-if="state.openMenuId === conversation.id" class="qa-conv-menu" @click.stop>
+              <button type="button" @click="togglePinnedConversation(conversation.id)">
+                {{ conversation.pinned ? "取消置頂" : "置頂" }}
+              </button>
+              <button type="button" @click="startRenameConversation(conversation.id)">重新命名</button>
+              <button type="button" class="danger" @click="deleteConversation(conversation.id)">刪除</button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 主聊天區 -->
     <div class="qa-chat-area">
       <div class="qa-header">
-        <h2>AI 問答</h2>
-        <p>
-          目前依據 Dashboard「{{ dashboardState.keyword }}」的分析資料回答，包含指標、情緒、熱門文章與洞察。
-        </p>
+        <button class="qa-sidebar-toggle" type="button" aria-label="對話紀錄" @click="toggleSidebar">
+          <svg class="qa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <div class="qa-header-text">
+          <h2>AI 問答</h2>
+          <p>
+            目前依據 Dashboard「{{ dashboardState.keyword }}」的分析資料回答，包含指標、情緒、熱門文章與洞察。
+          </p>
+        </div>
       </div>
 
       <p v-if="state.errorMessage" class="error-message">
@@ -551,21 +643,31 @@ function handleDashboardContextCreated(event) {
               <div v-if="message.answer" class="qa-answer-actions">
                 <button
                   v-if="!message.welcome"
-                  class="qa-copy-button"
+                  class="qa-icon-btn"
                   type="button"
-                  aria-label="重新生成回答"
+                  aria-label="重新生成"
+                  title="重新生成"
                   :disabled="state.loading"
                   @click="regenerateMessage(message)"
                 >
-                  重新生成
+                  <svg class="qa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 12a9 9 0 1 1-3-6.7" /><polyline points="21 3 21 9 15 9" />
+                  </svg>
                 </button>
                 <button
-                  class="qa-copy-button"
+                  class="qa-icon-btn"
                   type="button"
-                  aria-label="複製回答"
+                  :class="{ 'is-copied': copiedMessageId === message.id }"
+                  :aria-label="copiedMessageId === message.id ? '已複製' : '複製'"
+                  :title="copiedMessageId === message.id ? '已複製' : '複製'"
                   @click="copyAnswer(message)"
                 >
-                  {{ copiedMessageId === message.id ? "已複製" : "複製" }}
+                  <svg v-if="copiedMessageId === message.id" class="qa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <svg v-else class="qa-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
                 </button>
               </div>
             </div>
