@@ -4756,6 +4756,12 @@ button:disabled {
   flex: 1;
 }
 
+.qa-answer-actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+}
+
 .qa-copy-button {
   flex-shrink: 0;
   border: 1px solid #d8dcd6;
@@ -4770,6 +4776,27 @@ button:disabled {
 .qa-copy-button:hover {
   background: #f3f4f6;
   color: #111827;
+}
+
+.qa-copy-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qa-retry-button {
+  margin-left: 10px;
+  border: 1px solid #fca5a5;
+  background: #ffffff;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qa-retry-button:hover {
+  background: #fef2f2;
 }
 
 .qa-block {
@@ -4893,6 +4920,17 @@ button:disabled {
 .confidence-badge.is-low {
   background: #f3f4f6;
   color: #6b7280;
+}
+
+.source-platform {
+  font-style: normal;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .source-sentiment {

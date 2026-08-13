@@ -1,5 +1,6 @@
 # backend/app/services/rag_service.py
 
+import hashlib
 import json
 import re
 from datetime import timedelta
@@ -9,9 +10,14 @@ from sqlalchemy import and_, desc, or_
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Article
+from app.models.database_models import Article, Platform
 from app.services.article_compressor import clean_text, compress_articles_for_llm
+from app.services.cache_service import get_cache, set_cache
 from app.services.llm_client import generate_json_response
+
+
+# 支援查詢的平台（用於意圖解析與檢索過濾）。
+KNOWN_PLATFORMS = {"ptt", "dcard"}
 
 
 DEFAULT_KEYWORDS = [
@@ -63,11 +69,20 @@ def _fallback_intent(question: str) -> dict[str, Any]:
     elif any(word in question for word in ["比較", "競品", "對比"]):
         question_type = "comparison"
 
+    # 平台：問題裡若明確提到 Dcard / PTT 就鎖定該平台，否則不限。
+    lowered = question.lower()
+    platform = "all"
+    if "dcard" in lowered:
+        platform = "dcard"
+    elif "ptt" in lowered:
+        platform = "ptt"
+
     return {
         "keywords": keywords[:3] or [question[:30]],
         "sentiment": sentiment,
         "days": days,
         "question_type": question_type,
+        "platform": platform,
     }
 
 
@@ -81,13 +96,15 @@ JSON 格式：
   "keywords": ["關鍵字1", "關鍵字2"],
   "sentiment": "positive / negative / all",
   "days": 30,
-  "question_type": "opinion / trend / count / comparison"
+  "question_type": "opinion / trend / count / comparison",
+  "platform": "ptt / dcard / all"
 }}
 
 規則：
 - keywords 必須是適合查詢資料庫的短詞。
 - days 只能是 7, 30, 90, 180 其中一個；無法判斷就用 30。
 - sentiment 無法判斷就用 all。
+- platform 只有問題明確提到 Dcard 或 PTT 才鎖定，否則用 all。
 
 使用者問題：{question}
 """
@@ -109,6 +126,7 @@ JSON 格式：
         "sentiment": parsed.get("sentiment") if parsed.get("sentiment") in {"positive", "negative", "all"} else fallback["sentiment"],
         "days": parsed.get("days") if parsed.get("days") in {7, 30, 90, 180} else fallback["days"],
         "question_type": parsed.get("question_type") if parsed.get("question_type") in {"opinion", "trend", "count", "comparison"} else fallback["question_type"],
+        "platform": parsed.get("platform") if parsed.get("platform") in {"ptt", "dcard", "all"} else fallback["platform"],
     }
 
 
@@ -132,6 +150,11 @@ def retrieve_articles(
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
     )
+
+    # 平台過濾：問題明確指定 Dcard / PTT 時才套用。
+    platform = intent.get("platform", "all")
+    if platform in KNOWN_PLATFORMS:
+        query = query.filter(Article.platform.has(Platform.name == platform))
 
     # 說明：
     # 優先使用 LLM 評出的 sentiment；
@@ -167,6 +190,7 @@ def serialize_sources(articles: list[Article], limit: int = 5) -> list[dict[str,
         sources.append({
             "id": article.id,
             "title": article.title,
+            "platform": article.platform.name if article.platform else None,
             "board": article.board.name if article.board else "",
             "author": article.author.username if article.author else "unknown",
             "push_count": article.push_count or 0,
@@ -193,10 +217,36 @@ def _fallback_answer(question: str, intent: dict[str, Any], articles: list[Artic
     }
 
 
+def _format_history(history: list[dict[str, Any]] | None, max_turns: int = 6) -> str:
+    """把最近幾輪對話整理成一段文字，讓 LLM 能理解「接續型」問題。
+
+    只取最後 max_turns 則訊息，每則截斷到 300 字，避免 prompt 過長。
+    history 每一項格式：{"role": "user"|"assistant", "content": "..."}。
+    """
+    if not history:
+        return ""
+
+    lines = []
+    for item in history[-max_turns:]:
+        if not isinstance(item, dict):
+            continue
+        role = "使用者" if item.get("role") == "user" else "AI"
+        content = str(item.get("content") or "").strip()
+        if not content:
+            continue
+        lines.append(f"{role}：{content[:300]}")
+
+    if not lines:
+        return ""
+
+    return "先前對話（供理解接續型問題，回答仍以最新問題為準）：\n" + "\n".join(lines) + "\n"
+
+
 def generate_rag_answer(
     question: str,
     intent: dict[str, Any],
     articles: list[Article],
+    history: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     if not articles:
         return {
@@ -227,6 +277,7 @@ JSON 格式：
   "confidence": "high / medium / low"
 }}
 
+{_format_history(history)}
 使用者問題：{question}
 解析意圖：{json.dumps(intent, ensure_ascii=False)}
 
@@ -252,6 +303,7 @@ def _dashboard_context_sources(dashboard_context: dict[str, Any] | None) -> list
         {
             "id": article.get("id"),
             "title": article.get("title"),
+            "platform": article.get("platform"),
             "board": article.get("board"),
             "author": article.get("author"),
             "push_count": article.get("push_count", 0),
@@ -268,6 +320,7 @@ def _dashboard_context_sources(dashboard_context: dict[str, Any] | None) -> list
 def generate_dashboard_context_answer(
     question: str,
     dashboard_context: dict[str, Any],
+    history: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     fallback = {
         "answer": "我會根據目前 Dashboard 的分析結果回答。這次分析可先從文章數、情緒比例、熱門文章與 LLM 洞察交叉判讀；若資料量不足，建議先回到 Dashboard 重新搜尋或補充爬蟲資料。",
@@ -304,6 +357,7 @@ JSON 格式：
   "confidence": "high / medium / low"
 }}
 
+{_format_history(history)}
 使用者問題：{question}
 
 Dashboard 分析資料：
@@ -316,15 +370,44 @@ Dashboard 分析資料：
         return fallback
 
 
+def _qa_cache_key(
+    question: str,
+    dashboard_context: dict[str, Any] | None,
+    history: list[dict[str, Any]] | None,
+) -> str:
+    """依「問題 + Dashboard 條件 + 最近對話」組出快取 key。
+
+    相同問題、相同 Dashboard 條件、相同對話脈絡才會命中快取。
+    """
+    keyword = (dashboard_context or {}).get("keyword")
+    days = (dashboard_context or {}).get("days")
+    history_text = "|".join(
+        str(item.get("content") or "")
+        for item in (history or [])[-6:]
+        if isinstance(item, dict)
+    )
+    raw = f"qa:{question}|kw={keyword}|days={days}|hist={history_text}"
+    return "qa:" + hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+
 def answer_question(
     db: Session,
     question: str,
     dashboard_context: dict[str, Any] | None = None,
+    history: list[dict[str, Any]] | None = None,
+    use_cache: bool = True,
 ) -> dict[str, Any]:
-    if dashboard_context:
-        answer = generate_dashboard_context_answer(question, dashboard_context)
+    # 快取：相同問題與脈絡直接回傳，省下 Gemini 呼叫（重新生成時 use_cache=False 略過）。
+    cache_key = _qa_cache_key(question, dashboard_context, history)
+    if use_cache:
+        cached = get_cache(cache_key)
+        if cached is not None:
+            return {**cached, "cached": True}
 
-        return {
+    if dashboard_context:
+        answer = generate_dashboard_context_answer(question, dashboard_context, history)
+
+        result = {
             "question": question,
             "intent": {
                 "source": "dashboard_context",
@@ -336,18 +419,26 @@ def answer_question(
             "marketing_action": answer.get("marketing_action", ""),
             "confidence": answer.get("confidence", "medium"),
             "sources": _dashboard_context_sources(dashboard_context),
+            "cached": False,
+        }
+    else:
+        intent = parse_question_intent(question)
+        articles = retrieve_articles(db, intent)
+        answer = generate_rag_answer(question, intent, articles, history)
+
+        result = {
+            "question": question,
+            "intent": intent,
+            "answer": answer.get("answer", ""),
+            "key_points": answer.get("key_points", []),
+            "marketing_action": answer.get("marketing_action", ""),
+            "confidence": answer.get("confidence", "low"),
+            "sources": serialize_sources(articles),
+            "cached": False,
         }
 
-    intent = parse_question_intent(question)
-    articles = retrieve_articles(db, intent)
-    answer = generate_rag_answer(question, intent, articles)
+    # 只快取「有內容」的回答，避免把偶發錯誤或空結果也存起來。
+    if result.get("answer"):
+        set_cache(cache_key, result, minutes=15)
 
-    return {
-        "question": question,
-        "intent": intent,
-        "answer": answer.get("answer", ""),
-        "key_points": answer.get("key_points", []),
-        "marketing_action": answer.get("marketing_action", ""),
-        "confidence": answer.get("confidence", "low"),
-        "sources": serialize_sources(articles),
-    }
+    return result

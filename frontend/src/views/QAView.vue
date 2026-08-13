@@ -40,7 +40,13 @@ const state = reactive({
   openMenuId: null,
   editingConversationId: null,
   editingTitle: "",
+  lastQuestion: "",
 });
+
+const PLATFORM_LABELS = { ptt: "PTT", dcard: "Dcard" };
+function platformLabel(name) {
+  return PLATFORM_LABELS[name] || name;
+}
 
 const messageList = ref(null);
 const composerRef = ref(null);
@@ -147,12 +153,25 @@ function createWelcomeMessage() {
   return {
     id: Date.now(),
     role: "assistant",
+    welcome: true,
     answer: "我會根據目前 Dashboard 的分析資料回答，包括關鍵字、文章數、情緒分布、熱門文章與 LLM 洞察。你可以直接問這次分析代表什麼、風險在哪裡、或下一步行銷該怎麼做。",
     key_points: [],
     marketing_action: "",
     confidence: "",
     sources: [],
   };
+}
+
+// 把對話訊息整理成傳給後端的 history（略過歡迎詞與空內容，只留最近 6 則）。
+function toHistory(messages) {
+  return (messages || [])
+    .filter((message) => !message.welcome)
+    .map((message) => ({
+      role: message.role === "user" ? "user" : "assistant",
+      content: message.role === "user" ? message.text || "" : message.answer || "",
+    }))
+    .filter((item) => item.content)
+    .slice(-6);
 }
 
 function readDashboardAnalysisContext() {
@@ -358,28 +377,12 @@ async function ensureDashboardContext() {
   }
 }
 
-async function askQuestion(questionText = state.question) {
-  const question = questionText.trim();
+// 實際呼叫後端並把回答加進對話。question 為要回答的問題，
+// history 為該問題之前的對話脈絡，noCache=true 時強制重新生成。
+async function runAnswer(question, history, { noCache = false } = {}) {
+  if (!activeConversation.value) return;
 
-  if (!question || state.loading) return;
-
-  if (!activeConversation.value) {
-    createConversation();
-  }
-
-  state.question = "";
-  resetComposerHeight();
-  state.errorMessage = "";
   state.loading = true;
-
-  activeConversation.value.messages.push({
-    id: Date.now(),
-    role: "user",
-    text: question,
-  });
-
-  updateConversationAfterQuestion(question);
-  saveConversations();
   await scrollToBottom();
 
   try {
@@ -388,6 +391,8 @@ async function askQuestion(questionText = state.question) {
     const response = await api.post("/api/qa/ask", {
       question,
       dashboard_context: dashboardContext.value,
+      history,
+      no_cache: noCache,
     });
     const result = response.data.result;
 
@@ -401,6 +406,7 @@ async function askQuestion(questionText = state.question) {
       sources: result.sources || [],
       sourcesExpanded: false,
       intent: result.intent,
+      question,  // 記住對應問題，供「重新生成」使用
     });
 
     activeConversation.value.updatedAt = new Date().toISOString();
@@ -414,6 +420,69 @@ async function askQuestion(questionText = state.question) {
     state.loading = false;
     await scrollToBottom();
   }
+}
+
+async function askQuestion(questionText = state.question) {
+  const question = questionText.trim();
+
+  if (!question || state.loading) return;
+
+  if (!activeConversation.value) {
+    createConversation();
+  }
+
+  state.question = "";
+  resetComposerHeight();
+  state.errorMessage = "";
+  state.lastQuestion = question;
+
+  // history = 這則新問題「之前」的對話脈絡（在推入使用者訊息前先取）。
+  const history = toHistory(activeConversation.value.messages);
+
+  activeConversation.value.messages.push({
+    id: Date.now(),
+    role: "user",
+    text: question,
+  });
+
+  updateConversationAfterQuestion(question);
+  saveConversations();
+
+  await runAnswer(question, history);
+}
+
+// 重新生成某則 AI 回答：用它對應的問題重新詢問（略過快取），並取代原回答。
+async function regenerateMessage(message) {
+  if (state.loading) return;
+
+  const messages = activeConversation.value?.messages || [];
+  const index = messages.indexOf(message);
+  if (index === -1) return;
+
+  // 對應的使用者問題通常就在這則回答的前一則。
+  const userIndex = index - 1;
+  const question = message.question
+    || (messages[userIndex]?.role === "user" ? messages[userIndex].text : "");
+  if (!question) return;
+
+  const history = toHistory(messages.slice(0, userIndex));
+  messages.splice(index, 1);  // 移除舊回答，稍後補上新回答
+  state.errorMessage = "";
+  saveConversations();
+
+  await runAnswer(question, history, { noCache: true });
+}
+
+// 發生錯誤後重試最後一個問題（使用者訊息已在列表中，不重複推入）。
+async function retryLast() {
+  if (state.loading || !state.lastQuestion) return;
+
+  const messages = activeConversation.value?.messages || [];
+  const lastUserIndex = messages.map((m) => m.role).lastIndexOf("user");
+  const history = toHistory(messages.slice(0, lastUserIndex));
+
+  state.errorMessage = "";
+  await runAnswer(state.lastQuestion, history, { noCache: true });
 }
 
 onMounted(() => {
@@ -451,6 +520,14 @@ function handleDashboardContextCreated(event) {
 
       <p v-if="state.errorMessage" class="error-message">
         {{ state.errorMessage }}
+        <button
+          v-if="state.lastQuestion && !state.loading"
+          class="qa-retry-button"
+          type="button"
+          @click="retryLast"
+        >
+          重試
+        </button>
       </p>
 
       <div ref="messageList" class="chat-panel">
@@ -471,15 +548,26 @@ function handleDashboardContextCreated(event) {
           <div v-else class="assistant-bubble">
             <div class="assistant-bubble-top">
               <p class="qa-answer">{{ message.answer }}</p>
-              <button
-                v-if="message.answer"
-                class="qa-copy-button"
-                type="button"
-                aria-label="複製回答"
-                @click="copyAnswer(message)"
-              >
-                {{ copiedMessageId === message.id ? "已複製" : "複製" }}
-              </button>
+              <div v-if="message.answer" class="qa-answer-actions">
+                <button
+                  v-if="!message.welcome"
+                  class="qa-copy-button"
+                  type="button"
+                  aria-label="重新生成回答"
+                  :disabled="state.loading"
+                  @click="regenerateMessage(message)"
+                >
+                  重新生成
+                </button>
+                <button
+                  class="qa-copy-button"
+                  type="button"
+                  aria-label="複製回答"
+                  @click="copyAnswer(message)"
+                >
+                  {{ copiedMessageId === message.id ? "已複製" : "複製" }}
+                </button>
+              </div>
             </div>
 
             <div v-if="message.key_points?.length" class="qa-block">
@@ -518,6 +606,7 @@ function handleDashboardContextCreated(event) {
                 >
                   <strong>{{ source.title }}</strong>
                   <span>
+                    <em v-if="source.platform" class="source-platform">{{ platformLabel(source.platform) }}</em>
                     {{ source.board }} · {{ source.author }} · 推 {{ source.push_count }}
                     <em
                       v-if="sentimentInfo(source.sentiment)"

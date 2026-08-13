@@ -475,6 +475,7 @@ def get_hot_articles(
         result.append({
             "id": article.id,
             "title": article.title,
+            "platform": article.platform.name if article.platform else None,
             "board": article.board.name if article.board else "",
             "author": article.author.username if article.author else "unknown",
             "push_count": article.push_count,

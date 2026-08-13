@@ -23,9 +23,18 @@ router = APIRouter(
 qa_rate_limiter = RateLimiter(max_requests=10, window_seconds=60)
 
 
+class HistoryItem(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str = Field(default="", max_length=2000)
+
+
 class QuestionRequest(BaseModel):
     question: str = Field(..., min_length=2, max_length=500)
     dashboard_context: dict[str, Any] | None = None
+    # 最近幾輪對話（供 AI 理解接續型問題）。前端只需傳最後數則。
+    history: list[HistoryItem] | None = None
+    # 重新生成時帶 True：略過快取，強制重新呼叫 Gemini。
+    no_cache: bool = False
 
 
 @router.post("/ask", dependencies=[Depends(qa_rate_limiter)])
@@ -33,10 +42,14 @@ def ask_question(
     payload: QuestionRequest,
     db: Session = Depends(get_db),
 ):
+    history = [item.model_dump() for item in payload.history] if payload.history else None
+
     result = answer_question(
         db=db,
         question=payload.question.strip(),
         dashboard_context=payload.dashboard_context,
+        history=history,
+        use_cache=not payload.no_cache,
     )
 
     return {
