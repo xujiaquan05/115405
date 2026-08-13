@@ -153,3 +153,44 @@ class TestCleanContent:
         assert DcardCrawler._clean_content(None) == ""
         assert DcardCrawler._clean_content("") == ""
         assert DcardCrawler._clean_content("   \n  \n ") == ""
+
+
+class TestExtractComments:
+    def test_extracts_dedupes_and_skips_empty(self):
+        bodies = [
+            {"items": [
+                {"id": "c1", "content": "這間診所超雷"},
+                {"id": "c2", "content": "  價格合理  "},
+                {"id": "c3", "content": ""},        # 空內容 → 略過
+                {"id": "c4", "content": None},        # None → 略過
+            ], "nextKey": "k"},
+            {"items": [
+                {"id": "c1", "content": "這間診所超雷"},  # 重複 id → 去重
+                {"id": "c5", "content": "會回購"},
+            ]},
+        ]
+        assert DcardCrawler._extract_comments(bodies) == ["這間診所超雷", "價格合理", "會回購"]
+
+    def test_handles_list_form_and_garbage(self):
+        bodies = [
+            [{"id": "a", "content": "留言一"}],  # 有些回應直接是 list
+            None, {}, 123, {"items": "not-a-list"},
+        ]
+        assert DcardCrawler._extract_comments(bodies) == ["留言一"]
+
+
+class TestMergeContentAndComments:
+    def test_merges_content_and_comments(self):
+        merged = DcardCrawler._merge_content_and_comments("內文本體", ["讚", "推薦"])
+        assert merged == "內文本體\n【留言】\n- 讚\n- 推薦"
+
+    def test_content_only(self):
+        assert DcardCrawler._merge_content_and_comments("只有內文", []) == "只有內文"
+
+    def test_comments_only(self):
+        # 內文抓失敗但有留言 → 仍保留留言供分析
+        merged = DcardCrawler._merge_content_and_comments("", ["留言A"])
+        assert merged == "【留言】\n- 留言A"
+
+    def test_both_empty(self):
+        assert DcardCrawler._merge_content_and_comments(None, []) == ""

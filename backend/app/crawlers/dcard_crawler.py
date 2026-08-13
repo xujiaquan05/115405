@@ -12,6 +12,8 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
              → widgets[].forumList.items[].post
 - 完整內文：進入 /f/{alias}/p/{id} 貼文頁，從 DOM 的 <article> 取出全文
              （Dcard 沒有穩定的內文 API，改讀 DOM）。
+- 留言（推文）：同一貼文頁 → 攔截回應 '/posts/{id}/comments'
+             → { items: [...], nextKey }，往下捲動觸發載入更多。
 
 為了讓下游流程（relevance_filter → create_article → Gemini 情緒評分）
 不必修改，本爬蟲輸出的欄位刻意對齊 PTTCrawler：
@@ -24,6 +26,8 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
 - 內文預設抓「完整全文」（fetch_full_content=True）：逐篇進入內頁讀取，
   分析更精準但較慢（每篇多花數秒）；讀取失敗時自動退回列表的 excerpt（摘要）。
   若要追求速度，可用 fetch_full_content=False 只取 excerpt。
+- 留言預設一併抓取（fetch_comments=True）並「併入內文」一起分析，
+  因此情緒評分、關鍵字雲與 LLM 洞察都會涵蓋留言區的聲音（輿情重點常在留言）。
 """
 
 import hashlib
@@ -54,12 +58,17 @@ class DcardCrawler:
         "window.chrome = { runtime: {} };"
     )
 
+    # 進內頁後，為了觸發 Dcard 無限捲軸載入留言，最多往下捲的次數。
+    COMMENT_SCROLLS = 10
+
     def __init__(
         self,
         headless: bool = False,
         min_delay: float = 1.5,
         max_delay: float = 3.5,
         fetch_full_content: bool = True,
+        fetch_comments: bool = True,
+        max_comments: int = 20,
     ):
         # headless 預設 False：Dcard 會擋 headless。除非測試/特殊情況才開 True。
         self.headless = headless
@@ -68,6 +77,11 @@ class DcardCrawler:
         # fetch_full_content=True：逐篇進內頁抓完整內文（較慢但分析更準）；
         # False：只取列表的 excerpt（較快）。
         self.fetch_full_content = fetch_full_content
+        # fetch_comments=True：進內頁時一併抓留言，併入內文一起分析
+        # （情緒、關鍵字、LLM 洞察都會納入留言的聲音）。
+        self.fetch_comments = fetch_comments
+        # 每篇最多納入幾則留言（避免內文過長、拖慢爬取）。
+        self.max_comments = max_comments
 
     # ── 純函式工具（不需瀏覽器，便於單元測試） ──────────────────
 
@@ -141,31 +155,111 @@ class DcardCrawler:
         lines = [line.strip() for line in text.splitlines()]
         return "\n".join(line for line in lines if line).strip()
 
-    def _fetch_post_content(self, page, board: str, post_id) -> str | None:
-        """進入單篇貼文頁，從 DOM 的 <article> 取出完整內文。
+    @staticmethod
+    def _extract_comments(bodies: list) -> list[str]:
+        """從多個 '/posts/{id}/comments' 回應中彙整留言文字（去重、去空）。
 
-        任何錯誤（頁面載入逾時、找不到 article、貼文被刪等）都回傳 None，
-        由呼叫端退回 excerpt，不影響整體爬取。
+        Dcard 留言回應格式為 { items: [...], nextKey }，每則留言有 id 與 content；
+        被刪除 / 隱藏的留言 content 可能為空，一律略過。
+        """
+        seen: set = set()
+        comments: list[str] = []
+
+        for body in bodies:
+            if isinstance(body, dict):
+                items = body.get("items")
+            elif isinstance(body, list):
+                items = body
+            else:
+                items = None
+
+            if not isinstance(items, list):
+                continue
+
+            for c in items:
+                if not isinstance(c, dict):
+                    continue
+                comment_id = c.get("id")
+                text = (c.get("content") or "").strip()
+                if not text or comment_id in seen:
+                    continue
+                seen.add(comment_id)
+                comments.append(text)
+
+        return comments
+
+    @staticmethod
+    def _merge_content_and_comments(content: str | None, comments: list[str]) -> str:
+        """把內文與留言合併成一段供分析的文字（留言放在「【留言】」段落下）。"""
+        parts: list[str] = []
+        if content:
+            parts.append(content.strip())
+        if comments:
+            parts.append("【留言】")
+            parts.extend(f"- {c}" for c in comments)
+        return "\n".join(parts).strip()
+
+    def _fetch_post_detail(self, page, board: str, post_id) -> tuple[str | None, list[str]]:
+        """進入單篇貼文頁，回傳 (完整內文, 留言文字清單)。
+
+        - 內文：從 DOM 的 <article> 取出。
+        - 留言：攔截 '/posts/{id}/comments' 回應，往下捲動觸發載入更多。
+        任何錯誤都安全退回（內文 None、留言空清單），不影響整體爬取。
         """
         url = f"{self.BASE_URL}/f/{board}/p/{post_id}"
+        comment_bodies: list = []
+
+        def on_comment(resp):
+            if f"/posts/{post_id}/comments" in resp.url:
+                try:
+                    comment_bodies.append(resp.json())
+                except Exception:
+                    pass  # 略過非 JSON 回應
+
+        page.on("response", on_comment)
 
         try:
-            page.goto(url, wait_until="domcontentloaded", timeout=60_000)
-        except Exception:
-            pass  # SPA 可能較慢，仍嘗試往下讀取
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=60_000)
+            except Exception:
+                pass  # SPA 可能較慢，仍嘗試往下讀取
 
-        try:
-            page.wait_for_selector("article", timeout=15_000)
-        except Exception:
-            return None
+            try:
+                page.wait_for_selector("article", timeout=15_000)
+            except Exception:
+                return None, []
 
-        try:
-            element = page.query_selector("article")
-            if element is None:
-                return None
-            return self._clean_content(element.inner_text())
-        except Exception:
-            return None
+            # 內文
+            content = None
+            try:
+                element = page.query_selector("article")
+                if element is not None:
+                    content = self._clean_content(element.inner_text())
+            except Exception:
+                content = None
+
+            # 留言：往下捲動觸發無限捲軸載入，直到夠數或不再增加
+            comments: list[str] = []
+            if self.fetch_comments:
+                idle = 0
+                last = 0
+                for _ in range(self.COMMENT_SCROLLS):
+                    if len(self._extract_comments(comment_bodies)) >= self.max_comments:
+                        break
+                    page.mouse.wheel(0, 6000)
+                    self._sleep()
+                    if len(comment_bodies) == last:
+                        idle += 1
+                        if idle >= 2:
+                            break  # 連續沒有新留言，代表載完了
+                    else:
+                        idle = 0
+                        last = len(comment_bodies)
+                comments = self._extract_comments(comment_bodies)[: self.max_comments]
+
+            return content, comments
+        finally:
+            page.remove_listener("response", on_comment)
 
     def _sleep(self) -> None:
         time.sleep(random.uniform(self.min_delay, self.max_delay))
@@ -275,18 +369,22 @@ class DcardCrawler:
 
             posts = self._extract_posts(bodies)[:max_posts]
 
-            if not self.fetch_full_content:
+            if not self.fetch_full_content and not self.fetch_comments:
                 # 快速模式：只用列表回傳的 excerpt 當內文。
                 articles = [self._to_article(post, board) for post in posts]
             else:
-                # 完整模式：逐篇進入內頁抓 <article> 全文（較慢）。
+                # 完整模式：逐篇進入內頁抓 <article> 全文與留言（較慢）。
                 # 先停止監聽列表回應，避免內頁的 JSON 不斷累積。
                 page.remove_listener("response", on_response)
                 total = len(posts)
 
                 for i, post in enumerate(posts):
-                    content = self._fetch_post_content(page, board, post.get("id"))
-                    articles.append(self._to_article(post, board, content=content))
+                    detail_content, comments = self._fetch_post_detail(page, board, post.get("id"))
+                    # 只要 fetch_full_content 關閉，就不採用內頁全文（改用 excerpt），
+                    # 但仍可把留言併入分析。
+                    base_content = detail_content if self.fetch_full_content else (post.get("excerpt") or "")
+                    merged = self._merge_content_and_comments(base_content, comments)
+                    articles.append(self._to_article(post, board, content=merged))
                     self._sleep()  # 禮貌性延遲，降低被 Dcard 擋的機率
 
                     if progress_callback:
