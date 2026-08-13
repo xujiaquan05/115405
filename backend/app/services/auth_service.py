@@ -178,6 +178,9 @@ def serialize_user(user: User) -> dict:
         "username": user.username,
         "display_name": user.display_name or user.username,
         "role": user.role,
+        "is_active": bool(user.is_active),
+        "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
 

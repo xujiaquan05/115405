@@ -74,6 +74,32 @@ def get_me(current_user: User = Depends(get_current_user)):
     }
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: str = Field(..., min_length=1, max_length=100)
+
+
+@router.patch("/me")
+def update_me(
+    payload: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    說明：
+    使用者更新自己的顯示名稱（display_name）。其他敏感欄位（角色、啟用狀態）
+    不開放自行修改，必須由管理員在帳號管理處調整。
+    """
+
+    current_user.display_name = payload.display_name.strip()
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "status": "success",
+        "user": serialize_user(current_user),
+    }
+
+
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1, max_length=200)
     new_password: str = Field(..., min_length=6, max_length=200)

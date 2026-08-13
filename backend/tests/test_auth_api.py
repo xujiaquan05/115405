@@ -91,6 +91,39 @@ class TestLoginApi:
         assert response.status_code == 200
         assert response.json()["user"]["username"] == "tester"
 
+    def test_serialized_user_has_account_fields(self, client):
+        # serialize_user 現在會帶啟用狀態、最後登入、建立時間。
+        user = login(client).json()["user"]
+        assert user["is_active"] is True
+        assert "last_login_at" in user
+        assert "created_at" in user
+
+
+class TestUpdateProfileApi:
+    def test_requires_token(self, client):
+        assert client.patch("/api/auth/me", json={"display_name": "新名字"}).status_code in (401, 403)
+
+    def test_update_display_name(self, client):
+        token = login(client).json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        resp = client.patch("/api/auth/me", json={"display_name": "  新的顯示名稱  "}, headers=headers)
+        assert resp.status_code == 200
+        assert resp.json()["user"]["display_name"] == "新的顯示名稱"  # 有 strip
+
+        # 讀回 /me 確認有存
+        again = client.get("/api/auth/me", headers=headers).json()["user"]
+        assert again["display_name"] == "新的顯示名稱"
+
+    def test_blank_display_name_rejected(self, client):
+        token = login(client).json()["access_token"]
+        resp = client.patch(
+            "/api/auth/me",
+            json={"display_name": ""},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 422
+
 
 class TestChangePasswordApi:
     def test_requires_token(self, client):

@@ -306,6 +306,189 @@ select {
   color: #166534;
 }
 
+/* ── 顯示名稱編輯 ── */
+.profile-identity-text {
+  min-width: 0;
+}
+
+.profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-edit-btn {
+  display: inline-flex;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.profile-edit-btn:hover {
+  color: #4f46e5;
+  background: #eef2ff;
+}
+
+.profile-edit-btn svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.profile-name-edit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-name-edit input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #6366f1;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.profile-name-save,
+.profile-name-cancel {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-name-save {
+  border: none;
+  background: #4f46e5;
+  color: #ffffff;
+}
+
+.profile-name-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-name-cancel {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #6b7280;
+}
+
+/* ── 狀態 badge ── */
+.profile-status-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-status-badge.is-on {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.profile-status-badge.is-off {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ── 密碼欄位：明碼切換 ── */
+.profile-pw-field {
+  position: relative;
+}
+
+.profile-pw-field input {
+  padding-right: 42px;
+}
+
+/* 用更高的選擇器權重蓋過 .profile-form button 的深色樣式 */
+.profile-pw-field .profile-pw-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 40px;
+  width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.profile-pw-field .profile-pw-toggle:hover {
+  color: #374151;
+  background: none;
+}
+
+.profile-pw-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+/* ── 密碼強度 ── */
+.profile-strength {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.profile-strength-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.profile-strength-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease, background-color 0.25s ease;
+}
+
+.profile-strength-bar.weak {
+  background: #ef4444;
+}
+
+.profile-strength-bar.medium {
+  background: #f59e0b;
+}
+
+.profile-strength-bar.strong {
+  background: #16a34a;
+}
+
+.profile-strength-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.profile-strength-label.weak {
+  color: #b91c1c;
+}
+
+.profile-strength-label.medium {
+  color: #b45309;
+}
+
+.profile-strength-label.strong {
+  color: #15803d;
+}
+
 @media (max-width: 760px) {
   .profile-grid {
     grid-template-columns: 1fr;

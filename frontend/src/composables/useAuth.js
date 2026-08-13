@@ -83,6 +83,15 @@ function logout() {
   localStorage.removeItem(GUEST_KEY);
 }
 
+// 用新的使用者資料覆蓋（例如改了顯示名稱、或重新抓 /me），
+// 同步更新 localStorage，讓 Navbar 等其他畫面也跟著變。
+function updateUser(nextUser) {
+  if (!nextUser) return;
+
+  state.user = { ...(state.user || {}), ...nextUser };
+  localStorage.setItem(USER_KEY, JSON.stringify(state.user));
+}
+
 export function useAuth() {
   return {
     state,
@@ -91,5 +100,6 @@ export function useAuth() {
     login,
     logout,
     enterGuestMode,
+    updateUser,
   };
 }
