@@ -4797,7 +4797,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 10px 18px;
   border-bottom: 1px solid #eef0f4;
 }
 
@@ -4807,14 +4807,14 @@ button:disabled {
 
 .qa-header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
 }
 
 .qa-header p {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: #6b7280;
-  font-size: 13px;
+  font-size: 12.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
