@@ -4583,8 +4583,8 @@ button:disabled {
 .qa-page {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 168px);
-  min-height: 520px;
+  height: calc(100vh - 144px);
+  min-height: 540px;
   position: relative;
 }
 

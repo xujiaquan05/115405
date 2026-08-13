@@ -127,6 +127,10 @@ const activeConversation = computed(() => {
 
 const messages = computed(() => activeConversation.value?.messages || []);
 
+// 只有「還沒問過任何問題」時才顯示快捷提問，開始對話後就收起，
+// 把空間留給訊息內容。
+const hasUserMessage = computed(() => messages.value.some((message) => message.role === "user"));
+
 const sortedConversations = computed(() => {
   return [...state.conversations].sort((a, b) => {
     const pinnedDiff = Number(Boolean(b.pinned)) - Number(Boolean(a.pinned));
@@ -739,7 +743,7 @@ function handleDashboardContextCreated(event) {
       </div>
 
       <div class="qa-composer">
-        <div class="quick-question-row">
+        <div v-if="!hasUserMessage" class="quick-question-row">
           <button
             v-for="question in quickQuestions"
             :key="question"
