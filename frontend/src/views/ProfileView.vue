@@ -3,6 +3,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from "vue";
 import { useAuth } from "../composables/useAuth";
+import { passwordStrength } from "../utils/password";
 import api from "../services/api";
 
 const { state: authState, updateUser } = useAuth();
@@ -87,21 +88,8 @@ const form = reactive({
 // 各欄位是否顯示明碼
 const reveal = reactive({ old: false, new: false, confirm: false });
 
-// 新密碼強度：依長度與字元多樣性給 弱 / 中 / 強。
-const passwordStrength = computed(() => {
-  const p = form.newPassword;
-  if (!p) return { level: 0, label: "", cls: "" };
-
-  let score = 0;
-  if (p.length >= 6) score += 1;
-  if (p.length >= 10) score += 1;
-  if (/[A-Za-z]/.test(p) && /\d/.test(p)) score += 1;
-  if (/[^A-Za-z0-9]/.test(p)) score += 1;
-
-  if (score <= 1) return { level: 1, label: "弱", cls: "weak" };
-  if (score === 2) return { level: 2, label: "中", cls: "medium" };
-  return { level: 3, label: "強", cls: "strong" };
-});
+// 新密碼強度：弱 / 中 / 強（邏輯抽到 utils/password.js 方便單元測試）。
+const strength = computed(() => passwordStrength(form.newPassword));
 
 async function handleChangePassword() {
   if (form.loading) return;
@@ -262,9 +250,9 @@ onMounted(async () => {
 
             <div v-if="form.newPassword" class="profile-strength">
               <div class="profile-strength-track">
-                <div :class="['profile-strength-bar', passwordStrength.cls]" :style="{ width: `${passwordStrength.level * 33.3}%` }"></div>
+                <div :class="['profile-strength-bar', strength.cls]" :style="{ width: `${strength.level * 33.3}%` }"></div>
               </div>
-              <span :class="['profile-strength-label', passwordStrength.cls]">強度：{{ passwordStrength.label }}</span>
+              <span :class="['profile-strength-label', strength.cls]">強度：{{ strength.label }}</span>
             </div>
           </label>
 

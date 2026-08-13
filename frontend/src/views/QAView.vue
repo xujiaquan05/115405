@@ -4,6 +4,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 
 import api from "../services/api.js";
+import { toHistory } from "../utils/qaHistory.js";
 import {
   DASHBOARD_ANALYSIS_CONTEXT_KEY,
   TARGET_BOARDS,
@@ -176,17 +177,7 @@ function createWelcomeMessage() {
   };
 }
 
-// 把對話訊息整理成傳給後端的 history（略過歡迎詞與空內容，只留最近 6 則）。
-function toHistory(messages) {
-  return (messages || [])
-    .filter((message) => !message.welcome)
-    .map((message) => ({
-      role: message.role === "user" ? "user" : "assistant",
-      content: message.role === "user" ? message.text || "" : message.answer || "",
-    }))
-    .filter((item) => item.content)
-    .slice(-6);
-}
+// history 整理邏輯抽到 utils/qaHistory.js，方便單元測試。
 
 function readDashboardAnalysisContext() {
   try {

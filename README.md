@@ -530,6 +530,16 @@ python -m pytest tests/ -v
 
 測試會自動使用 SQLite in-memory，不會碰到真正的資料庫。
 
+## 執行前端測試
+
+前端使用 Vitest（jsdom 環境）測試工具函式與 composable：
+
+```bash
+cd frontend
+npm install
+npm run test
+```
+
 ---
 
 ## Phase 6-8 demo checklist
