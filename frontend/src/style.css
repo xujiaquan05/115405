@@ -191,6 +191,113 @@ select {
   justify-content: center;
 }
 
+/* ===== 現代個人檔案版面（hero + 資訊磚 + 區塊） ===== */
+.profile-hero {
+  background: #ffffff;
+  border: 1px solid #eef0f4;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.profile-hero-banner {
+  height: 88px;
+  background: linear-gradient(120deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
+}
+
+.profile-hero-main {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  padding: 0 24px 20px;
+  margin-top: -36px; /* 讓大頭像疊在 banner 上 */
+}
+
+.profile-avatar-lg {
+  width: 88px;
+  height: 88px;
+  font-size: 32px;
+  border: 4px solid #ffffff;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.12);
+  flex-shrink: 0;
+}
+
+.profile-hero-text {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 4px;
+}
+
+.profile-hero-text .profile-name-row strong {
+  font-size: 20px;
+  color: #111827;
+}
+
+.profile-username {
+  margin: 3px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.profile-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.profile-hero .profile-message {
+  margin: 0 24px 16px;
+}
+
+.profile-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.profile-tile {
+  background: #ffffff;
+  border: 1px solid #eef0f4;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.profile-tile span {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.profile-tile strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.profile-section-head {
+  margin-bottom: 16px;
+}
+
+.profile-section-head h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+  color: #111827;
+}
+
+.profile-section-head p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.profile-security {
+  max-width: 540px;
+}
+
 .profile-identity strong {
   font-size: 16px;
   color: #111827;

@@ -150,70 +150,80 @@ onMounted(async () => {
       <p>檢視你的帳號資料並管理登入密碼。</p>
     </div>
 
-    <div class="profile-grid">
-      <article class="card profile-card">
-        <div class="profile-identity">
-          <div class="profile-avatar">{{ initial }}</div>
-          <div class="profile-identity-text">
-            <div v-if="!nameEdit.editing" class="profile-name-row">
-              <strong>{{ user.display_name || user.username }}</strong>
-              <button class="profile-edit-btn" type="button" aria-label="編輯顯示名稱" @click="startEditName">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
-                </svg>
-              </button>
-            </div>
+    <!-- 個人檔案 Hero：banner + 大頭像 + 名稱與標籤 -->
+    <article class="profile-hero">
+      <div class="profile-hero-banner"></div>
+      <div class="profile-hero-main">
+        <div class="profile-avatar profile-avatar-lg">{{ initial }}</div>
 
-            <div v-else class="profile-name-edit">
-              <input
-                v-model="nameEdit.value"
-                type="text"
-                maxlength="100"
-                placeholder="顯示名稱"
-                @keydown.enter="saveName"
-              />
-              <button class="profile-name-save" type="button" :disabled="nameEdit.saving" @click="saveName">
-                {{ nameEdit.saving ? "儲存中…" : "儲存" }}
-              </button>
-              <button class="profile-name-cancel" type="button" @click="cancelEditName">取消</button>
-            </div>
+        <div class="profile-hero-text">
+          <div v-if="!nameEdit.editing" class="profile-name-row">
+            <strong>{{ user.display_name || user.username }}</strong>
+            <button class="profile-edit-btn" type="button" aria-label="編輯顯示名稱" @click="startEditName">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+              </svg>
+            </button>
+          </div>
 
-            <p>@{{ user.username }}</p>
+          <div v-else class="profile-name-edit">
+            <input
+              v-model="nameEdit.value"
+              type="text"
+              maxlength="100"
+              placeholder="顯示名稱"
+              @keydown.enter="saveName"
+            />
+            <button class="profile-name-save" type="button" :disabled="nameEdit.saving" @click="saveName">
+              {{ nameEdit.saving ? "儲存中…" : "儲存" }}
+            </button>
+            <button class="profile-name-cancel" type="button" @click="cancelEditName">取消</button>
+          </div>
+
+          <p class="profile-username">@{{ user.username }}</p>
+
+          <div class="profile-hero-badges">
+            <span :class="['profile-role-badge', user.role === 'admin' ? 'is-admin' : '']">{{ roleLabel }}</span>
+            <span :class="['profile-status-badge', user.is_active === false ? 'is-off' : 'is-on']">
+              {{ user.is_active === false ? "已停用" : "啟用中" }}
+            </span>
           </div>
         </div>
+      </div>
 
-        <p v-if="nameEdit.message" :class="['profile-message', nameEdit.messageType]">{{ nameEdit.message }}</p>
+      <p v-if="nameEdit.message" :class="['profile-message', nameEdit.messageType]">{{ nameEdit.message }}</p>
+    </article>
 
-        <dl class="profile-detail-list">
-          <div>
-            <dt>角色</dt>
-            <dd><span :class="['profile-role-badge', user.role === 'admin' ? 'is-admin' : '']">{{ roleLabel }}</span></dd>
-          </div>
-          <div>
-            <dt>帳號 ID</dt>
-            <dd>{{ user.id }}</dd>
-          </div>
-          <div>
-            <dt>狀態</dt>
-            <dd>
-              <span :class="['profile-status-badge', user.is_active === false ? 'is-off' : 'is-on']">
-                {{ user.is_active === false ? "已停用" : "啟用中" }}
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>最後登入</dt>
-            <dd>{{ formatDateTime(user.last_login_at) }}</dd>
-          </div>
-          <div>
-            <dt>建立時間</dt>
-            <dd>{{ formatDateTime(user.created_at) }}</dd>
-          </div>
-        </dl>
-      </article>
+    <!-- 帳號資料：資訊磚 -->
+    <div class="profile-tiles">
+      <div class="profile-tile">
+        <span>角色</span>
+        <strong>{{ roleLabel }}</strong>
+      </div>
+      <div class="profile-tile">
+        <span>帳號 ID</span>
+        <strong>{{ user.id }}</strong>
+      </div>
+      <div class="profile-tile">
+        <span>狀態</span>
+        <strong>{{ user.is_active === false ? "已停用" : "啟用中" }}</strong>
+      </div>
+      <div class="profile-tile">
+        <span>最後登入</span>
+        <strong>{{ formatDateTime(user.last_login_at) }}</strong>
+      </div>
+      <div class="profile-tile">
+        <span>建立時間</span>
+        <strong>{{ formatDateTime(user.created_at) }}</strong>
+      </div>
+    </div>
 
-      <article class="card profile-card">
+    <!-- 安全性：修改密碼 -->
+    <article class="card profile-security">
+      <div class="profile-section-head">
         <h3>修改密碼</h3>
+        <p>定期更換密碼，並避免與其他網站共用，以保護帳號安全。</p>
+      </div>
 
         <p v-if="form.errorMessage" class="profile-message error">{{ form.errorMessage }}</p>
         <p v-if="form.successMessage" class="profile-message success">{{ form.successMessage }}</p>
@@ -276,6 +286,5 @@ onMounted(async () => {
           </button>
         </form>
       </article>
-    </div>
   </section>
 </template>
