@@ -20,6 +20,24 @@
   --text-muted: #9aa4b2;
   --border: #2c3648;
   --border-subtle: #2c3648;
+  /* 讓原生表單元件（select、checkbox）與捲軸也套用深色 */
+  color-scheme: dark;
+}
+
+/* 深色模式下，淺色「軟底標籤」需要調暗，避免淺底配上淺色文字而看不清。 */
+:root[data-theme="dark"] .keyword-token,
+:root[data-theme="dark"] .keyword-token.selected {
+  background: #2a3350;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .keyword-token span {
+  color: var(--text);
+}
+
+/* 熱門關鍵字 / 預設標籤的淺色 hover 底也調暗 */
+:root[data-theme="dark"] .keyword-preset:hover {
+  background: var(--surface-2);
 }
 
 /* 基本 reset，讓介面看起來更一致。 */
@@ -2694,7 +2712,7 @@ html {
 .secondary-button {
   background: var(--surface);
   border: 1px solid #d8dcd6;
-  color: #1f2937;
+  color: var(--text);
   padding: 11px 14px;
   display: inline-flex;
   align-items: center;
@@ -3045,7 +3063,7 @@ button:disabled {
   border-radius: 999px;
   padding: 12px 17px;
   cursor: pointer;
-  color: #1f2937;
+  color: var(--text);
   font-weight: 600;
   transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
@@ -3085,7 +3103,7 @@ button:disabled {
   vertical-align: top;
   padding: 18px;
   border-bottom: 1px solid var(--border);
-  color: #1f2937;
+  color: var(--text);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -4597,7 +4615,7 @@ button:disabled {
 }
 
 .crawler-stat-label {
-  color: #334155;
+  color: var(--text);
   font-size: 14px;
   font-weight: 800;
 }
@@ -4723,7 +4741,7 @@ button:disabled {
 }
 
 .crawler-form label span {
-  color: #334155;
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
 }
@@ -4902,7 +4920,7 @@ button:disabled {
   border: 1px solid #d8dcd6;
   border-radius: 8px;
   background: var(--surface);
-  color: #334155;
+  color: var(--text);
   padding: 0 14px;
 }
 
@@ -4986,7 +5004,7 @@ button:disabled {
   height: 34px;
   border-radius: 8px;
   background: #f1f5f9;
-  color: #334155;
+  color: var(--text);
 }
 
 .crawler-page-button.active {
@@ -5374,12 +5392,12 @@ button:disabled {
   max-width: min(620px, 82%);
   border-radius: 18px;
   background: #f1f2f0;
-  color: #1f2937;
+  color: var(--text);
   line-height: 1.6;
 }
 
 .assistant-bubble {
-  color: #1f2937;
+  color: var(--text);
 }
 
 .assistant-bubble {
@@ -5542,7 +5560,7 @@ button:disabled {
   border: 1px solid #d8dcd6;
   border-radius: 999px;
   background: var(--surface);
-  color: #1f2937;
+  color: var(--text);
   cursor: pointer;
   padding: 8px 12px;
   font-size: 13px;
@@ -5749,7 +5767,7 @@ button:disabled {
   border: 1px solid #d8dcd6;
   border-radius: 999px;
   background: var(--surface);
-  color: #334155;
+  color: var(--text);
   cursor: pointer;
   font-weight: 800;
   padding: 10px 16px;
@@ -5935,7 +5953,7 @@ button:disabled {
   border: none;
   border-radius: 8px;
   background: #f1f5f9;
-  color: #334155;
+  color: var(--text);
   cursor: pointer;
   font-weight: 800;
 }
@@ -6022,7 +6040,7 @@ button:disabled {
 }
 
 .compare-delta-row span {
-  color: #334155;
+  color: var(--text);
   font-weight: 800;
 }
 
@@ -6133,7 +6151,7 @@ button:disabled {
   display: flex;
   gap: 16px;
   margin-bottom: 12px;
-  color: #334155;
+  color: var(--text);
   font-size: 13px;
   font-weight: 800;
 }
