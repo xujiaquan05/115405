@@ -37,6 +37,12 @@ def _apply_schema_migrations():
         connection.execute(text(
             "ALTER TABLE boards ADD COLUMN IF NOT EXISTS is_active INTEGER DEFAULT 1"
         ))
+        connection.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_emoji VARCHAR(16)"
+        ))
+        connection.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(16)"
+        ))
 
 
 def _seed_admin_user(db):

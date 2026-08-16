@@ -19,6 +19,46 @@ const roleLabel = computed(() => {
   return user.value.role === "admin" ? "系統管理員" : "一般使用者";
 });
 
+// ── 頭像自訂（顏色 + emoji） ──────────────────────────────────
+const AVATAR_COLORS = ["#4f46e5", "#7c3aed", "#0f6e56", "#0369a1", "#be185d", "#b45309", "#dc2626", "#334155"];
+const AVATAR_EMOJIS = ["", "😀", "🦊", "🐱", "🌸", "💄", "✨", "🌟", "💼", "🩺", "📊", "🔥"];
+
+const avatarEdit = reactive({ open: false, color: "", emoji: "", saving: false });
+
+// 有 emoji 就顯示 emoji，否則顯示名稱首字。
+const avatarContent = computed(() => user.value.avatar_emoji || initial.value);
+const avatarStyle = computed(() => {
+  const color = user.value.avatar_color;
+  return color ? { backgroundColor: color, color: "#ffffff" } : {};
+});
+
+function openAvatarEdit() {
+  avatarEdit.color = user.value.avatar_color || AVATAR_COLORS[0];
+  avatarEdit.emoji = user.value.avatar_emoji || "";
+  avatarEdit.open = true;
+}
+
+function cancelAvatarEdit() {
+  avatarEdit.open = false;
+}
+
+async function saveAvatar() {
+  if (avatarEdit.saving) return;
+  avatarEdit.saving = true;
+  try {
+    const response = await api.patch("/api/auth/me", {
+      avatar_color: avatarEdit.color,
+      avatar_emoji: avatarEdit.emoji,
+    });
+    updateUser(response.data.user);
+    avatarEdit.open = false;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    avatarEdit.saving = false;
+  }
+}
+
 function formatDateTime(value) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("zh-TW", {
@@ -154,7 +194,14 @@ onMounted(async () => {
     <article class="profile-hero">
       <div class="profile-hero-banner"></div>
       <div class="profile-hero-main">
-        <div class="profile-avatar profile-avatar-lg">{{ initial }}</div>
+        <div class="profile-avatar-wrap">
+          <div class="profile-avatar profile-avatar-lg" :style="avatarStyle">{{ avatarContent }}</div>
+          <button class="profile-avatar-edit" type="button" aria-label="編輯頭像" @click="openAvatarEdit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" />
+            </svg>
+          </button>
+        </div>
 
         <div class="profile-hero-text">
           <div v-if="!nameEdit.editing" class="profile-name-row">
@@ -188,6 +235,45 @@ onMounted(async () => {
               {{ user.is_active === false ? "已停用" : "啟用中" }}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div v-if="avatarEdit.open" class="profile-avatar-picker">
+        <div class="pap-group">
+          <span class="pap-label">底色</span>
+          <div class="pap-swatches">
+            <button
+              v-for="c in AVATAR_COLORS"
+              :key="c"
+              type="button"
+              class="pap-color"
+              :class="{ sel: avatarEdit.color === c }"
+              :style="{ backgroundColor: c }"
+              :aria-label="`底色 ${c}`"
+              @click="avatarEdit.color = c"
+            ></button>
+          </div>
+        </div>
+
+        <div class="pap-group">
+          <span class="pap-label">圖示</span>
+          <div class="pap-swatches">
+            <button
+              v-for="e in AVATAR_EMOJIS"
+              :key="e || 'initial'"
+              type="button"
+              class="pap-emoji"
+              :class="{ sel: avatarEdit.emoji === e }"
+              @click="avatarEdit.emoji = e"
+            >{{ e || "字" }}</button>
+          </div>
+        </div>
+
+        <div class="pap-actions">
+          <button class="profile-name-save" type="button" :disabled="avatarEdit.saving" @click="saveAvatar">
+            {{ avatarEdit.saving ? "儲存中…" : "儲存頭像" }}
+          </button>
+          <button class="profile-name-cancel" type="button" @click="cancelAvatarEdit">取消</button>
         </div>
       </div>
 

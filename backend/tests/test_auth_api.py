@@ -124,6 +124,29 @@ class TestUpdateProfileApi:
         )
         assert resp.status_code == 422
 
+    def test_update_avatar(self, client):
+        token = login(client).json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        resp = client.patch("/api/auth/me",
+                            json={"avatar_emoji": "🦊", "avatar_color": "#f59e0b"},
+                            headers=headers)
+        assert resp.status_code == 200
+        user = resp.json()["user"]
+        assert user["avatar_emoji"] == "🦊"
+        assert user["avatar_color"] == "#f59e0b"
+        # 不帶 display_name 也不會清掉原本的顯示名稱
+        assert user["display_name"] == "測試帳號"
+
+    def test_clear_avatar_emoji(self, client):
+        token = login(client).json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        client.patch("/api/auth/me", json={"avatar_emoji": "🦊"}, headers=headers)
+
+        resp = client.patch("/api/auth/me", json={"avatar_emoji": ""}, headers=headers)
+        assert resp.status_code == 200
+        assert resp.json()["user"]["avatar_emoji"] is None
+
 
 class TestChangePasswordApi:
     def test_requires_token(self, client):

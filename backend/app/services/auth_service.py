@@ -179,6 +179,8 @@ def serialize_user(user: User) -> dict:
         "display_name": user.display_name or user.username,
         "role": user.role,
         "is_active": bool(user.is_active),
+        "avatar_emoji": user.avatar_emoji,
+        "avatar_color": user.avatar_color,
         "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }
@@ -196,6 +198,8 @@ def serialize_user_admin(user: User) -> dict:
         "display_name": user.display_name or user.username,
         "role": user.role,
         "is_active": bool(user.is_active),
+        "avatar_emoji": user.avatar_emoji,
+        "avatar_color": user.avatar_color,
         "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None,
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }

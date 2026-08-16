@@ -75,7 +75,11 @@ def get_me(current_user: User = Depends(get_current_user)):
 
 
 class UpdateProfileRequest(BaseModel):
-    display_name: str = Field(..., min_length=1, max_length=100)
+    # 三者皆選填：只更新有帶入的欄位。display_name 帶空字串會被 422 擋下；
+    # avatar_emoji / avatar_color 帶空字串代表「清除」，改回顯示名稱首字 / 預設底色。
+    display_name: str | None = Field(default=None, min_length=1, max_length=100)
+    avatar_emoji: str | None = Field(default=None, max_length=16)
+    avatar_color: str | None = Field(default=None, max_length=16)
 
 
 @router.patch("/me")
@@ -86,11 +90,17 @@ def update_me(
 ):
     """
     說明：
-    使用者更新自己的顯示名稱（display_name）。其他敏感欄位（角色、啟用狀態）
-    不開放自行修改，必須由管理員在帳號管理處調整。
+    使用者更新自己的顯示名稱與頭像（emoji / 底色）。其他敏感欄位（角色、
+    啟用狀態）不開放自行修改，必須由管理員在帳號管理處調整。
     """
 
-    current_user.display_name = payload.display_name.strip()
+    if payload.display_name is not None:
+        current_user.display_name = payload.display_name.strip()
+    if payload.avatar_emoji is not None:
+        current_user.avatar_emoji = payload.avatar_emoji.strip() or None
+    if payload.avatar_color is not None:
+        current_user.avatar_color = payload.avatar_color.strip() or None
+
     db.commit()
     db.refresh(current_user)
 

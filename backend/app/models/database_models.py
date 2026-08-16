@@ -98,6 +98,10 @@ class User(Base):
     # 角色：admin / user，之後可用來控制權限。
     role = Column(String(20), nullable=False, default="user")
 
+    # 頭像自訂：emoji（例如 🦊，空值則顯示名稱首字）與底色（hex，例如 #f59e0b）。
+    avatar_emoji = Column(String(16))
+    avatar_color = Column(String(16))
+
     # 停用帳號時設為 0，不直接刪除資料。
     is_active = Column(Integer, nullable=False, default=1)
 
