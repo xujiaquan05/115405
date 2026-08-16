@@ -100,6 +100,10 @@ python -m playwright install chromium
 > Dcard 位於 Cloudflare 之後、且封鎖 headless，因此 Dcard 爬蟲會開啟「真實瀏覽器視窗」
 > 讓 Dcard 前端自行呼叫 API，再攔截回應取得資料；爬取時請勿關閉該視窗。PTT 爬蟲
 > 不需要 Playwright。相關看板：Dcard 醫美 `facelift`、美妝 `makeup`、穿搭 `dressup`。
+>
+> **部署到無頭伺服器（無法開瀏覽器）時**：在「系統管理 → 系統設定」關閉「啟用 Dcard 爬取」
+> （或設環境變數 `DCARD_CRAWL_ENABLED=false`）。關閉後每日排程與 `/api/crawler/dcard`
+> 都會跳過 Dcard，只跑 PTT，避免白跑與錯誤 log。
 
 ---
 

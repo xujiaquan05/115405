@@ -14,6 +14,7 @@ from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import DCARD_BOARDS, TARGET_BOARDS, normalize_boards
 from app.services.relevance_filter import evaluate_article_relevance
+from app.services.settings_service import get_setting
 from app.services.sentiment_service import classify_pending_sentiments
 from app.websocket.manager import websocket_manager
 
@@ -408,6 +409,10 @@ def crawl_dcard_board(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    # 部署到無頭環境時可在系統設定關閉 Dcard 爬取。
+    if not get_setting(db, "dcard_crawl_enabled"):
+        raise HTTPException(status_code=403, detail="Dcard 爬取目前已停用，可於系統設定開啟。")
+
     allowed = set(_active_dcard_boards(db))
     requested = boards if boards else [board]
     selected_boards = [name for name in dict.fromkeys(requested) if name in allowed]

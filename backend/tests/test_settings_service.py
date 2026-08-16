@@ -29,6 +29,11 @@ class TestSettings:
         assert settings_service.get_setting(db, "alert_min_articles") == 5
         assert settings_service.get_setting(db, "auto_crawl_enabled") is True
         assert settings_service.get_setting(db, "auto_crawl_hour") == 3
+        assert settings_service.get_setting(db, "dcard_crawl_enabled") is True
+
+    def test_dcard_can_be_disabled(self, db):
+        settings_service.update_settings(db, {"dcard_crawl_enabled": False})
+        assert settings_service.get_setting(db, "dcard_crawl_enabled") is False
 
     def test_update_and_read_back(self, db):
         settings_service.update_settings(db, {

@@ -37,7 +37,13 @@ def _crawl_all_boards(db, pages: int) -> int:
 
     new_total = 0
 
+    # Dcard 需真實瀏覽器，部署到無頭環境時可在系統設定關閉，避免每日排程白跑。
+    dcard_enabled = get_setting(db, "dcard_crawl_enabled")
+
     for platform_name, board_name in get_active_crawl_targets(db):
+        if platform_name == "dcard" and not dcard_enabled:
+            continue
+
         try:
             platform = get_or_create_platform(db, platform_name)
             get_or_create_board(db, platform.id, board_name)

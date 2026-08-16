@@ -322,6 +322,7 @@ class SettingsRequest(BaseModel):
     auto_crawl_enabled: bool | None = None
     auto_crawl_hour: int | None = Field(default=None, ge=0, le=23)
     auto_crawl_pages: int | None = Field(default=None, ge=1, le=20)
+    dcard_crawl_enabled: bool | None = None
 
 
 @router.get("/settings", dependencies=[Depends(require_admin)])

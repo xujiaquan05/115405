@@ -23,6 +23,9 @@ SETTING_DEFS = {
     "auto_crawl_enabled": (_env_bool("AUTO_CRAWL_ENABLED", "true"), bool),
     "auto_crawl_hour": (os.getenv("AUTO_CRAWL_HOUR", "3"), int),
     "auto_crawl_pages": (os.getenv("AUTO_CRAWL_PAGES", "2"), int),
+    # Dcard 需要真實瀏覽器（Playwright + Chromium），無頭伺服器上可能無法執行。
+    # 部署到這類環境時可關掉，避免每日排程白跑、產生錯誤 log。
+    "dcard_crawl_enabled": (_env_bool("DCARD_CRAWL_ENABLED", "true"), bool),
 }
 
 

@@ -53,6 +53,7 @@ const settings = reactive({
   auto_crawl_enabled: true,
   auto_crawl_hour: 3,
   auto_crawl_pages: 2,
+  dcard_crawl_enabled: true,
 });
 
 const state = reactive({
@@ -110,6 +111,7 @@ async function saveSettings() {
       auto_crawl_enabled: settings.auto_crawl_enabled,
       auto_crawl_hour: Number(settings.auto_crawl_hour),
       auto_crawl_pages: Number(settings.auto_crawl_pages),
+      dcard_crawl_enabled: settings.dcard_crawl_enabled,
     });
     Object.assign(settings, response.data.data);
     flash("設定已儲存。", "success");
@@ -315,6 +317,12 @@ onMounted(() => {
         <div class="sysadmin-field">
           <label>每個看板爬取頁數</label>
           <input v-model.number="settings.auto_crawl_pages" type="number" min="1" max="20" />
+        </div>
+        <div class="sysadmin-field checkbox">
+          <label>
+            <input v-model="settings.dcard_crawl_enabled" type="checkbox" />
+            啟用 Dcard 爬取（需伺服器可執行瀏覽器；無頭環境請關閉）
+          </label>
         </div>
       </article>
 

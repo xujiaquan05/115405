@@ -68,3 +68,11 @@ class TestDcardCrawlEndpoint:
         resp = client.post("/api/crawler/dcard", params={"board": "no_such_forum"},
                            headers=admin_header(client))
         assert resp.status_code == 400
+
+    def test_rejected_when_dcard_disabled(self, client):
+        # 在系統設定關閉 Dcard 後，觸發 /dcard 應回 403（不會開瀏覽器）
+        headers = admin_header(client)
+        client.put("/api/admin/settings", json={"dcard_crawl_enabled": False}, headers=headers)
+
+        resp = client.post("/api/crawler/dcard", params={"board": "makeup"}, headers=headers)
+        assert resp.status_code == 403
