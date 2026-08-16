@@ -40,6 +40,15 @@
   background: var(--surface-2);
 }
 
+/* AI 問答對話清單：hover 與「選取中」的淺色底調暗，避免淺底配淺字。 */
+:root[data-theme="dark"] .qa-conversation-item:hover {
+  background: var(--surface-2);
+}
+
+:root[data-theme="dark"] .qa-conversation-item.active {
+  background: #2a3350;
+}
+
 /* 基本 reset，讓介面看起來更一致。 */
 * {
   box-sizing: border-box;
