@@ -100,13 +100,15 @@ class TestUniqueId:
 
 class TestToArticle:
     def test_maps_fields_to_project_shape(self, crawler):
+        # 真實 Dcard 回應：school 是名稱字串，anonymousSchool 是布林旗標。
         post = {
             "id": 1001,
             "title": "玻尿酸心得分享",
             "excerpt": "這間診所的醫師很細心",
             "likeCount": 25,
             "createdAt": "2026-01-05T12:00:00.000Z",
-            "anonymousSchool": "某大學",
+            "school": "某大學",
+            "anonymousSchool": True,
         }
 
         art = crawler._to_article(post, "makeup")
@@ -126,6 +128,18 @@ class TestToArticle:
         assert art["author_username"] == "Dcard 匿名"
         assert art["published_at"] is None
         assert art["content"] == "e"
+
+    def test_boolean_anonymous_flags_never_become_author(self, crawler):
+        # 迴歸測試：anonymousSchool/anonymousDepartment 是布林旗標，
+        # 若誤當作者會把 True 寫進資料庫（實際爬取時造成 SQL 錯誤）。
+        post = {"id": 6, "title": "t", "anonymousSchool": True, "anonymousDepartment": True}
+        art = crawler._to_article(post, "makeup")
+        assert art["author_username"] == "Dcard 匿名"
+        assert isinstance(art["author_username"], str)
+
+    def test_department_used_when_no_school(self, crawler):
+        post = {"id": 7, "title": "t", "department": "資訊管理學系"}
+        assert crawler._to_article(post, "makeup")["author_username"] == "資訊管理學系"
 
     def test_missing_like_count_defaults_zero(self, crawler):
         art = crawler._to_article({"id": 9, "title": "t"}, "facelift")

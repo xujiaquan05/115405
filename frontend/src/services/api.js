@@ -2,8 +2,10 @@
 
 import axios from "axios";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
-  || (import.meta.env.DEV ? "http://localhost:8000" : "");
+// 預設用相對路徑（同網域）：開發時由 Vite proxy 轉發到後端，
+// 部署時由同一個站台提供 API。這樣從對外網域開啟也不會連錯機器。
+// 需要指向別台後端時，才用 VITE_API_BASE_URL 覆寫。
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "";
 
 const api = axios.create({
   baseURL: apiBaseUrl,

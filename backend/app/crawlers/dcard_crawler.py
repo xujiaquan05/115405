@@ -125,6 +125,21 @@ class DcardCrawler:
 
         return list(posts.values())
 
+    @staticmethod
+    def _pick_author(post: dict) -> str:
+        """取出可顯示的作者名稱（學校 / 科系），沒有就回傳「Dcard 匿名」。
+
+        注意：Dcard 的 anonymousSchool / anonymousDepartment 是「布林旗標」
+        （代表是否匿名），不是名稱；直接拿來當作者會把 True 寫進資料庫，
+        因此這裡只接受非空字串。
+        """
+        for key in ("school", "department"):
+            value = post.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+        return "Dcard 匿名"
+
     def _to_article(self, post: dict, board: str, content: str | None = None) -> dict:
         """把 Dcard 的 post 物件轉成本專案統一的文章 dict。
 
@@ -133,7 +148,7 @@ class DcardCrawler:
         """
         post_id = post.get("id")
         url = f"{self.BASE_URL}/f/{board}/p/{post_id}"
-        author = post.get("anonymousSchool") or post.get("school") or "Dcard 匿名"
+        author = self._pick_author(post)
 
         return {
             "platform_name": "dcard",
@@ -250,7 +265,10 @@ class DcardCrawler:
                     self._sleep()
                     if len(comment_bodies) == last:
                         idle += 1
-                        if idle >= 2:
+                        # 還沒收到任何留言回應時要多等幾輪：留言是延遲載入的，
+                        # 太早判定「載完了」會導致大部分文章抓不到留言。
+                        idle_limit = 2 if comment_bodies else 5
+                        if idle >= idle_limit:
                             break  # 連續沒有新留言，代表載完了
                     else:
                         idle = 0

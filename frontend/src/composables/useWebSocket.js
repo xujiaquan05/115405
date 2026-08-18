@@ -9,10 +9,8 @@ function getWebSocketBaseUrl() {
     return explicitUrl;
   }
 
-  if (import.meta.env.DEV) {
-    return "ws://localhost:8000";
-  }
-
+  // 一律連同一個網域（開發時由 Vite proxy 轉發到後端），
+  // 避免遠端訪客連到自己的 localhost。
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   return `${protocol}//${window.location.host}`;
 }
