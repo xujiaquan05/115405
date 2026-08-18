@@ -1,52 +1,14 @@
 /* frontend/src/style.css */
 
-/* 主題色彩變數：light 為預設值（與原本完全相同），dark 只覆寫這些變數，
-   因此淺色模式外觀不變、深色模式自動套用。 */
+/* 介面色彩變數：集中管理背景、文字與邊框顏色，方便日後統一調整。 */
 :root {
   --page-bg: #ffffff;
   --surface: #ffffff;
   --surface-2: #f9fafb;
   --text: #111827;
   --text-muted: #6b7280;
-  --border: var(--border);
-  --border-subtle: var(--border-subtle);
-}
-
-:root[data-theme="dark"] {
-  --page-bg: #0f141f;
-  --surface: #1a2130;
-  --surface-2: #232c3d;
-  --text: #e6e9ef;
-  --text-muted: #9aa4b2;
-  --border: #2c3648;
-  --border-subtle: #2c3648;
-  /* 讓原生表單元件（select、checkbox）與捲軸也套用深色 */
-  color-scheme: dark;
-}
-
-/* 深色模式下，淺色「軟底標籤」需要調暗，避免淺底配上淺色文字而看不清。 */
-:root[data-theme="dark"] .keyword-token,
-:root[data-theme="dark"] .keyword-token.selected {
-  background: #2a3350;
-  color: var(--text);
-}
-
-:root[data-theme="dark"] .keyword-token span {
-  color: var(--text);
-}
-
-/* 熱門關鍵字 / 預設標籤的淺色 hover 底也調暗 */
-:root[data-theme="dark"] .keyword-preset:hover {
-  background: var(--surface-2);
-}
-
-/* AI 問答對話清單：hover 與「選取中」的淺色底調暗，避免淺底配淺字。 */
-:root[data-theme="dark"] .qa-conversation-item:hover {
-  background: var(--surface-2);
-}
-
-:root[data-theme="dark"] .qa-conversation-item.active {
-  background: #2a3350;
+  --border: #e5e7eb;
+  --border-subtle: #eef0f4;
 }
 
 /* 基本 reset，讓介面看起來更一致。 */
@@ -63,29 +25,6 @@ body {
 
 a {
   color: inherit;
-}
-
-.navbar-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text-muted);
-  cursor: pointer;
-  margin-left: 4px;
-}
-
-.navbar-theme-toggle:hover {
-  color: var(--text);
-}
-
-.navbar-theme-toggle svg {
-  width: 18px;
-  height: 18px;
 }
 
 button,

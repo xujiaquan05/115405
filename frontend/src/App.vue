@@ -4,10 +4,6 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 import AppNavbar from "./components/AppNavbar.vue";
-import { useTheme } from "./composables/useTheme";
-
-// 匯入即套用記憶中的主題（深/淺色），確保登入頁與首頁也生效。
-useTheme();
 
 const route = useRoute();
 
