@@ -19,4 +19,9 @@ def get_crawler(platform_name: str):
 
         return Mobile01Crawler()
 
+    if platform_name == "threads":
+        from app.crawlers.threads_crawler import ThreadsCrawler
+
+        return ThreadsCrawler()
+
     return PTTCrawler()

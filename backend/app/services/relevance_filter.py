@@ -21,13 +21,13 @@ TITLE_WEIGHT = 3
 CONTENT_WEIGHT = 1
 FOCUSED_BOARD_WEIGHT = 1
 
-# Dcard / Mobile01 較嚴格門檻：這些平台的看板較生活化，
+# Dcard / Mobile01 / Threads 較嚴格門檻：這些平台的內容較生活化，
 # 不像 PTT 給「整板加權」，一律需要關鍵字命中分數達到此門檻才收錄。
 # 門檻 2 表示：標題含 1 個領域關鍵字（×3）即可，或內文含 2 個以上。
 DCARD_MIN_SCORE = 2
 
 # 採用「關鍵字門檻」而非整板加權的平台。
-KEYWORD_THRESHOLD_PLATFORMS = {"dcard", "mobile01"}
+KEYWORD_THRESHOLD_PLATFORMS = {"dcard", "mobile01", "threads"}
 
 BEAUTY_FASHION_KEYWORDS = [
     "醫美",

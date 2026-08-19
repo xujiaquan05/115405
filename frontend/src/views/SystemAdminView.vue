@@ -16,7 +16,7 @@ const activeTab = ref("overview");
 // 看板管理
 const boards = ref([]);
 const newBoard = reactive({ name: "", display_name: "", platform: "ptt" });
-const PLATFORM_LABELS = { ptt: "PTT", dcard: "Dcard", mobile01: "Mobile01" };
+const PLATFORM_LABELS = { ptt: "PTT", dcard: "Dcard", mobile01: "Mobile01", threads: "Threads" };
 function platformLabel(name) {
   return PLATFORM_LABELS[name] || name;
 }
@@ -55,6 +55,7 @@ const settings = reactive({
   auto_crawl_pages: 2,
   dcard_crawl_enabled: true,
   mobile01_crawl_enabled: true,
+  threads_crawl_enabled: true,
 });
 
 const state = reactive({
@@ -114,6 +115,7 @@ async function saveSettings() {
       auto_crawl_pages: Number(settings.auto_crawl_pages),
       dcard_crawl_enabled: settings.dcard_crawl_enabled,
       mobile01_crawl_enabled: settings.mobile01_crawl_enabled,
+      threads_crawl_enabled: settings.threads_crawl_enabled,
     });
     Object.assign(settings, response.data.data);
     flash("設定已儲存。", "success");
@@ -332,6 +334,12 @@ onMounted(() => {
             啟用 Mobile01 爬取（需伺服器可執行瀏覽器；無頭環境請關閉）
           </label>
         </div>
+        <div class="sysadmin-field checkbox">
+          <label>
+            <input v-model="settings.threads_crawl_enabled" type="checkbox" />
+            啟用 Threads 爬取（需伺服器可執行瀏覽器；無頭環境請關閉）
+          </label>
+        </div>
       </article>
 
       <button class="sysadmin-save" type="button" :disabled="state.saving" @click="saveSettings">
@@ -346,7 +354,7 @@ onMounted(() => {
         <p class="sysadmin-hint">
           看板代號需與網址一致：PTT 例如 <code>BeautySalon</code>、<code>MakeUp</code>；
           Dcard 例如 <code>facelift</code>（醫美）、<code>makeup</code>（美妝）、<code>dressup</code>（穿搭）；
-          Mobile01 用討論區編號，例如 <code>371</code>（彩妝保養）、<code>373</code>（時尚流行）。
+          Mobile01 用討論區編號，例如 <code>371</code>（彩妝保養）；Threads 則填搜尋關鍵字，例如 <code>醫美</code>。
           停用的看板不會納入每日自動爬取。
         </p>
         <div class="sysadmin-board-form">
@@ -354,6 +362,7 @@ onMounted(() => {
             <option value="ptt">PTT</option>
             <option value="dcard">Dcard</option>
             <option value="mobile01">Mobile01</option>
+            <option value="threads">Threads</option>
           </select>
           <input v-model="newBoard.name" type="text" placeholder="看板代號（board / forum alias）" />
           <input v-model="newBoard.display_name" type="text" placeholder="顯示名稱（選填）" />

@@ -34,6 +34,12 @@ const boardsByPlatform = {
     { name: "373", label: "373 時尚流行" },
     { name: "301", label: "301 造型與保養" },
   ],
+  // Threads 沒有看板，改以「搜尋關鍵字」為單位。
+  threads: [
+    { name: "醫美", label: "醫美（關鍵字）" },
+    { name: "保養", label: "保養（關鍵字）" },
+    { name: "穿搭", label: "穿搭（關鍵字）" },
+  ],
 };
 
 const pageSizeOptions = [10, 20, 50];
@@ -315,7 +321,7 @@ onMounted(() => {
   <section class="crawl-page">
     <div class="crawl-page-header">
       <h2>爬蟲管理</h2>
-      <p>管理 PTT、Dcard 與 Mobile01 看板資料爬取、即時進度與執行紀錄。</p>
+      <p>管理 PTT、Dcard、Mobile01 與 Threads 資料爬取、即時進度與執行紀錄。</p>
     </div>
 
     <p v-if="state.errorMessage" class="error-message">
@@ -389,11 +395,12 @@ onMounted(() => {
               <option value="ptt">PTT</option>
               <option value="dcard">Dcard</option>
               <option value="mobile01">Mobile01</option>
+              <option value="threads">Threads</option>
             </select>
           </label>
 
           <label>
-            <span>看板選擇</span>
+            <span>{{ form.platform === "threads" ? "搜尋關鍵字" : "看板選擇" }}</span>
             <select v-model="form.board">
               <option
                 v-for="board in boards"
@@ -437,6 +444,9 @@ onMounted(() => {
           </template>
           <template v-else-if="form.platform === 'mobile01'">
             <br />Mobile01 位於 Akamai 之後，爬取時同樣會開啟瀏覽器視窗，請勿關閉；速度較慢屬正常。
+          </template>
+          <template v-else-if="form.platform === 'threads'">
+            <br />Threads 以關鍵字搜尋（未登入即可查看），爬取時會開啟瀏覽器視窗，請勿關閉。
           </template>
         </div>
       </section>

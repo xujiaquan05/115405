@@ -91,7 +91,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-安裝 Dcard / Mobile01 爬蟲所需的瀏覽器（Playwright，只需執行一次）：
+安裝 Dcard / Mobile01 / Threads 爬蟲所需的瀏覽器（Playwright，只需執行一次）：
 
 ```bash
 python -m playwright install chromium
@@ -105,11 +105,16 @@ python -m playwright install chromium
 > 因此同樣用真實瀏覽器取得頁面，再解析 HTML。
 > 相關討論區以編號指定：`371`（彩妝保養）、`373`（時尚流行）、`301`（造型與保養）。
 >
-> 兩者爬取時都請勿關閉自動開啟的瀏覽器視窗；PTT 爬蟲則不需要 Playwright。
+> **Threads** 沒有看板概念，改以「關鍵字搜尋」為入口。實測 `/search?q={關鍵字}`
+> 在未登入狀態即可看到貼文（不需要帳號），因此以搜尋關鍵字當作「看板」，
+> 預設關鍵字：`醫美`、`保養`、`穿搭`。
+>
+> 以上三個平台爬取時都請勿關閉自動開啟的瀏覽器視窗；PTT 爬蟲則不需要 Playwright。
 >
 > **部署到無頭伺服器（無法開瀏覽器）時**：在「系統管理 → 系統設定」關閉
-> 「啟用 Dcard 爬取」與「啟用 Mobile01 爬取」（或設環境變數
-> `DCARD_CRAWL_ENABLED=false`、`MOBILE01_CRAWL_ENABLED=false`）。
+> 「啟用 Dcard / Mobile01 / Threads 爬取」（或設環境變數
+> `DCARD_CRAWL_ENABLED=false`、`MOBILE01_CRAWL_ENABLED=false`、
+> `THREADS_CRAWL_ENABLED=false`）。
 > 關閉後每日排程與對應 API 都會跳過該平台，只跑 PTT，避免白跑與錯誤 log。
 
 ---
@@ -562,6 +567,7 @@ GET  /api/dashboard/full
 POST /api/crawler/ptt                    (背景執行，進度走 WebSocket)
 POST /api/crawler/dcard                  (Dcard 爬蟲，需 Playwright，會開瀏覽器視窗)
 POST /api/crawler/mobile01               (Mobile01 爬蟲，需 Playwright，會開瀏覽器視窗)
+POST /api/crawler/threads                (Threads 關鍵字搜尋爬蟲，需 Playwright)
 POST /api/analysis/sentiment/refresh     (手動補評文章情緒)
 WS   /ws/dashboard
 POST /api/qa/ask                         (每 IP 限 10 次/分鐘)

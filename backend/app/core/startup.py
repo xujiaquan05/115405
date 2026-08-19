@@ -2,6 +2,7 @@
 
 import logging
 import os
+from urllib.parse import quote
 
 from sqlalchemy import text
 
@@ -10,7 +11,12 @@ from app.models import database_models  # noqa: F401
 from app.models.database_models import User
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.auth_service import hash_password
-from app.services.dashboard_service import DCARD_BOARDS, MOBILE01_BOARDS, TARGET_BOARDS
+from app.services.dashboard_service import (
+    DCARD_BOARDS,
+    MOBILE01_BOARDS,
+    TARGET_BOARDS,
+    THREADS_BOARDS,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -104,6 +110,16 @@ def initialize_database():
             board = get_or_create_board(db, m01_platform.id, forum_id)
             board.display_name = display_name
             board.url = f"https://www.mobile01.com/topiclist.php?f={forum_id}"
+
+        # Threads 平台與目標搜尋關鍵字（Threads 以關鍵字而非看板組織內容）。
+        threads_platform = get_or_create_platform(db, "threads")
+        threads_platform.display_name = "Threads"
+        threads_platform.base_url = "https://www.threads.com"
+
+        for keyword, display_name in THREADS_BOARDS.items():
+            board = get_or_create_board(db, threads_platform.id, keyword)
+            board.display_name = display_name
+            board.url = f"https://www.threads.com/search?q={quote(keyword)}"
 
         _seed_admin_user(db)
 

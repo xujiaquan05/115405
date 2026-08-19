@@ -2,6 +2,7 @@
 
 import os
 from datetime import timedelta
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -324,6 +325,7 @@ class SettingsRequest(BaseModel):
     auto_crawl_pages: int | None = Field(default=None, ge=1, le=20)
     dcard_crawl_enabled: bool | None = None
     mobile01_crawl_enabled: bool | None = None
+    threads_crawl_enabled: bool | None = None
 
 
 @router.get("/settings", dependencies=[Depends(require_admin)])
@@ -410,8 +412,8 @@ def create_board(
 ):
     name = payload.name.strip()
     platform_name = (payload.platform or "ptt").strip().lower()
-    if platform_name not in ("ptt", "dcard", "mobile01"):
-        raise HTTPException(status_code=400, detail="平台只能是 ptt、dcard 或 mobile01。")
+    if platform_name not in ("ptt", "dcard", "mobile01", "threads"):
+        raise HTTPException(status_code=400, detail="平台只能是 ptt、dcard、mobile01 或 threads。")
 
     platform = get_or_create_platform(db, platform_name)
 
@@ -430,6 +432,8 @@ def create_board(
         board.url = f"https://www.dcard.tw/f/{name}"
     elif platform_name == "mobile01":
         board.url = f"https://www.mobile01.com/topiclist.php?f={name}"
+    elif platform_name == "threads":
+        board.url = f"https://www.threads.com/search?q={quote(name)}"
     else:
         board.url = f"https://www.ptt.cc/bbs/{name}/index.html"
     board.is_active = 1

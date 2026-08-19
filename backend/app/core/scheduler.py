@@ -42,6 +42,7 @@ def _crawl_all_boards(db, pages: int) -> int:
     browser_platform_enabled = {
         "dcard": get_setting(db, "dcard_crawl_enabled"),
         "mobile01": get_setting(db, "mobile01_crawl_enabled"),
+        "threads": get_setting(db, "threads_crawl_enabled"),
     }
 
     for platform_name, board_name in get_active_crawl_targets(db):

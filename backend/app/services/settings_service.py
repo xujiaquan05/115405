@@ -28,6 +28,8 @@ SETTING_DEFS = {
     "dcard_crawl_enabled": (_env_bool("DCARD_CRAWL_ENABLED", "true"), bool),
     # Mobile01 同樣需要真實瀏覽器（Akamai 會擋無頭與一般 HTTP 請求）。
     "mobile01_crawl_enabled": (_env_bool("MOBILE01_CRAWL_ENABLED", "true"), bool),
+    # Threads 同樣需要真實瀏覽器渲染 JS 內容。
+    "threads_crawl_enabled": (_env_bool("THREADS_CRAWL_ENABLED", "true"), bool),
 }
 
 

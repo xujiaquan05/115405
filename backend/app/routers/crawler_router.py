@@ -16,6 +16,7 @@ from app.services.dashboard_service import (
     DCARD_BOARDS,
     MOBILE01_BOARDS,
     TARGET_BOARDS,
+    THREADS_BOARDS,
     normalize_boards,
 )
 from app.services.relevance_filter import evaluate_article_relevance
@@ -509,6 +510,68 @@ def crawl_mobile01_board(
         "boards": selected_boards,
         "pages": pages,
         "message": "Mobile01 爬取任務已開始（會開啟瀏覽器視窗），進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
+    }
+
+
+def _active_threads_keywords(db: Session) -> list[str]:
+    """回傳目前啟用中的 Threads 搜尋關鍵字清單（管理員可在後台調整）。"""
+    rows = (
+        db.query(Board.name)
+        .join(Platform, Board.platform_id == Platform.id)
+        .filter(Platform.name == "threads", Board.is_active == 1)
+        .all()
+    )
+    names = [name for (name,) in rows]
+    return names or list(THREADS_BOARDS.keys())
+
+
+# 說明：
+# 觸發 Threads 爬蟲。Threads 內容由 JS 動態渲染，需開真實瀏覽器讀取搜尋結果
+#（未登入即可查看，不需要帳號）。屬於敏感操作，需登入。
+@router.post("/threads")
+def crawl_threads_keyword(
+    background_tasks: BackgroundTasks,
+    board: str = Query(default="醫美", description="Threads search keyword"),
+    boards: list[str] | None = Query(
+        default=None,
+        description="Multiple Threads keywords. Repeat this query parameter for more than one.",
+    ),
+    pages: int = Query(default=1, ge=1, le=10, description="約每頁 25 則貼文"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # 部署到無頭環境時可在系統設定關閉 Threads 爬取。
+    if not get_setting(db, "threads_crawl_enabled"):
+        raise HTTPException(status_code=403, detail="Threads 爬取目前已停用，可於系統設定開啟。")
+
+    allowed = set(_active_threads_keywords(db))
+    requested = boards if boards else [board]
+    selected_boards = [name for name in dict.fromkeys(requested) if name in allowed]
+
+    if not selected_boards:
+        raise HTTPException(status_code=400, detail="沒有可爬取的 Threads 關鍵字，請確認關鍵字或是否已啟用。")
+
+    if not _try_start_crawl():
+        raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
+
+    record_audit(
+        db,
+        actor=current_user,
+        action="trigger_crawl",
+        target_username=None,
+        detail=f"觸發爬取（Threads）：{'、'.join(selected_boards)}（約 {pages * 25} 則）",
+    )
+    db.commit()
+
+    background_tasks.add_task(_run_crawl_job, "threads", selected_boards, pages, None)
+
+    return {
+        "success": True,
+        "started": True,
+        "platform": "threads",
+        "boards": selected_boards,
+        "pages": pages,
+        "message": "Threads 爬取任務已開始（會開啟瀏覽器視窗），進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
     }
 
 
