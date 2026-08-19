@@ -37,11 +37,15 @@ def _crawl_all_boards(db, pages: int) -> int:
 
     new_total = 0
 
-    # Dcard 需真實瀏覽器，部署到無頭環境時可在系統設定關閉，避免每日排程白跑。
-    dcard_enabled = get_setting(db, "dcard_crawl_enabled")
+    # Dcard / Mobile01 需真實瀏覽器，部署到無頭環境時可在系統設定關閉，
+    # 避免每日排程白跑並產生錯誤 log。
+    browser_platform_enabled = {
+        "dcard": get_setting(db, "dcard_crawl_enabled"),
+        "mobile01": get_setting(db, "mobile01_crawl_enabled"),
+    }
 
     for platform_name, board_name in get_active_crawl_targets(db):
-        if platform_name == "dcard" and not dcard_enabled:
+        if not browser_platform_enabled.get(platform_name, True):
             continue
 
         try:

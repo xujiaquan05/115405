@@ -14,4 +14,9 @@ def get_crawler(platform_name: str):
 
         return DcardCrawler()
 
+    if platform_name == "mobile01":
+        from app.crawlers.mobile01_crawler import Mobile01Crawler
+
+        return Mobile01Crawler()
+
     return PTTCrawler()

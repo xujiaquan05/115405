@@ -323,6 +323,7 @@ class SettingsRequest(BaseModel):
     auto_crawl_hour: int | None = Field(default=None, ge=0, le=23)
     auto_crawl_pages: int | None = Field(default=None, ge=1, le=20)
     dcard_crawl_enabled: bool | None = None
+    mobile01_crawl_enabled: bool | None = None
 
 
 @router.get("/settings", dependencies=[Depends(require_admin)])
@@ -397,7 +398,7 @@ def list_boards(db: Session = Depends(get_db)):
 class CreateBoardRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     display_name: str | None = Field(default=None, max_length=100)
-    # 平台：ptt（PTT 看板）或 dcard（Dcard 論壇）。
+    # 平台：ptt（PTT 看板）、dcard（Dcard 論壇）或 mobile01（Mobile01 討論區）。
     platform: str = Field(default="ptt")
 
 
@@ -409,8 +410,8 @@ def create_board(
 ):
     name = payload.name.strip()
     platform_name = (payload.platform or "ptt").strip().lower()
-    if platform_name not in ("ptt", "dcard"):
-        raise HTTPException(status_code=400, detail="平台只能是 ptt 或 dcard。")
+    if platform_name not in ("ptt", "dcard", "mobile01"):
+        raise HTTPException(status_code=400, detail="平台只能是 ptt、dcard 或 mobile01。")
 
     platform = get_or_create_platform(db, platform_name)
 
@@ -427,6 +428,8 @@ def create_board(
     board.display_name = (payload.display_name or "").strip() or name
     if platform_name == "dcard":
         board.url = f"https://www.dcard.tw/f/{name}"
+    elif platform_name == "mobile01":
+        board.url = f"https://www.mobile01.com/topiclist.php?f={name}"
     else:
         board.url = f"https://www.ptt.cc/bbs/{name}/index.html"
     board.is_active = 1

@@ -21,10 +21,13 @@ TITLE_WEIGHT = 3
 CONTENT_WEIGHT = 1
 FOCUSED_BOARD_WEIGHT = 1
 
-# Dcard 較嚴格門檻：Dcard 內容只有摘要（excerpt）且較生活化，
+# Dcard / Mobile01 較嚴格門檻：這些平台的看板較生活化，
 # 不像 PTT 給「整板加權」，一律需要關鍵字命中分數達到此門檻才收錄。
-# 門檻 2 表示：標題含 1 個領域關鍵字（×3）即可，或內文摘要含 2 個以上。
+# 門檻 2 表示：標題含 1 個領域關鍵字（×3）即可，或內文含 2 個以上。
 DCARD_MIN_SCORE = 2
+
+# 採用「關鍵字門檻」而非整板加權的平台。
+KEYWORD_THRESHOLD_PLATFORMS = {"dcard", "mobile01"}
 
 BEAUTY_FASHION_KEYWORDS = [
     "醫美",
@@ -131,18 +134,18 @@ def evaluate_article_relevance(article: dict) -> RelevanceResult:
             reason="hard_exclude_without_domain_keyword",
         )
 
-    # Dcard：不採「整板加權」，一律需關鍵字命中達門檻才收錄（較嚴格）。
-    if platform == "dcard":
+    # Dcard / Mobile01：不採「整板加權」，一律需關鍵字命中達門檻才收錄（較嚴格）。
+    if platform in KEYWORD_THRESHOLD_PLATFORMS:
         if score >= DCARD_MIN_SCORE:
             return RelevanceResult(
                 is_relevant=True,
                 score=score,
-                reason="dcard_keyword_match",
+                reason=f"{platform}_keyword_match",
             )
         return RelevanceResult(
             is_relevant=False,
             score=score,
-            reason="dcard_low_relevance",
+            reason=f"{platform}_low_relevance",
         )
 
     # PTT：專注看板整板都與主題相關，給予加權。

@@ -10,7 +10,7 @@ from app.models import database_models  # noqa: F401
 from app.models.database_models import User
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.auth_service import hash_password
-from app.services.dashboard_service import DCARD_BOARDS, TARGET_BOARDS
+from app.services.dashboard_service import DCARD_BOARDS, MOBILE01_BOARDS, TARGET_BOARDS
 
 
 logger = logging.getLogger(__name__)
@@ -94,6 +94,16 @@ def initialize_database():
             board = get_or_create_board(db, dcard_platform.id, alias)
             board.display_name = display_name
             board.url = f"https://www.dcard.tw/f/{alias}"
+
+        # Mobile01 平台與美容 / 時尚相關討論區。
+        m01_platform = get_or_create_platform(db, "mobile01")
+        m01_platform.display_name = "Mobile01"
+        m01_platform.base_url = "https://www.mobile01.com"
+
+        for forum_id, display_name in MOBILE01_BOARDS.items():
+            board = get_or_create_board(db, m01_platform.id, forum_id)
+            board.display_name = display_name
+            board.url = f"https://www.mobile01.com/topiclist.php?f={forum_id}"
 
         _seed_admin_user(db)
 

@@ -26,6 +26,8 @@ SETTING_DEFS = {
     # Dcard 需要真實瀏覽器（Playwright + Chromium），無頭伺服器上可能無法執行。
     # 部署到這類環境時可關掉，避免每日排程白跑、產生錯誤 log。
     "dcard_crawl_enabled": (_env_bool("DCARD_CRAWL_ENABLED", "true"), bool),
+    # Mobile01 同樣需要真實瀏覽器（Akamai 會擋無頭與一般 HTTP 請求）。
+    "mobile01_crawl_enabled": (_env_bool("MOBILE01_CRAWL_ENABLED", "true"), bool),
 }
 
 

@@ -12,7 +12,12 @@ from app.services.article_service import create_article, get_or_create_board, ge
 from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
-from app.services.dashboard_service import DCARD_BOARDS, TARGET_BOARDS, normalize_boards
+from app.services.dashboard_service import (
+    DCARD_BOARDS,
+    MOBILE01_BOARDS,
+    TARGET_BOARDS,
+    normalize_boards,
+)
 from app.services.relevance_filter import evaluate_article_relevance
 from app.services.settings_service import get_setting
 from app.services.sentiment_service import classify_pending_sentiments
@@ -441,6 +446,69 @@ def crawl_dcard_board(
         "boards": selected_boards,
         "pages": pages,
         "message": "Dcard 爬取任務已開始（會開啟瀏覽器視窗），進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
+    }
+
+
+def _active_mobile01_boards(db: Session) -> list[str]:
+    """回傳目前啟用中的 Mobile01 討論區編號清單（管理員可在後台調整）。"""
+    rows = (
+        db.query(Board.name)
+        .join(Platform, Board.platform_id == Platform.id)
+        .filter(Platform.name == "mobile01", Board.is_active == 1)
+        .all()
+    )
+    names = [name for (name,) in rows]
+    return names or list(MOBILE01_BOARDS.keys())
+
+
+# 說明：
+# 觸發 Mobile01 爬蟲。Mobile01 位於 Akamai 之後會擋掉一般 HTTP 請求，
+# 必須開真實瀏覽器擷取頁面，因此同樣共用單一執行旗標。屬於敏感操作，需登入。
+@router.post("/mobile01")
+def crawl_mobile01_board(
+    background_tasks: BackgroundTasks,
+    board: str = Query(default="371", description="Mobile01 forum id, e.g. 371"),
+    boards: list[str] | None = Query(
+        default=None,
+        description="Multiple Mobile01 forum ids. Repeat this query parameter for more than one.",
+    ),
+    pages: int = Query(default=1, ge=1, le=10, description="要爬幾頁列表"),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # 部署到無頭環境時可在系統設定關閉 Mobile01 爬取。
+    if not get_setting(db, "mobile01_crawl_enabled"):
+        raise HTTPException(status_code=403, detail="Mobile01 爬取目前已停用，可於系統設定開啟。")
+
+    allowed = set(_active_mobile01_boards(db))
+    requested = boards if boards else [board]
+    selected_boards = [name for name in dict.fromkeys(requested) if name in allowed]
+
+    if not selected_boards:
+        raise HTTPException(status_code=400, detail="沒有可爬取的 Mobile01 討論區，請確認編號或是否已啟用。")
+
+    if not _try_start_crawl():
+        raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
+
+    labels = "、".join(f"{b}（{MOBILE01_BOARDS.get(b, b)}）" for b in selected_boards)
+    record_audit(
+        db,
+        actor=current_user,
+        action="trigger_crawl",
+        target_username=None,
+        detail=f"觸發爬取（Mobile01）：{labels}（{pages} 頁）",
+    )
+    db.commit()
+
+    background_tasks.add_task(_run_crawl_job, "mobile01", selected_boards, pages, None)
+
+    return {
+        "success": True,
+        "started": True,
+        "platform": "mobile01",
+        "boards": selected_boards,
+        "pages": pages,
+        "message": "Mobile01 爬取任務已開始（會開啟瀏覽器視窗），進度請透過 WebSocket 或 /api/crawler/status 追蹤。",
     }
 
 

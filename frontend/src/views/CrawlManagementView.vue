@@ -9,7 +9,8 @@ import { useAuth } from "../composables/useAuth";
 
 const { isAuthenticated } = useAuth();
 
-// 各平台的看板清單。PTT 用 requests 直接爬；Dcard 需開真實瀏覽器（較慢）。
+// 各平台的看板清單。PTT 用 requests 直接爬；
+// Dcard 與 Mobile01 需開真實瀏覽器（較慢）。
 const boardsByPlatform = {
   ptt: [
     { name: "facelift", label: "facelift 醫美整形" },
@@ -27,6 +28,11 @@ const boardsByPlatform = {
     { name: "facelift", label: "facelift 醫美" },
     { name: "makeup", label: "makeup 美妝" },
     { name: "dressup", label: "dressup 穿搭" },
+  ],
+  mobile01: [
+    { name: "371", label: "371 彩妝保養" },
+    { name: "373", label: "373 時尚流行" },
+    { name: "301", label: "301 造型與保養" },
   ],
 };
 
@@ -309,7 +315,7 @@ onMounted(() => {
   <section class="crawl-page">
     <div class="crawl-page-header">
       <h2>爬蟲管理</h2>
-      <p>管理 PTT 與 Dcard 看板資料爬取、即時進度與執行紀錄。</p>
+      <p>管理 PTT、Dcard 與 Mobile01 看板資料爬取、即時進度與執行紀錄。</p>
     </div>
 
     <p v-if="state.errorMessage" class="error-message">
@@ -382,6 +388,7 @@ onMounted(() => {
             <select :value="form.platform" @change="changePlatform">
               <option value="ptt">PTT</option>
               <option value="dcard">Dcard</option>
+              <option value="mobile01">Mobile01</option>
             </select>
           </label>
 
@@ -399,7 +406,7 @@ onMounted(() => {
           </label>
 
           <label>
-            <span>{{ form.platform === "dcard" ? "爬取頁數（每頁約 30 篇）" : "爬取頁數" }}</span>
+            <span>{{ form.platform === "ptt" ? "爬取頁數" : "爬取頁數（每頁約 30 篇）" }}</span>
             <input
               v-model.number="form.pages"
               type="number"
@@ -427,6 +434,9 @@ onMounted(() => {
           可自行輸入要爬取的頁數，系統會依照你填寫的數量執行。
           <template v-if="form.platform === 'dcard'">
             <br />Dcard 位於 Cloudflare 之後，爬取時會自動開啟一個瀏覽器視窗，請勿關閉；速度較慢屬正常。
+          </template>
+          <template v-else-if="form.platform === 'mobile01'">
+            <br />Mobile01 位於 Akamai 之後，爬取時同樣會開啟瀏覽器視窗，請勿關閉；速度較慢屬正常。
           </template>
         </div>
       </section>
