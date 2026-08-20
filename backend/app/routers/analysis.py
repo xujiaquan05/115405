@@ -9,7 +9,7 @@ from app.models.database_models import AnalysisResult, Article
 from app.services.dashboard_service import (
     get_overview_metrics,
     get_sentiment_distribution,
-    normalize_boards,
+    normalize_filter_boards,
 )
 from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user
@@ -62,7 +62,7 @@ def analyze_keyword(
     - sentiment: 情緒分析
     """
 
-    selected_boards = normalize_boards(boards) if boards else None
+    selected_boards = normalize_filter_boards(boards) or None
 
     result = analyze_keyword_with_llm(
         db=db,

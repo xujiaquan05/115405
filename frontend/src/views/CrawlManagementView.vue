@@ -10,7 +10,7 @@ import { useAuth } from "../composables/useAuth";
 const { isAuthenticated } = useAuth();
 
 // 各平台的看板清單。PTT 用 requests 直接爬；
-// Dcard 與 Mobile01 需開真實瀏覽器（較慢）。
+// Dcard、Mobile01 與 Threads 需開真實瀏覽器（較慢）。
 const boardsByPlatform = {
   ptt: [
     { name: "facelift", label: "facelift 醫美整形" },
@@ -39,6 +39,9 @@ const boardsByPlatform = {
     { name: "醫美", label: "醫美（關鍵字）" },
     { name: "保養", label: "保養（關鍵字）" },
     { name: "穿搭", label: "穿搭（關鍵字）" },
+    { name: "玻尿酸", label: "玻尿酸（關鍵字）" },
+    { name: "肉毒", label: "肉毒（關鍵字）" },
+    { name: "醫美診所", label: "醫美診所（關鍵字）" },
   ],
 };
 
@@ -105,6 +108,25 @@ const pagedLogs = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value;
   return filteredLogs.value.slice(start, start + pageSize.value);
 });
+
+// 各平台的文章數（board_counts 現在涵蓋 PTT / Dcard / Mobile01 / Threads）。
+const boardCountsByPlatform = computed(() => {
+  const groups = {};
+
+  state.boardCounts.forEach((item) => {
+    const key = item.platform || "ptt";
+    if (!groups[key]) groups[key] = { platform: key, total: 0, boards: [] };
+    groups[key].boards.push(item);
+    groups[key].total += item.article_count || 0;
+  });
+
+  return Object.values(groups);
+});
+
+const PLATFORM_LABELS = { ptt: "PTT", dcard: "Dcard", mobile01: "Mobile01", threads: "Threads" };
+function platformLabel(name) {
+  return PLATFORM_LABELS[name] || name;
+}
 
 const selectedBoardLabel = computed(() => {
   return boards.value.find((board) => board.name === form.board)?.label || form.board;
@@ -548,6 +570,26 @@ onMounted(() => {
       <p v-else-if="sentiment.pending > 200" class="sentiment-hint">
         每次最多評分 200 篇，文章較多時可多按幾次直到未評分為 0。
       </p>
+    </section>
+
+    <section v-if="boardCountsByPlatform.length" class="crawler-log-card">
+      <div class="crawler-log-header">
+        <h3>各平台文章數</h3>
+      </div>
+      <div class="platform-count-grid">
+        <article v-for="group in boardCountsByPlatform" :key="group.platform" class="platform-count-card">
+          <header>
+            <strong>{{ platformLabel(group.platform) }}</strong>
+            <span>{{ group.total }} 篇</span>
+          </header>
+          <ul>
+            <li v-for="item in group.boards" :key="item.board">
+              <span>{{ item.label || item.board }}</span>
+              <em>{{ item.article_count }}</em>
+            </li>
+          </ul>
+        </article>
+      </div>
     </section>
 
     <section class="crawler-log-card">

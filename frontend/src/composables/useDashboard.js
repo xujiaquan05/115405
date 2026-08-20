@@ -45,7 +45,20 @@ const state = reactive({
   loadingCrawler: false,
 
   errorMessage: "",
+
+  // 所有平台的啟用看板（從後端取得），供平台篩選使用。
+  availableBoards: [],
 });
+
+// 從後端取得各平台的看板清單（PTT / Dcard / Mobile01 / Threads）。
+async function fetchAvailableBoards() {
+  try {
+    const response = await api.get("/api/dashboard/boards");
+    state.availableBoards = response.data.data.boards || [];
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 function getSelectedBoards() {
   return state.selectedBoards.length
@@ -154,6 +167,18 @@ export function useDashboard() {
     fetchInsight();
   }
 
+  // 依平台篩選：傳入平台名稱就只看該平台，傳入空值代表全部平台。
+  async function filterByPlatform(platform) {
+    // 用「平台:看板」的形式，避免同名看板（PTT 與 Dcard 都有 facelift）混在一起。
+    state.selectedBoards = platform
+      ? state.availableBoards
+          .filter((board) => board.platform === platform)
+          .map((board) => `${board.platform}:${board.board}`)
+      : [];
+
+    await searchDashboard({ createConversation: false });
+  }
+
   async function changeSort(sortBy) {
     state.sortBy = sortBy;
     await fetchDashboard();
@@ -227,6 +252,8 @@ export function useDashboard() {
     keywords,
     dataStatus,
     targetBoards: TARGET_BOARDS,
+    fetchAvailableBoards,
+    filterByPlatform,
     selectedBoards,
     searchDashboard,
     fetchDashboard,

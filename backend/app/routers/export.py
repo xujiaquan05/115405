@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.services.dashboard_service import normalize_boards
+from app.services.dashboard_service import normalize_filter_boards
 from app.services.export_service import build_articles_xlsx, get_export_articles
 
 
@@ -25,7 +25,8 @@ def export_articles(
     boards: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    selected_boards = normalize_boards(boards)
+    # 沒選看板 = 匯出所有平台（PTT / Dcard / Mobile01 / Threads）。
+    selected_boards = normalize_filter_boards(boards)
     articles = get_export_articles(
         db=db,
         keyword=keyword,

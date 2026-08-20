@@ -17,6 +17,7 @@ from app.services.dashboard_service import (
     MOBILE01_BOARDS,
     TARGET_BOARDS,
     THREADS_BOARDS,
+    get_board_overview,
     normalize_boards,
 )
 from app.services.relevance_filter import evaluate_article_relevance
@@ -127,14 +128,6 @@ def get_crawler_status(
         .first()
     )
 
-    board_counts = dict(
-        db.query(Board.name, func.count(Article.id))
-        .outerjoin(Article, Article.board_id == Board.id)
-        .filter(Board.name.in_(TARGET_BOARDS))
-        .group_by(Board.name)
-        .all()
-    )
-
     return {
         "success": True,
         "data": {
@@ -149,10 +142,9 @@ def get_crawler_status(
                 "running_started_at": _format_datetime(running_log.started_at if running_log else None),
             },
             "logs": [_serialize_crawl_log(log) for log in logs],
-            "board_counts": [
-                {"board": board, "article_count": board_counts.get(board, 0)}
-                for board in TARGET_BOARDS
-            ],
+            # 涵蓋所有平台（PTT / Dcard / Mobile01 / Threads），
+            # 舊版只列 PTT 看板，其他平台的數量看不到。
+            "board_counts": get_board_overview(db),
         },
     }
 

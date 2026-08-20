@@ -1,10 +1,33 @@
 <!-- frontend/src/components/SearchBar.vue -->
 
 <script setup>
-import { ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useDashboard } from "../composables/useDashboard.js";
 
-const { state, searchDashboard } = useDashboard();
+const { state, searchDashboard, fetchAvailableBoards, filterByPlatform } = useDashboard();
+
+const PLATFORM_LABELS = { ptt: "PTT", dcard: "Dcard", mobile01: "Mobile01", threads: "Threads" };
+
+// 目前資料庫裡有哪些平台（依看板清單推得），用來顯示篩選按鈕。
+const platforms = computed(() => {
+  const names = [...new Set(state.availableBoards.map((board) => board.platform))];
+  return names.map((name) => ({
+    name,
+    label: PLATFORM_LABELS[name] || name,
+    count: state.availableBoards
+      .filter((board) => board.platform === name)
+      .reduce((sum, board) => sum + (board.article_count || 0), 0),
+  }));
+});
+
+// 目前選到的平台；沒有選任何看板代表「全部平台」。
+const activePlatform = computed(() => {
+  if (!state.selectedBoards.length) return "";
+  const match = state.availableBoards.find((board) => board.board === state.selectedBoards[0]);
+  return match ? match.platform : "";
+});
+
+onMounted(fetchAvailableBoards);
 
 const keywordDraft = ref("");
 const advancedOpen = ref(false);
@@ -141,6 +164,29 @@ function handleSubmit() {
           @click="advancedOpen = !advancedOpen"
         >
           {{ advancedOpen ? "收合" : "進階搜尋" }}
+        </button>
+      </div>
+
+      <div v-if="platforms.length > 1" class="platform-filter-strip">
+        <span>來源平台</span>
+        <button
+          type="button"
+          class="platform-chip"
+          :class="{ active: !activePlatform }"
+          @click="filterByPlatform('')"
+        >
+          全部
+        </button>
+        <button
+          v-for="platform in platforms"
+          :key="platform.name"
+          type="button"
+          class="platform-chip"
+          :class="{ active: activePlatform === platform.name }"
+          @click="filterByPlatform(platform.name)"
+        >
+          {{ platform.label }}
+          <em>{{ platform.count }}</em>
         </button>
       </div>
 

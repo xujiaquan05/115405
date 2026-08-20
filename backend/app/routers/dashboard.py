@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.services.dashboard_service import get_dashboard_full, normalize_boards
+from app.services.dashboard_service import (
+    get_board_overview,
+    get_dashboard_full,
+    normalize_filter_boards,
+)
 
 from app.services.cache_service import get_cache, set_cache
 
@@ -13,6 +17,20 @@ router = APIRouter(
     prefix="/api/dashboard",
     tags=["Dashboard"],
 )
+
+
+@router.get("/boards")
+def dashboard_boards(db: Session = Depends(get_db)):
+    """
+    說明：
+    列出目前啟用中的看板（含平台、顯示名稱與文章數），
+    供前端做「平台 / 看板篩選」與顯示各平台資料量。唯讀，不需登入。
+    """
+
+    return {
+        "status": "success",
+        "data": {"boards": get_board_overview(db)},
+    }
 
 
 @router.get("/full")
@@ -47,8 +65,11 @@ def dashboard_full(
 
     # 用查詢參數組出 cache key，
     # 例如：dashboard:玻尿酸:30:push_count
-    selected_boards = normalize_boards(boards)
-    boards_key = ",".join(selected_boards)
+    # 用 normalize_filter_boards：沒選看板 = 不限平台。
+    # 舊版用 normalize_boards，沒選看板時會被塞入 PTT 預設清單，
+    # 導致 Dcard / Mobile01 / Threads 的文章在儀表板上被整批濾掉。
+    selected_boards = normalize_filter_boards(boards)
+    boards_key = ",".join(selected_boards) or "all"
     cache_key = f"dashboard:{keyword}:{days}:{sort_by}:{boards_key}"
 
     cached_data = get_cache(cache_key)

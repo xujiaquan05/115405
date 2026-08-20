@@ -49,6 +49,11 @@ THREADS_BOARDS = {
     "醫美": "醫美",
     "保養": "保養",
     "穿搭": "穿搭",
+    # Threads 未登入時每個關鍵字只回傳少量貼文，
+    # 因此改用多個較具體的關鍵字來擴大覆蓋範圍。
+    "玻尿酸": "玻尿酸",
+    "肉毒": "肉毒",
+    "醫美診所": "醫美診所",
 }
 
 
@@ -76,6 +81,41 @@ BEAUTY_KEYWORDS = [
     "價格",
     "推薦",
 ]
+
+
+def get_board_overview(db) -> list[dict]:
+    """
+    說明：
+    回傳所有「啟用中」看板，含平台、顯示名稱與文章數。
+    同時供兩個地方使用：
+    - 儀表板的平台 / 看板篩選清單
+    - 爬蟲管理頁的「各看板文章數」
+    以看板編號或關鍵字為名的平台（Mobile01、Threads）靠 display_name 才好讀。
+    """
+    rows = (
+        db.query(
+            Platform.name,
+            Board.name,
+            Board.display_name,
+            func.count(Article.id),
+        )
+        .join(Board, Board.platform_id == Platform.id)
+        .outerjoin(Article, Article.board_id == Board.id)
+        .filter(Board.is_active == 1)
+        .group_by(Platform.name, Board.name, Board.display_name)
+        .order_by(Platform.name, Board.name)
+        .all()
+    )
+
+    return [
+        {
+            "platform": platform_name,
+            "board": board_name,
+            "label": display_name or board_name,
+            "article_count": count,
+        }
+        for platform_name, board_name, display_name, count in rows
+    ]
 
 
 def get_active_crawl_targets(db) -> list[tuple[str, str]]:
@@ -174,13 +214,41 @@ def normalize_filter_boards(boards: list[str] | None = None) -> list[str]:
 
 
 def apply_board_filter(query, boards: list[str] | None = None):
+    """
+    說明：
+    套用看板篩選。每個項目可以是：
+    - "看板名稱"：不分平台，只比對看板名稱。
+    - "平台:看板名稱"（例如 dcard:facelift）：精確指定平台。
+
+    為什麼要支援「平台:看板」？
+    PTT 與 Dcard 都有名為 facelift 的看板，只用看板名稱會把兩個平台的文章
+    混在一起，導致「只看 Dcard」的結果混入 PTT 文章。
+    """
     selected = normalize_filter_boards(boards)
 
     # 沒有指定看板 = 不限平台，才不會漏掉 Dcard / Mobile01 / Threads 的文章。
     if not selected:
         return query
 
-    return query.filter(Article.board.has(Board.name.in_(selected)))
+    plain_boards: list[str] = []
+    conditions = []
+
+    for item in selected:
+        if ":" in item:
+            platform_name, board_name = item.split(":", 1)
+            conditions.append(
+                and_(
+                    Article.platform.has(Platform.name == platform_name),
+                    Article.board.has(Board.name == board_name),
+                )
+            )
+        else:
+            plain_boards.append(item)
+
+    if plain_boards:
+        conditions.append(Article.board.has(Board.name.in_(plain_boards)))
+
+    return query.filter(or_(*conditions))
 
 
 def get_date_range(days: int):
