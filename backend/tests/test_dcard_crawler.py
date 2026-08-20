@@ -193,18 +193,18 @@ class TestExtractComments:
         assert DcardCrawler._extract_comments(bodies) == ["留言一"]
 
 
-class TestMergeContentAndComments:
+class TestMergeContentAndReplies:
     def test_merges_content_and_comments(self):
-        merged = DcardCrawler._merge_content_and_comments("內文本體", ["讚", "推薦"])
+        merged = DcardCrawler._merge_content_and_replies("內文本體", ["讚", "推薦"])
         assert merged == "內文本體\n【留言】\n- 讚\n- 推薦"
 
     def test_content_only(self):
-        assert DcardCrawler._merge_content_and_comments("只有內文", []) == "只有內文"
+        assert DcardCrawler._merge_content_and_replies("只有內文", []) == "只有內文"
 
     def test_comments_only(self):
         # 內文抓失敗但有留言 → 仍保留留言供分析
-        merged = DcardCrawler._merge_content_and_comments("", ["留言A"])
+        merged = DcardCrawler._merge_content_and_replies("", ["留言A"])
         assert merged == "【留言】\n- 留言A"
 
     def test_both_empty(self):
-        assert DcardCrawler._merge_content_and_comments(None, []) == ""
+        assert DcardCrawler._merge_content_and_replies(None, []) == ""

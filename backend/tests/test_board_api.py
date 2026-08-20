@@ -13,7 +13,7 @@ from app.main import app
 from app.models.database_models import Article, Board, Platform, User
 from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password
-from app.services.dashboard_service import get_active_board_names, get_active_crawl_targets
+from app.services.dashboard_service import get_active_crawl_targets
 
 
 @pytest.fixture
@@ -82,7 +82,7 @@ class TestBoards:
         c.patch(f"/api/admin/boards/{makeup_id}", json={"is_active": False}, headers=admin_header(c))
 
         db = TestSession()
-        active = get_active_board_names(db)
+        active = [board for _platform, board in get_active_crawl_targets(db)]
         db.close()
         assert "MakeUp" not in active
         assert "facelift" in active

@@ -78,16 +78,6 @@ BEAUTY_KEYWORDS = [
 ]
 
 
-def get_active_board_names(db) -> list[str]:
-    """
-    說明：
-    回傳目前「啟用中」的爬取看板名稱（管理員可在後台調整）。
-    若 DB 尚無任何啟用看板，就退回預設的 TARGET_BOARDS，確保系統可用。
-    """
-    names = [name for (name,) in db.query(Board.name).filter(Board.is_active == 1).all()]
-    return names or TARGET_BOARDS
-
-
 def get_active_crawl_targets(db) -> list[tuple[str, str]]:
     """
     說明：

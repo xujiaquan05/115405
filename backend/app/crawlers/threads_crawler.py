@@ -25,32 +25,20 @@ Gemini 情緒評分）完全不需修改。
 """
 
 import hashlib
-import random
 import re
-import time
 import urllib.parse
-from datetime import datetime
-from typing import Callable, Optional
+from typing import Callable
+
+from app.crawlers.browser_base import BrowserCrawler
 
 
-class ThreadsCrawler:
+class ThreadsCrawler(BrowserCrawler):
     """負責爬取 Threads 搜尋結果的貼文。"""
 
     BASE_URL = "https://www.threads.com"
 
     # 每次往下捲動大約多載入幾則貼文，用來把 pages 換算成目標貼文數。
     POSTS_PER_PAGE = 25
-
-    USER_AGENT = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    )
-
-    STEALTH_JS = (
-        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-        "Object.defineProperty(navigator, 'languages', {get: () => ['zh-TW','zh','en']});"
-        "window.chrome = { runtime: {} };"
-    )
 
     # 擷取貼文的 JS：以永久連結為錨點，往上找到含有足夠文字的容器。
     EXTRACT_JS = """() => {
@@ -84,39 +72,16 @@ class ThreadsCrawler:
     # 貼文文字裡的相對時間行，例如 9小時、2天、剛剛。
     RELATIVE_TIME_RE = re.compile(r"^\d+\s*(秒|分鐘|分|小時|天|週|周|個月|月|年)$|^剛剛$")
 
-    def __init__(self, headless: bool = False, min_delay: float = 1.5, max_delay: float = 3.0):
-        # Threads 由 Meta 營運，對自動化較敏感；預設開真實視窗較穩定。
-        self.headless = headless
-        self.min_delay = min_delay
-        self.max_delay = max_delay
-
     # ── 純函式工具（不需瀏覽器，便於單元測試） ──────────────────
 
     @staticmethod
-    def _generate_unique_id(url: str) -> str:
+    def _post_unique_id(url: str) -> str:
         """以貼文網址產生唯一 ID。
 
         刻意不含搜尋關鍵字：同一篇貼文可能同時出現在多個關鍵字的搜尋結果中，
         若把關鍵字算進去，同一篇文章會被重複寫入資料庫。
         """
         return hashlib.md5(f"threads:{url}".encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _parse_dt(value: str | None) -> Optional[datetime]:
-        """解析 <time datetime> 的 ISO 時間（例如 2026-08-19T06:35:40.000Z）。"""
-        if not value or not isinstance(value, str):
-            return None
-
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return None
-
-        # 統一存成不帶時區的 datetime，與其他平台一致。
-        if parsed.tzinfo is not None:
-            parsed = parsed.replace(tzinfo=None)
-
-        return parsed
 
     @classmethod
     def _split_text_and_counts(
@@ -196,11 +161,8 @@ class ThreadsCrawler:
             "url": url,
             "push_count": push_count,
             "published_at": self._parse_dt(post.get("datetime")),
-            "unique_id": self._generate_unique_id(url),
+            "unique_id": self._post_unique_id(url),
         }
-
-    def _sleep(self) -> None:
-        time.sleep(random.uniform(self.min_delay, self.max_delay))
 
     # ── 瀏覽器驅動的爬取 ────────────────────────────────────────
 
@@ -219,34 +181,11 @@ class ThreadsCrawler:
         - start_page：Threads 為無限捲軸，保留參數但忽略。
         - progress_callback：回報進度（給 WebSocket 用）。
         """
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError as error:
-            raise RuntimeError(
-                "Threads 爬蟲需要 Playwright，請先安裝："
-                "pip install playwright 並執行 playwright install chromium"
-            ) from error
-
         max_posts = max(1, pages) * self.POSTS_PER_PAGE
         keyword = board
         posts: list[dict] = []
 
-        playwright = sync_playwright().start()
-        browser = None
-
-        try:
-            browser = playwright.chromium.launch(
-                headless=self.headless,
-                args=["--disable-blink-features=AutomationControlled"],
-            )
-            context = browser.new_context(
-                user_agent=self.USER_AGENT,
-                locale="zh-TW",
-                viewport={"width": 1280, "height": 900},
-            )
-            context.add_init_script(self.STEALTH_JS)
-            page = context.new_page()
-
+        with self._open_page() as page:
             query = urllib.parse.quote(keyword)
             url = f"{self.BASE_URL}/search?q={query}&serp_type=default"
 
@@ -301,13 +240,4 @@ class ThreadsCrawler:
                 posts = page.evaluate(self.EXTRACT_JS)
             except Exception:
                 pass
-        finally:
-            if browser is not None:
-                try:
-                    browser.close()
-                except Exception:
-                    pass
-
-            playwright.stop()
-
         return [self._to_article(post, keyword) for post in posts[:max_posts]]

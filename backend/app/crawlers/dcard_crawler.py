@@ -30,33 +30,18 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
   因此情緒評分、關鍵字雲與 LLM 洞察都會涵蓋留言區的聲音（輿情重點常在留言）。
 """
 
-import hashlib
-import random
-import time
-from datetime import datetime
-from typing import Callable, Optional
+from typing import Callable
+
+from app.crawlers.browser_base import BrowserCrawler
 
 
-class DcardCrawler:
+class DcardCrawler(BrowserCrawler):
     """負責爬取 Dcard 論壇（看板）的文章。"""
 
     BASE_URL = "https://www.dcard.tw"
 
     # 一次無限捲軸大約載入 30 篇，pages 因此換算成「目標文章數」。
     POSTS_PER_PAGE = 30
-
-    # Dcard 會偵測自動化，以真實的 User-Agent 降低被擋機率。
-    USER_AGENT = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-    )
-
-    # 減少 Cloudflare 常檢查的自動化痕跡。
-    STEALTH_JS = (
-        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-        "Object.defineProperty(navigator, 'languages', {get: () => ['zh-TW','zh','en']});"
-        "window.chrome = { runtime: {} };"
-    )
 
     # 進內頁後，為了觸發 Dcard 無限捲軸載入留言，最多往下捲的次數。
     COMMENT_SCROLLS = 10
@@ -70,10 +55,7 @@ class DcardCrawler:
         fetch_comments: bool = True,
         max_comments: int = 20,
     ):
-        # headless 預設 False：Dcard 會擋 headless。除非測試/特殊情況才開 True。
-        self.headless = headless
-        self.min_delay = min_delay
-        self.max_delay = max_delay
+        super().__init__(headless=headless, min_delay=min_delay, max_delay=max_delay)
         # fetch_full_content=True：逐篇進內頁抓完整內文（較慢但分析更準）；
         # False：只取列表的 excerpt（較快）。
         self.fetch_full_content = fetch_full_content
@@ -84,25 +66,6 @@ class DcardCrawler:
         self.max_comments = max_comments
 
     # ── 純函式工具（不需瀏覽器，便於單元測試） ──────────────────
-
-    def _generate_unique_id(self, platform: str, board: str, url: str) -> str:
-        """產生文章唯一 ID，讓重複爬取時能判斷是否已存在（與 PTT 一致）。"""
-        raw_text = f"{platform}:{board}:{url}"
-        return hashlib.md5(raw_text.encode("utf-8")).hexdigest()
-
-    @staticmethod
-    def _parse_dt(value) -> Optional[datetime]:
-        """解析 Dcard 的 ISO 時間字串（例如 2026-01-05T12:00:00.000Z）。"""
-        if not value or not isinstance(value, str):
-            return None
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return None
-        # 統一存成不帶時區的 datetime，和其他平台的欄位一致。
-        if parsed.tzinfo is not None:
-            parsed = parsed.replace(tzinfo=None)
-        return parsed
 
     @staticmethod
     def _extract_posts(bodies: list) -> list[dict]:
@@ -163,14 +126,6 @@ class DcardCrawler:
         }
 
     @staticmethod
-    def _clean_content(text: str | None) -> str:
-        """整理從 DOM 取出的內文：去除前後空白、壓縮多餘空行。"""
-        if not text:
-            return ""
-        lines = [line.strip() for line in text.splitlines()]
-        return "\n".join(line for line in lines if line).strip()
-
-    @staticmethod
     def _extract_comments(bodies: list) -> list[str]:
         """從多個 '/posts/{id}/comments' 回應中彙整留言文字（去重、去空）。
 
@@ -202,17 +157,6 @@ class DcardCrawler:
                 comments.append(text)
 
         return comments
-
-    @staticmethod
-    def _merge_content_and_comments(content: str | None, comments: list[str]) -> str:
-        """把內文與留言合併成一段供分析的文字（留言放在「【留言】」段落下）。"""
-        parts: list[str] = []
-        if content:
-            parts.append(content.strip())
-        if comments:
-            parts.append("【留言】")
-            parts.extend(f"- {c}" for c in comments)
-        return "\n".join(parts).strip()
 
     def _fetch_post_detail(self, page, board: str, post_id) -> tuple[str | None, list[str]]:
         """進入單篇貼文頁，回傳 (完整內文, 留言文字清單)。
@@ -279,9 +223,6 @@ class DcardCrawler:
         finally:
             page.remove_listener("response", on_comment)
 
-    def _sleep(self) -> None:
-        time.sleep(random.uniform(self.min_delay, self.max_delay))
-
     # ── 瀏覽器驅動的爬取 ────────────────────────────────────────
 
     def crawl_board(
@@ -302,16 +243,6 @@ class DcardCrawler:
         """
         max_posts = max(1, pages) * self.POSTS_PER_PAGE
 
-        # 延遲載入 Playwright：未安裝時不影響整個後端與測試的匯入。
-        try:
-            from playwright.sync_api import TimeoutError as PWTimeout
-            from playwright.sync_api import sync_playwright
-        except ImportError as error:
-            raise RuntimeError(
-                "Dcard 爬蟲需要 Playwright，請先安裝："
-                "pip install playwright 並執行 playwright install chromium"
-            ) from error
-
         bodies: list = []
         articles: list = []
 
@@ -322,27 +253,8 @@ class DcardCrawler:
                 except Exception:
                     pass  # 略過非 JSON 回應
 
-        playwright = sync_playwright().start()
-        browser = None
-
-        try:
-            browser = playwright.chromium.launch(
-                headless=self.headless,
-                args=["--disable-blink-features=AutomationControlled"],
-            )
-            context = browser.new_context(
-                user_agent=self.USER_AGENT,
-                locale="zh-TW",
-                viewport={"width": 1280, "height": 900},
-            )
-            context.add_init_script(self.STEALTH_JS)
-            page = context.new_page()
-
-            # 關閉 HTTP 快取：否則重訪時回應來自快取，Playwright 取不到 body。
-            cdp = context.new_cdp_session(page)
-            cdp.send("Network.enable")
-            cdp.send("Network.setCacheDisabled", {"cacheDisabled": True})
-
+        # disable_cache=True：攔截 API 回應時，若回應來自快取就取不到 body。
+        with self._open_page(disable_cache=True) as page:
             page.on("response", on_response)
 
             try:
@@ -351,7 +263,7 @@ class DcardCrawler:
                     wait_until="domcontentloaded",
                     timeout=60_000,
                 )
-            except PWTimeout:
+            except Exception:
                 pass  # SPA 仍會繼續執行，即使 domcontentloaded 較慢
             self._sleep()
 
@@ -401,7 +313,7 @@ class DcardCrawler:
                     # 只要 fetch_full_content 關閉，就不採用內頁全文（改用 excerpt），
                     # 但仍可把留言併入分析。
                     base_content = detail_content if self.fetch_full_content else (post.get("excerpt") or "")
-                    merged = self._merge_content_and_comments(base_content, comments)
+                    merged = self._merge_content_and_replies(base_content, comments)
                     articles.append(self._to_article(post, board, content=merged))
                     self._sleep()  # 禮貌性延遲，降低被 Dcard 擋的機率
 
@@ -414,12 +326,4 @@ class DcardCrawler:
                             "crawled_count": i + 1,
                             "progress": round((i + 1) / total * 100, 2) if total else 100.0,
                         })
-        finally:
-            if browser is not None:
-                try:
-                    browser.close()
-                except Exception:
-                    pass
-            playwright.stop()
-
         return articles

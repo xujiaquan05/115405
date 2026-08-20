@@ -22,31 +22,19 @@ create_article → Gemini 情緒評分）完全不需修改。
 - 回覆預設併入內文（【留言】段落），讓情緒與關鍵字分析涵蓋討論串的聲音。
 """
 
-import hashlib
-import random
 import re
-import time
 from datetime import datetime
 from typing import Callable, Optional
 
 from bs4 import BeautifulSoup
 
+from app.crawlers.browser_base import BrowserCrawler
 
-class Mobile01Crawler:
+
+class Mobile01Crawler(BrowserCrawler):
     """負責爬取 Mobile01 討論區的文章。"""
 
     BASE_URL = "https://www.mobile01.com"
-
-    USER_AGENT = (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-    )
-
-    STEALTH_JS = (
-        "Object.defineProperty(navigator, 'webdriver', {get: () => undefined});"
-        "Object.defineProperty(navigator, 'languages', {get: () => ['zh-TW','zh','en']});"
-        "window.chrome = { runtime: {} };"
-    )
 
     def __init__(
         self,
@@ -56,24 +44,16 @@ class Mobile01Crawler:
         fetch_replies: bool = True,
         max_replies: int = 10,
     ):
-        # Akamai 會擋無頭瀏覽器，預設開真實視窗。
-        self.headless = headless
-        self.min_delay = min_delay
-        self.max_delay = max_delay
+        super().__init__(headless=headless, min_delay=min_delay, max_delay=max_delay)
         # 是否把回覆併入內文一起分析。
         self.fetch_replies = fetch_replies
         self.max_replies = max_replies
 
     # ── 純函式工具（不需瀏覽器，便於單元測試） ──────────────────
 
-    def _generate_unique_id(self, platform: str, board: str, url: str) -> str:
-        """產生文章唯一 ID，讓重複爬取時能判斷是否已存在（與其他平台一致）。"""
-        raw_text = f"{platform}:{board}:{url}"
-        return hashlib.md5(raw_text.encode("utf-8")).hexdigest()
-
     @staticmethod
     def _parse_dt(text: str | None) -> Optional[datetime]:
-        """從列表列的文字中取出發表時間，例如 '...2026-08-17 16:43'。"""
+        """覆寫基底的 ISO 解析：Mobile01 的時間格式是 '2026-08-17 16:43'。"""
         if not text or not isinstance(text, str):
             return None
 
@@ -94,29 +74,6 @@ class Mobile01Crawler:
 
         digits = re.sub(r"[^\d]", "", str(text))
         return int(digits) if digits else 0
-
-    @staticmethod
-    def _clean_content(text: str | None) -> str:
-        """整理擷取到的文字：去除前後空白、壓縮多餘空行。"""
-        if not text:
-            return ""
-
-        lines = [line.strip() for line in text.splitlines()]
-        return "\n".join(line for line in lines if line).strip()
-
-    @staticmethod
-    def _merge_content_and_replies(content: str | None, replies: list[str]) -> str:
-        """把主文與回覆合併成一段供分析的文字（回覆放在「【留言】」段落下）。"""
-        parts: list[str] = []
-
-        if content:
-            parts.append(content.strip())
-
-        if replies:
-            parts.append("【留言】")
-            parts.extend(f"- {reply}" for reply in replies)
-
-        return "\n".join(parts).strip()
 
     def parse_topic_list(self, html: str, board: str) -> list[dict]:
         """解析討論區列表頁，回傳每篇文章的基本資訊（不含內文）。"""
@@ -193,9 +150,6 @@ class Mobile01Crawler:
 
         return content, replies[: self.max_replies]
 
-    def _sleep(self) -> None:
-        time.sleep(random.uniform(self.min_delay, self.max_delay))
-
     # ── 瀏覽器驅動的爬取 ────────────────────────────────────────
 
     def crawl_board(
@@ -213,33 +167,10 @@ class Mobile01Crawler:
         - start_page：從第幾頁開始，預設第 1 頁。
         - progress_callback：回報進度（給 WebSocket 用）。
         """
-        try:
-            from playwright.sync_api import sync_playwright
-        except ImportError as error:
-            raise RuntimeError(
-                "Mobile01 爬蟲需要 Playwright，請先安裝："
-                "pip install playwright 並執行 playwright install chromium"
-            ) from error
-
         first_page = start_page or 1
         articles: list[dict] = []
 
-        playwright = sync_playwright().start()
-        browser = None
-
-        try:
-            browser = playwright.chromium.launch(
-                headless=self.headless,
-                args=["--disable-blink-features=AutomationControlled"],
-            )
-            context = browser.new_context(
-                user_agent=self.USER_AGENT,
-                locale="zh-TW",
-                viewport={"width": 1280, "height": 900},
-            )
-            context.add_init_script(self.STEALTH_JS)
-            page = context.new_page()
-
+        with self._open_page() as page:
             topics: list[dict] = []
 
             for offset in range(max(1, pages)):
@@ -284,13 +215,4 @@ class Mobile01Crawler:
                         "crawled_count": index + 1,
                         "progress": round((index + 1) / total * 100, 2) if total else 100.0,
                     })
-        finally:
-            if browser is not None:
-                try:
-                    browser.close()
-                except Exception:
-                    pass
-
-            playwright.stop()
-
         return articles
