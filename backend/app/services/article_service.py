@@ -1,3 +1,4 @@
+from app.core.time_utils import taiwan_now
 from app.models.database_models import Platform, Board, Author, Article
 
 
@@ -90,6 +91,14 @@ def create_article(
     platform = get_or_create_platform(db, platform_name)
     board = get_or_create_board(db, platform.id, board_name)
     author = get_or_create_author(db, author_username)
+
+    # 說明：
+    # 來源站台偶爾抓不到發文時間（置頂列、Threads 少數貼文沒有 <time>）。
+    # published_at 若留成 NULL，這篇文章會被所有「日期區間」查詢排除，
+    # 等於永遠不會出現在儀表板，也不會被排到情緒評分佇列。
+    # 因此退而求其次，用「抓取當下的時間」當作發文時間。
+    if published_at is None:
+        published_at = taiwan_now()
 
     article = Article(
         unique_id=unique_id,
