@@ -12,10 +12,14 @@ from app.services.article_service import (
     create_article,
     get_or_create_board,
     get_or_create_platform,
+    save_comments,
 )
 from app.services.dashboard_service import get_active_crawl_targets
 from app.services.relevance_filter import evaluate_article_relevance
-from app.services.sentiment_service import classify_pending_sentiments
+from app.services.sentiment_service import (
+    classify_pending_comments,
+    classify_pending_sentiments,
+)
 from app.services.settings_service import get_setting
 
 
@@ -61,7 +65,7 @@ def _crawl_all_boards(db, pages: int) -> int:
                 if not evaluate_article_relevance(item).is_relevant:
                     continue
 
-                _, is_new = create_article(
+                article, is_new = create_article(
                     db=db,
                     unique_id=item["unique_id"],
                     platform_name=item["platform_name"],
@@ -75,6 +79,7 @@ def _crawl_all_boards(db, pages: int) -> int:
                 )
                 if is_new:
                     new_total += 1
+                    save_comments(db, article, item.get("comments") or [])
         except Exception:
             logger.exception("Daily crawl failed for board %s", board_name)
 
@@ -104,11 +109,13 @@ def run_daily_job(pages: int | None = None, force: bool = False) -> dict:
 
         new_articles = _crawl_all_boards(db, effective_pages)
         scored = classify_pending_sentiments(db)
+        scored_comments = classify_pending_comments(db)
         alerts = run_alert_checks(db)
 
         summary = {
             "new_articles": new_articles,
             "scored": scored,
+            "scored_comments": scored_comments,
             "new_alerts": len(alerts),
         }
         logger.info("Daily job finished: %s", summary)

@@ -78,6 +78,37 @@ class Article(Base):
     platform = relationship("Platform", back_populates="articles")
     board = relationship("Board", back_populates="articles")
     author = relationship("Author", back_populates="articles")
+    comments = relationship("Comment", back_populates="article", cascade="all, delete-orphan")
+
+
+class Comment(Base):
+    """
+    說明：
+    文章的留言 / 推文。原本留言只是被併進 articles.content 一起分析，
+    無法回答「哪一則留言最負面」「這篇有幾則留言」這類問題，
+    因此獨立成一張表，可逐則評分與排序。
+
+    留言仍會保留在文章內文中（讓既有的關鍵字與 LLM 分析不受影響），
+    這張表是額外的細粒度資料。
+    """
+
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    article_id = Column(Integer, ForeignKey("articles.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # 同一篇文章內的留言序號（1 起算），用來還原順序。
+    floor = Column(Integer)
+
+    content = Column(Text, nullable=False)
+
+    # 由 Gemini 評分：positive / neutral / negative；NULL = 尚未評分。
+    sentiment = Column(String(20), index=True)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    article = relationship("Article", back_populates="comments")
 
 
 class User(Base):

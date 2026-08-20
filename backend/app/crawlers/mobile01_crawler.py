@@ -125,6 +125,7 @@ class Mobile01Crawler(BrowserCrawler):
                 "push_count": reply_count,
                 "published_at": published_at,
                 "unique_id": self._generate_unique_id("mobile01", board, url),
+                "comments": [],
             })
 
         return topics
@@ -204,6 +205,7 @@ class Mobile01Crawler(BrowserCrawler):
                     pass  # 單篇失敗不影響整體，內文留空
 
                 topic["content"] = self._merge_content_and_replies(content, replies)
+                topic["comments"] = replies
                 articles.append(topic)
 
                 if progress_callback:

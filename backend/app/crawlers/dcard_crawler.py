@@ -103,7 +103,13 @@ class DcardCrawler(BrowserCrawler):
 
         return "Dcard 匿名"
 
-    def _to_article(self, post: dict, board: str, content: str | None = None) -> dict:
+    def _to_article(
+        self,
+        post: dict,
+        board: str,
+        content: str | None = None,
+        comments: list[str] | None = None,
+    ) -> dict:
         """把 Dcard 的 post 物件轉成本專案統一的文章 dict。
 
         content：若有傳入（進內頁抓到的完整全文）就採用；
@@ -123,6 +129,8 @@ class DcardCrawler(BrowserCrawler):
             "push_count": post.get("likeCount") or 0,
             "published_at": self._parse_dt(post.get("createdAt")),
             "unique_id": self._generate_unique_id("dcard", board, url),
+            # 留言除了併進 content，也單獨帶出來存進 comments 表。
+            "comments": comments or [],
         }
 
     @staticmethod
@@ -314,7 +322,7 @@ class DcardCrawler(BrowserCrawler):
                     # 但仍可把留言併入分析。
                     base_content = detail_content if self.fetch_full_content else (post.get("excerpt") or "")
                     merged = self._merge_content_and_replies(base_content, comments)
-                    articles.append(self._to_article(post, board, content=merged))
+                    articles.append(self._to_article(post, board, content=merged, comments=comments))
                     self._sleep()  # 禮貌性延遲，降低被 Dcard 擋的機率
 
                     if progress_callback:

@@ -6,7 +6,7 @@ import logging
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
-from app.models.database_models import Article
+from app.models.database_models import Article, Comment
 from app.services.article_compressor import clean_text
 from app.services.llm_client import LLMServiceUnavailableError, generate_json_response
 
@@ -132,4 +132,72 @@ def classify_pending_sentiments(
 
         db.commit()
 
+    return updated_count
+
+
+def _build_comment_prompt(comments: list[Comment]) -> str:
+    items = [
+        {"id": comment.id, "text": clean_text(comment.content or "")[:200]}
+        for comment in comments
+    ]
+
+    return f"""
+你是醫美輿情系統的情緒分析器。
+以下是文章底下的留言，請判斷每一則「留言者的情緒傾向」：
+- positive：認同、推薦、正面經驗
+- negative：抱怨、質疑、負面經驗、勸退
+- neutral：提問、補充資訊、看不出明顯情緒
+
+請務必只回傳合法 JSON，不要 markdown 標記，不要額外說明文字。
+JSON 格式：
+{{"results": [{{"id": 123, "sentiment": "positive"}}]}}
+
+留言列表：
+{json.dumps(items, ensure_ascii=False)}
+"""
+
+
+def classify_pending_comments(
+    db: Session,
+    max_comments: int = MAX_ARTICLES_PER_RUN,
+    batch_size: int = BATCH_SIZE,
+) -> int:
+    """
+    說明：
+    為還沒評分的留言（sentiment IS NULL）評分，新的留言優先。
+    做法與文章評分相同：一次送一批給 Gemini，省 API 額度；
+    LLM 出錯時整批跳過，留言維持未評分，下次再試。
+    """
+
+    pending = (
+        db.query(Comment)
+        .filter(Comment.sentiment.is_(None))
+        .order_by(desc(Comment.id))
+        .limit(max_comments)
+        .all()
+    )
+
+    if not pending:
+        return 0
+
+    updated_count = 0
+
+    for start in range(0, len(pending), batch_size):
+        batch = pending[start:start + batch_size]
+
+        try:
+            raw_response = generate_json_response(_build_comment_prompt(batch))
+            results = _parse_batch_response(raw_response)
+        except Exception:
+            logger.exception("Comment sentiment batch failed; leaving them unrated")
+            continue
+
+        for comment in batch:
+            sentiment = results.get(comment.id)
+
+            if sentiment:
+                comment.sentiment = sentiment
+                updated_count += 1
+
+    db.commit()
     return updated_count

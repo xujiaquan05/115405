@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, get_db
 from app.crawlers.registry import get_crawler
 from app.models.database_models import Article, Board, CrawlLog, Platform
-from app.services.article_service import create_article, get_or_create_board, get_or_create_platform
+from app.services.article_service import (
+    create_article,
+    get_or_create_board,
+    get_or_create_platform,
+    save_comments,
+)
 from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
@@ -190,7 +195,7 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
                 filtered_count += 1
                 continue
 
-            _, is_new = create_article(
+            article, is_new = create_article(
                 db=db,
                 unique_id=item["unique_id"],
                 platform_name=item["platform_name"],
@@ -205,6 +210,8 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
 
             if is_new:
                 new_count += 1
+                # 留言另存一張表，供「留言情緒」與「最負面留言」分析。
+                save_comments(db, article, item.get("comments") or [])
             else:
                 skipped_count += 1
 

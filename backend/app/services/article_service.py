@@ -1,5 +1,5 @@
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Platform, Board, Author, Article
+from app.models.database_models import Platform, Board, Author, Article, Comment
 
 
 def get_or_create_platform(db, name: str):
@@ -117,3 +117,35 @@ def create_article(
     db.refresh(article)
 
     return article, True
+
+def save_comments(db, article, comments: list[str]) -> int:
+    """
+    說明：
+    把爬到的留言存成 Comment（逐則一列），供「留言情緒」與
+    「最負面留言」等細粒度分析使用。
+
+    只在文章還沒有留言時寫入，避免重複爬取時同一篇文章的留言被灌爆。
+    回傳實際新增的筆數。
+    """
+
+    if not comments or article is None:
+        return 0
+
+    if db.query(Comment).filter(Comment.article_id == article.id).first() is not None:
+        return 0
+
+    added = 0
+
+    for index, text in enumerate(comments, start=1):
+        clean = (text or "").strip()
+
+        if not clean:
+            continue
+
+        db.add(Comment(article_id=article.id, floor=index, content=clean))
+        added += 1
+
+    if added:
+        db.commit()
+
+    return added

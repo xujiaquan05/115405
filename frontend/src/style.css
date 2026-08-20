@@ -6702,3 +6702,82 @@ button:disabled {
 .platform-compare-stats dd.is-negative {
   color: #b91c1c;
 }
+
+/* ===== 文章留言情緒 ===== */
+
+.article-comments {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.article-comments-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.article-comments-head h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.article-comments-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.article-comments-stats .is-positive { color: #166534; }
+.article-comments-stats .is-neutral { color: var(--text-muted); }
+.article-comments-stats .is-negative { color: #b91c1c; }
+
+.article-comments-hint {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.article-comments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.article-comments-list li {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.article-comments-list p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.article-comment-tag {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.article-comment-tag.is-positive { background: #dcfce7; color: #166534; }
+.article-comment-tag.is-neutral { background: var(--surface-2); color: var(--text-muted); }
+.article-comment-tag.is-negative { background: #fee2e2; color: #991b1b; }
+.article-comment-tag.is-none { background: var(--surface-2); color: #9ca3af; }
