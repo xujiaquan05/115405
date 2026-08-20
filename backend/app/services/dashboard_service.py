@@ -595,6 +595,66 @@ def get_hot_articles(
     return result
 
 
+def get_platform_comparison(
+    db: Session,
+    keyword: str,
+    days: int = 30,
+    boards: list[str] | None = None,
+) -> list[dict]:
+    """
+    說明：
+    同一個關鍵字在各平台的表現比較（聲量、互動、情緒）。
+
+    這是多平台系統才做得到的分析：例如「醫美」在 PTT 的負面比例明顯高於
+    Dcard，代表兩邊的受眾與討論調性不同，行銷投放策略也該不一樣。
+
+    所有指標用「一次 GROUP BY 查詢」算完，避免每個平台各掃一次表。
+    情緒只採計 Gemini 已評分的文章（未評分不列入分母），
+    並附上 ai_rated_percent 讓使用者判斷可信度。
+    """
+
+    start_date, end_date = get_date_range(days)
+    keyword_filter = build_keyword_filter(keyword)
+
+    query = (
+        db.query(
+            Platform.name,
+            func.count(Article.id),
+            func.avg(Article.push_count),
+            func.count(Article.id).filter(Article.sentiment == "positive"),
+            func.count(Article.id).filter(Article.sentiment == "negative"),
+            func.count(Article.id).filter(Article.sentiment.isnot(None)),
+        )
+        .join(Platform, Article.platform_id == Platform.id)
+        .filter(keyword_filter)
+        .filter(Article.published_at >= start_date)
+        .filter(Article.published_at <= end_date)
+        .group_by(Platform.name)
+    )
+    query = apply_board_filter(query, boards)
+
+    results = []
+
+    for platform_name, total, avg_push, positive, negative, rated in query.all():
+        # 情緒比例以「已評分文章」為分母，沒有任何評分時一律當 0。
+        positive_percent = round(positive / rated * 100, 1) if rated else 0
+        negative_percent = round(negative / rated * 100, 1) if rated else 0
+
+        results.append({
+            "platform": platform_name,
+            "total_articles": total,
+            "avg_push_count": round(float(avg_push or 0), 1),
+            "positive": positive_percent,
+            "negative": negative_percent,
+            # 與 Dashboard 其他地方一致的淨情緒分數：50 +（正面% − 負面%）/ 2
+            "sentiment_score": int(max(0, min(100, round(50 + (positive_percent - negative_percent) / 2)))),
+            "ai_rated_percent": round(rated / total * 100, 1) if total else 0,
+        })
+
+    # 聲量高的平台排前面，方便一眼看出主戰場。
+    return sorted(results, key=lambda item: item["total_articles"], reverse=True)
+
+
 def get_frequent_keywords(
     db: Session,
     keyword: str,
@@ -688,6 +748,7 @@ def get_dashboard_full(
         "keyword_trends": get_keyword_trends(db, keyword, days, boards),
         "hot_articles": get_hot_articles(db, keyword, days, sort_by, boards),
         "keywords": get_frequent_keywords(db, keyword, days, boards),
+        "platform_comparison": get_platform_comparison(db, keyword, days, boards),
         "data_status": get_data_status(db, boards),
         "selected_boards": normalize_filter_boards(boards),
     }

@@ -239,6 +239,7 @@ export function useDashboard() {
   const keywordTrends = computed(() => state.dashboardData?.keyword_trends || []);
   const hotArticles = computed(() => state.dashboardData?.hot_articles || []);
   const keywords = computed(() => state.dashboardData?.keywords || []);
+  const platformComparison = computed(() => state.dashboardData?.platform_comparison || []);
   const dataStatus = computed(() => state.dashboardData?.data_status || {});
   const selectedBoards = computed(() => getSelectedBoards());
 
@@ -250,6 +251,7 @@ export function useDashboard() {
     keywordTrends,
     hotArticles,
     keywords,
+    platformComparison,
     dataStatus,
     targetBoards: TARGET_BOARDS,
     fetchAvailableBoards,

@@ -96,3 +96,74 @@ class TestPlatformQualifiedBoardFilter:
         # 不指定平台時兩篇都算；不指定看板時也是全部。
         assert apply_board_filter(query, ["facelift"]).count() == 2
         assert apply_board_filter(query, None).count() == 2
+
+
+class TestPlatformComparison:
+    """多平台系統才做得到的分析：同一關鍵字在各平台的差異。"""
+
+    def test_groups_by_platform_and_sorts_by_volume(self, db_session):
+        from datetime import datetime, timedelta
+
+        from app.models.database_models import Article, Board, Platform
+        from app.services.dashboard_service import get_platform_comparison
+
+        now = datetime.now()
+        ptt = Platform(name="ptt")
+        dcard = Platform(name="dcard")
+        db_session.add_all([ptt, dcard])
+        db_session.flush()
+
+        ptt_board = Board(platform_id=ptt.id, name="facelift", is_active=1)
+        dcard_board = Board(platform_id=dcard.id, name="makeup", is_active=1)
+        db_session.add_all([ptt_board, dcard_board])
+        db_session.flush()
+
+        # PTT：2 篇（1 負面），Dcard：1 篇（正面）
+        db_session.add_all([
+            Article(unique_id="p1", platform_id=ptt.id, board_id=ptt_board.id, title="醫美心得",
+                    url="u1", push_count=10, sentiment="negative", published_at=now - timedelta(days=1)),
+            Article(unique_id="p2", platform_id=ptt.id, board_id=ptt_board.id, title="醫美討論",
+                    url="u2", push_count=20, sentiment="neutral", published_at=now - timedelta(days=2)),
+            Article(unique_id="d1", platform_id=dcard.id, board_id=dcard_board.id, title="醫美推薦",
+                    url="u3", push_count=5, sentiment="positive", published_at=now - timedelta(days=1)),
+        ])
+        db_session.commit()
+
+        rows = get_platform_comparison(db_session, "醫美", days=30)
+        by_platform = {row["platform"]: row for row in rows}
+
+        assert rows[0]["platform"] == "ptt"          # 聲量高的排前面
+        assert by_platform["ptt"]["total_articles"] == 2
+        assert by_platform["ptt"]["negative"] == 50.0
+        assert by_platform["ptt"]["avg_push_count"] == 15.0
+        assert by_platform["dcard"]["positive"] == 100.0
+        assert by_platform["dcard"]["sentiment_score"] == 100
+
+    def test_unrated_articles_do_not_distort_sentiment(self, db_session):
+        from datetime import datetime, timedelta
+
+        from app.models.database_models import Article, Board, Platform
+        from app.services.dashboard_service import get_platform_comparison
+
+        now = datetime.now()
+        ptt = Platform(name="ptt")
+        db_session.add(ptt)
+        db_session.flush()
+        board = Board(platform_id=ptt.id, name="facelift", is_active=1)
+        db_session.add(board)
+        db_session.flush()
+
+        # 1 篇已評分（負面）+ 1 篇未評分：負面比例應以「已評分」為分母 = 100%
+        db_session.add_all([
+            Article(unique_id="x1", platform_id=ptt.id, board_id=board.id, title="醫美",
+                    url="u1", push_count=1, sentiment="negative", published_at=now),
+            Article(unique_id="x2", platform_id=ptt.id, board_id=board.id, title="醫美",
+                    url="u2", push_count=1, sentiment=None, published_at=now),
+        ])
+        db_session.commit()
+
+        row = get_platform_comparison(db_session, "醫美", days=30)[0]
+
+        assert row["total_articles"] == 2
+        assert row["negative"] == 100.0
+        assert row["ai_rated_percent"] == 50.0
