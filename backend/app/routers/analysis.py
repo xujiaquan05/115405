@@ -222,10 +222,32 @@ def compute_sentiment_score(sentiment: dict) -> int:
     return int(max(0, min(100, round(score))))
 
 
-def _serialize_history_record(record: AnalysisResult, db: Session) -> dict:
+def _serialize_history_record(
+    record: AnalysisResult,
+    db: Session,
+    metrics_cache: dict | None = None,
+) -> dict:
+    """
+    說明：
+    把一筆分析紀錄轉成 API 回傳格式。
+
+    overview / sentiment 都要掃 articles 表，成本較高；歷史清單中常有多筆
+    紀錄使用同一組（keyword, days），因此用 metrics_cache 讓同一次請求內
+    相同條件只計算一次（避免 N+1 查詢）。
+    """
+
     result_json = record.result_json or {}
-    overview = get_overview_metrics(db=db, keyword=record.keyword, days=record.days)
-    sentiment = get_sentiment_distribution(db=db, keyword=record.keyword, days=record.days)
+    cache_key = (record.keyword, record.days)
+
+    if metrics_cache is not None and cache_key in metrics_cache:
+        overview, sentiment = metrics_cache[cache_key]
+    else:
+        overview = get_overview_metrics(db=db, keyword=record.keyword, days=record.days)
+        sentiment = get_sentiment_distribution(db=db, keyword=record.keyword, days=record.days)
+
+        if metrics_cache is not None:
+            metrics_cache[cache_key] = (overview, sentiment)
+
     negative_ratio = round(float(sentiment.get("negative") or 0), 2)
 
     return {
@@ -257,7 +279,9 @@ def analysis_history(
         .all()
     )
 
-    items = [_serialize_history_record(record, db) for record in records]
+    # 同一次請求內共用計算結果，重複的 keyword + days 只查一次。
+    metrics_cache: dict = {}
+    items = [_serialize_history_record(record, db, metrics_cache) for record in records]
 
     return {
         "status": "success",

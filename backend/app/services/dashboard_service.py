@@ -142,6 +142,11 @@ def build_keyword_filter(keyword: str):
 
 
 def normalize_boards(boards: list[str] | None = None) -> list[str]:
+    """
+    說明：
+    PTT 爬蟲專用：只接受 PTT 目標看板名稱，沒指定就回傳全部 PTT 看板。
+    （儀表板的看板篩選請改用 normalize_filter_boards。）
+    """
     if not boards:
         return TARGET_BOARDS
 
@@ -154,9 +159,38 @@ def normalize_boards(boards: list[str] | None = None) -> list[str]:
     return valid_boards or TARGET_BOARDS
 
 
+def normalize_filter_boards(boards: list[str] | None = None) -> list[str]:
+    """
+    說明：
+    儀表板 / 分析查詢用的看板篩選清單。回傳空清單代表「不限看板」。
+
+    為什麼不沿用 normalize_boards？
+    系統現在同時有 PTT、Dcard、Mobile01、Threads，各平台的看板名稱不同
+    （例如 Mobile01 是 371、Threads 是「醫美」）。若沒指定看板時仍套用
+    PTT 的預設清單，其他平台的文章會被整批濾掉、完全不出現在儀表板上。
+    """
+    if not boards:
+        return []
+
+    cleaned: list[str] = []
+
+    for board in boards:
+        name = (board or "").strip()
+
+        if name and name not in cleaned:
+            cleaned.append(name)
+
+    return cleaned
+
+
 def apply_board_filter(query, boards: list[str] | None = None):
-    board_names = normalize_boards(boards)
-    return query.filter(Article.board.has(Board.name.in_(board_names)))
+    selected = normalize_filter_boards(boards)
+
+    # 沒有指定看板 = 不限平台，才不會漏掉 Dcard / Mobile01 / Threads 的文章。
+    if not selected:
+        return query
+
+    return query.filter(Article.board.has(Board.name.in_(selected)))
 
 
 def get_date_range(days: int):
@@ -208,29 +242,24 @@ def get_overview_metrics(
     )
     current_query = apply_board_filter(current_query, boards)
 
-    total_articles = current_query.count()
-
-    # 計算平均 push_count；
-    # 沒有任何文章時回傳 0，避免 None 造成錯誤。
-    avg_push_count = (
-        current_query.with_entities(func.avg(Article.push_count)).scalar()
+    # 三個指標（總數 / 平均推文 / 負面數）用「一次掃描」同時算完。
+    # 拆成三個 query 會讓同樣的關鍵字條件掃三遍表，是這支 API 最大的成本。
+    negative_condition = or_(
+        Article.sentiment == "negative",
+        and_(Article.sentiment.is_(None), Article.push_count < 0),
     )
 
+    total_articles, avg_push_count, negative_count = (
+        current_query.with_entities(
+            func.count(Article.id),
+            func.avg(Article.push_count),
+            func.count(Article.id).filter(negative_condition),
+        ).one()
+    )
+
+    # 沒有任何文章時 avg 會是 NULL，轉成 0 避免後續計算出錯。
     if avg_push_count is None:
         avg_push_count = 0
-
-    # 優先使用 LLM 評出的 sentiment；
-    # 還沒評分的文章（NULL）暫時 fallback 回 push_count < 0 規則。
-    negative_count = (
-        current_query
-        .filter(
-            or_(
-                Article.sentiment == "negative",
-                and_(Article.sentiment.is_(None), Article.push_count < 0),
-            )
-        )
-        .count()
-    )
 
     # 查詢上一期的文章數，用來計算成長率。
     previous_count = (
@@ -259,7 +288,7 @@ def get_overview_metrics(
         "growth_rate": growth_rate,
         "days": days,
         "keyword": keyword,
-        "boards": normalize_boards(boards),
+        "boards": normalize_filter_boards(boards),
     }
 
 
@@ -567,7 +596,7 @@ def get_data_status(
         if latest_published_at else None,
         "status": "normal" if latest_published_at else "empty",
         "source": "PTT",
-        "boards": normalize_boards(boards),
+        "boards": normalize_filter_boards(boards),
     }
 
 
@@ -602,5 +631,5 @@ def get_dashboard_full(
         "hot_articles": get_hot_articles(db, keyword, days, sort_by, boards),
         "keywords": get_frequent_keywords(db, keyword, days, boards),
         "data_status": get_data_status(db, boards),
-        "selected_boards": normalize_boards(boards),
+        "selected_boards": normalize_filter_boards(boards),
     }

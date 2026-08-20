@@ -50,6 +50,40 @@ def _apply_schema_migrations():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(16)"
         ))
 
+    _apply_search_indexes()
+
+
+def _apply_search_indexes():
+    """
+    說明：
+    關鍵字查詢一律用 ILIKE '%關鍵字%'（前後都有萬用字元），
+    這種查詢「無法」使用一般 B-tree，也用不到 to_tsvector 的全文索引
+    —— 舊的 idx_articles_*_fts 只會拖慢寫入，讀取毫無幫助。
+
+    pg_trgm 的 GIN 索引才真正能加速 ILIKE '%…%'，因此改用它，
+    並移除用不到的全文索引。
+
+    這些操作需要建立擴充功能的權限，在部分託管資料庫可能失敗；
+    失敗只會讓查詢退回全表掃描（結果仍正確），所以吞掉例外不中斷啟動。
+    """
+
+    statements = [
+        "CREATE EXTENSION IF NOT EXISTS pg_trgm",
+        "DROP INDEX IF EXISTS idx_articles_title_fts",
+        "DROP INDEX IF EXISTS idx_articles_content_fts",
+        "CREATE INDEX IF NOT EXISTS idx_articles_title_trgm "
+        "ON articles USING gin (title gin_trgm_ops)",
+        "CREATE INDEX IF NOT EXISTS idx_articles_content_trgm "
+        "ON articles USING gin (content gin_trgm_ops)",
+    ]
+
+    for statement in statements:
+        try:
+            with engine.begin() as connection:
+                connection.execute(text(statement))
+        except Exception:
+            logger.warning("Search index step skipped: %s", statement[:60])
+
 
 def _seed_admin_user(db):
     # 說明：
