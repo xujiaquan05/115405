@@ -1,7 +1,7 @@
 <!-- frontend/src/views/SystemAdminView.vue -->
 
 <script setup>
-import { onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import api from "../services/api.js";
 
 const tabs = [
@@ -46,6 +46,27 @@ function auditActionLabel(action) {
 }
 
 const overview = ref(null);
+
+// 從系統總覽推導出的安全性提醒。
+const securityWarnings = computed(() => {
+  const security = overview.value?.security;
+  if (!security) return [];
+
+  const warnings = [];
+
+  if (security.default_password_accounts?.length) {
+    warnings.push(
+      `帳號「${security.default_password_accounts.join("、")}」仍在使用預設密碼，` +
+      "請到「帳號資訊 → 修改密碼」立即更換。"
+    );
+  }
+
+  if (security.jwt_secret_configured === false) {
+    warnings.push("尚未設定 JWT_SECRET，每次重新啟動後端都會讓所有人被登出。");
+  }
+
+  return warnings;
+});
 const settings = reactive({
   alert_warning_negative: 25,
   alert_critical_negative: 40,
@@ -230,6 +251,14 @@ onMounted(() => {
     </div>
 
     <p v-if="state.message" :class="['sysadmin-message', state.messageType]">{{ state.message }}</p>
+
+    <!-- 安全性提醒：預設密碼與 JWT_SECRET 是部署前最常被忽略的兩件事 -->
+    <div v-if="securityWarnings.length" class="sysadmin-security-alert">
+      <strong>安全性提醒</strong>
+      <ul>
+        <li v-for="warning in securityWarnings" :key="warning">{{ warning }}</li>
+      </ul>
+    </div>
 
     <!-- 系統總覽 -->
     <div v-if="activeTab === 'overview'">

@@ -19,6 +19,7 @@ from app.services.auth_service import (
     hash_password,
     require_admin,
     serialize_user_admin,
+    uses_default_password,
 )
 from app.services.settings_service import get_all_settings, get_setting, update_settings
 
@@ -252,6 +253,25 @@ def delete_user(
 
 # ── 系統總覽 ────────────────────────────────────────────────
 
+def _security_status(db: Session) -> dict:
+    """
+    說明：
+    後台的安全狀態檢查。目前檢查兩件事：
+    1. 是否還有帳號在使用預設密碼（admin123）。
+    2. JWT_SECRET 是否已設定（沒設定的話每次重啟都會把所有人登出）。
+
+    只檢查管理員帳號，因為驗證雜湊有意設計得較慢，逐一檢查所有帳號會拖慢這支 API。
+    """
+
+    admins = db.query(User).filter(User.role == "admin").all()
+    weak_accounts = [user.username for user in admins if uses_default_password(user)]
+
+    return {
+        "default_password_accounts": weak_accounts,
+        "jwt_secret_configured": bool(os.getenv("JWT_SECRET")),
+    }
+
+
 @router.get("/system-overview", dependencies=[Depends(require_admin)])
 def system_overview(db: Session = Depends(get_db)):
     """
@@ -306,6 +326,7 @@ def system_overview(db: Session = Depends(get_db)):
                 "pages": get_setting(db, "auto_crawl_pages"),
             },
             "users": _user_stats(db),
+        "security": _security_status(db),
             "monitor": {
                 "watch_keywords": db.query(func.count(WatchKeyword.id)).scalar() or 0,
                 "unread_alerts": db.query(func.count(Alert.id)).filter(Alert.is_read == 0).scalar() or 0,

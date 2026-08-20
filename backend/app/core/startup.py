@@ -10,7 +10,7 @@ from app.core.database import Base, SessionLocal, engine
 from app.models import database_models  # noqa: F401
 from app.models.database_models import User
 from app.services.article_service import get_or_create_board, get_or_create_platform
-from app.services.auth_service import hash_password
+from app.services.auth_service import DEFAULT_ADMIN_PASSWORD, hash_password
 from app.services.dashboard_service import (
     DCARD_BOARDS,
     MOBILE01_BOARDS,
@@ -96,7 +96,7 @@ def _seed_admin_user(db):
     admin_password = os.getenv("ADMIN_PASSWORD")
 
     if not admin_password:
-        admin_password = "admin123"
+        admin_password = DEFAULT_ADMIN_PASSWORD
         logger.warning(
             "ADMIN_PASSWORD is not set; default admin account created "
             "with password 'admin123'. Change it in production."

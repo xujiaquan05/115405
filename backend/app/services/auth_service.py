@@ -172,6 +172,19 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+# 系統初始化時使用的預設密碼。部署後必須更換，
+# 因此提供一個檢查函式，讓後台能主動提醒尚未更換的帳號。
+DEFAULT_ADMIN_PASSWORD = "admin123"
+
+
+def uses_default_password(user: User) -> bool:
+    """判斷帳號是否仍在使用預設密碼（admin123）。"""
+    try:
+        return verify_password(DEFAULT_ADMIN_PASSWORD, user.password_hash)
+    except Exception:
+        return False
+
+
 def serialize_user(user: User) -> dict:
     return {
         "id": user.id,

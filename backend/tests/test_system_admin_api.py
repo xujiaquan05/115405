@@ -116,3 +116,24 @@ class TestAuditLog:
     def test_audit_logs_admin_only(self, client):
         normal = auth_header(client, "normal", "user123")
         assert client.get("/api/admin/audit-logs", headers=normal).status_code == 403
+
+
+class TestSecurityStatus:
+    def test_flags_default_password_account(self, client):
+        # fixture 建立的 admin 密碼就是預設的 admin123，應該被標記出來。
+        resp = client.get("/api/admin/system-overview", headers=auth_header(client, "admin", "admin123"))
+        security = resp.json()["data"]["security"]
+
+        assert "admin" in security["default_password_accounts"]
+        assert "jwt_secret_configured" in security
+
+    def test_changed_password_not_flagged(self, client):
+        headers = auth_header(client, "admin", "admin123")
+        client.post("/api/auth/change-password",
+                    json={"old_password": "admin123", "new_password": "a-strong-pass-123"},
+                    headers=headers)
+
+        headers = auth_header(client, "admin", "a-strong-pass-123")
+        security = client.get("/api/admin/system-overview", headers=headers).json()["data"]["security"]
+
+        assert security["default_password_accounts"] == []

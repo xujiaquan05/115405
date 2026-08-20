@@ -132,9 +132,21 @@ python -m playwright install chromium
 ```env
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/medical_beauty_db
 GOOGLE_API_KEY=your_google_api_key
+JWT_SECRET=請填入一段夠長的隨機字串
 APP_NAME=Medical Beauty Public Opinion System
 APP_ENV=development
 ```
+
+> **`JWT_SECRET` 一定要設定。** 沒設定時系統會在每次啟動產生隨機金鑰，
+> 結果是「後端一重啟，所有人就被登出」。可用這行產生一組：
+>
+> ```bash
+> python -c "import secrets; print(secrets.token_urlsafe(48))"
+> ```
+>
+> **另外，預設管理員密碼是 `admin123`，部署或對外開放前務必更換**
+>（登入後到「帳號資訊 → 修改密碼」）。若尚未更換，
+> 「系統管理」頁面上方會顯示紅色安全性提醒。
 
 請把：
 
