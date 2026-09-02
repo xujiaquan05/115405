@@ -1,7 +1,6 @@
 # backend/app/core/scheduler.py
 
 import logging
-import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
 

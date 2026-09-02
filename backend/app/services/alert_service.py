@@ -4,7 +4,6 @@ import logging
 import os
 from datetime import timedelta
 
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
