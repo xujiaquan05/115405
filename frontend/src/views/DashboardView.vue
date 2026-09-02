@@ -13,7 +13,6 @@ import ArticleList from "../components/ArticleList.vue";
 import InsightPanel from "../components/InsightPanel.vue";
 import KeywordCloud from "../components/KeywordCloud.vue";
 import TopicBars from "../components/TopicBars.vue";
-import PlatformComparison from "../components/PlatformComparison.vue";
 
 import { useDashboard } from "../composables/useDashboard.js";
 import { useWebSocket } from "../composables/useWebSocket.js";
@@ -26,7 +25,6 @@ const {
   keywordTrends,
   hotArticles,
   keywords,
-  platformComparison,
   dataStatus,
   searchDashboard,
   fetchDashboard,
@@ -170,13 +168,6 @@ watch(
 
         <TopicBars
           :topics="keywords"
-          :loading="state.loadingDashboard"
-        />
-      </div>
-
-      <div id="dashboard-platforms" class="dashboard-section" data-dashboard-section>
-        <PlatformComparison
-          :rows="platformComparison"
           :loading="state.loadingDashboard"
         />
       </div>
