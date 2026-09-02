@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.database_models import Article, Comment
 from app.services.article_compressor import clean_text
+from app.services.article_service import COMMENT_SECTION_MARKER
 from app.services.llm_client import LLMServiceUnavailableError, generate_json_response
 
 
@@ -23,22 +24,51 @@ BATCH_SIZE = 20
 MAX_ARTICLES_PER_RUN = 200
 
 
+# 內文取樣長度。
+# 中文心得文常見結構是「背景 → 過程 → 結論」，結論寫在最後
+#（例如開頭寫踩雷經驗、結尾才寫「越擦越離不開它」）。
+# 舊版只取前 200 字，等於把情緒最明確的那段切掉，實測會把正面心得誤判為 neutral，
+# 因此改成頭尾都取。
+CONTENT_HEAD_CHARS = 150
+CONTENT_TAIL_CHARS = 250
+
+
+def _excerpt_for_scoring(content: str | None) -> str:
+    """取內文的開頭與結尾，作為送給模型判讀的樣本。
+
+    會先去掉「【留言】」段落：這裡要判斷的是「發文者」的情緒，
+    留言是其他人的意見，而且留言已另存 comments 表逐則評分。
+    留著的話，取結尾反而會取到最後一則留言而不是發文者的結論。
+    """
+
+    text = clean_text(content or "")
+    text = text.split(COMMENT_SECTION_MARKER, 1)[0].strip()
+
+    if len(text) <= CONTENT_HEAD_CHARS + CONTENT_TAIL_CHARS:
+        return text
+
+    return text[:CONTENT_HEAD_CHARS] + "……" + text[-CONTENT_TAIL_CHARS:]
+
+
 def _build_batch_prompt(articles: list[Article]) -> str:
     items = [
         {
             "id": article.id,
             "title": clean_text(article.title or "")[:100],
-            "content": clean_text(article.content or "")[:200],
+            "content": _excerpt_for_scoring(article.content),
         }
         for article in articles
     ]
 
     return f"""
 你是醫美輿情系統的情緒分析器。
-以下是 PTT 文章列表，請判斷每一篇「發文者的整體情緒傾向」：
+以下是社群平台（PTT / Dcard / Mobile01 / Threads）的文章列表，
+請判斷每一篇「發文者本人的整體情緒傾向」（不是留言者的）：
 - positive：明顯滿意、推薦、分享正面經驗
 - negative：抱怨、後悔、副作用、糾紛、負面經驗
 - neutral：提問、討論、資訊分享、看不出明顯情緒
+
+內文若過長，會以「……」標示中間省略的部分，請以開頭與結尾綜合判斷。
 
 請務必只回傳合法 JSON，不要 markdown 標記，不要額外說明文字。
 JSON 格式：
