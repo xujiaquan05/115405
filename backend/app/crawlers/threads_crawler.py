@@ -27,7 +27,7 @@ Gemini 情緒評分）完全不需修改。
 import hashlib
 import re
 import urllib.parse
-from typing import Callable
+from typing import Callable, Optional
 
 from app.crawlers.browser_base import BrowserCrawler
 

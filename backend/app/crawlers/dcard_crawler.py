@@ -30,7 +30,7 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
   因此情緒評分、關鍵字雲與 LLM 洞察都會涵蓋留言區的聲音（輿情重點常在留言）。
 """
 
-from typing import Callable
+from typing import Callable, Optional
 
 from app.crawlers.browser_base import BrowserCrawler
 
