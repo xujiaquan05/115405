@@ -59,6 +59,18 @@ async function saveAvatar() {
   }
 }
 
+// 加入系統至今的天數（由建立時間推算，不需後端新增欄位）。
+const daysSinceJoined = computed(() => {
+  if (!user.value.created_at) return "-";
+
+  const created = new Date(user.value.created_at);
+
+  if (Number.isNaN(created.getTime())) return "-";
+
+  const days = Math.floor((Date.now() - created.getTime()) / 86400000);
+  return days <= 0 ? "今天加入" : `${days} 天`;
+});
+
 function formatDateTime(value) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("zh-TW", {
@@ -283,24 +295,16 @@ onMounted(async () => {
     <!-- 帳號資料：資訊磚 -->
     <div class="profile-tiles">
       <div class="profile-tile">
-        <span>角色</span>
-        <strong>{{ roleLabel }}</strong>
-      </div>
-      <div class="profile-tile">
-        <span>帳號 ID</span>
-        <strong>{{ user.id }}</strong>
-      </div>
-      <div class="profile-tile">
-        <span>狀態</span>
-        <strong>{{ user.is_active === false ? "已停用" : "啟用中" }}</strong>
-      </div>
-      <div class="profile-tile">
         <span>最後登入</span>
         <strong>{{ formatDateTime(user.last_login_at) }}</strong>
       </div>
       <div class="profile-tile">
         <span>建立時間</span>
         <strong>{{ formatDateTime(user.created_at) }}</strong>
+      </div>
+      <div class="profile-tile">
+        <span>使用天數</span>
+        <strong>{{ daysSinceJoined }}</strong>
       </div>
     </div>
 
@@ -311,6 +315,7 @@ onMounted(async () => {
         <p>定期更換密碼，並避免與其他網站共用，以保護帳號安全。</p>
       </div>
 
+      <div class="profile-security-body">
         <p v-if="form.errorMessage" class="profile-message error">{{ form.errorMessage }}</p>
         <p v-if="form.successMessage" class="profile-message success">{{ form.successMessage }}</p>
 
@@ -371,6 +376,7 @@ onMounted(async () => {
             {{ form.loading ? "更新中…" : "更新密碼" }}
           </button>
         </form>
-      </article>
+      </div>
+    </article>
   </section>
 </template>

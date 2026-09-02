@@ -306,7 +306,28 @@ select {
 }
 
 .profile-security {
-  max-width: 540px;
+  /* 兩欄：左側標題說明、右側表單。
+     舊版限制 max-width 又靠左對齊，右半邊會空一大塊。 */
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.profile-security-body {
+  /* 輸入框不需要跟著版面拉到很寬，維持好讀的寬度。 */
+  max-width: 460px;
+}
+
+@media (max-width: 860px) {
+  .profile-security {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .profile-security-body {
+    max-width: none;
+  }
 }
 
 /* 頭像自訂 */
@@ -492,6 +513,17 @@ select {
 
 .profile-form button:hover {
   background: #1f2937;
+}
+
+/* 送出鍵採系統主色（紫），與 logo、hero 漸層一致；
+   原本沿用預設的深色按鈕，跟整體配色不搭。 */
+.profile-form .profile-submit {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
+
+.profile-form .profile-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca 0%, #6d28d9 100%);
 }
 
 .profile-form button:disabled {
