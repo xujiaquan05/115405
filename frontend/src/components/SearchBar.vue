@@ -22,9 +22,13 @@ const platforms = computed(() => {
 
 // 目前選到的平台；沒有選任何看板代表「全部平台」。
 const activePlatform = computed(() => {
-  if (!state.selectedBoards.length) return "";
-  const match = state.availableBoards.find((board) => board.board === state.selectedBoards[0]);
-  return match ? match.platform : "";
+  // selectedBoards 存的是「平台:看板」（例如 dcard:facelift），
+  // 這樣才能區分 PTT 與 Dcard 都有的同名看板，所以取冒號前的平台名即可。
+  const first = state.selectedBoards[0];
+
+  if (!first) return "";
+
+  return first.includes(":") ? first.split(":")[0] : "";
 });
 
 onMounted(fetchAvailableBoards);
