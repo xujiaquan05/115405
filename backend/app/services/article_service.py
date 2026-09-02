@@ -149,3 +149,66 @@ def save_comments(db, article, comments: list[str]) -> int:
         db.commit()
 
     return added
+
+
+# 爬蟲把留言併進內文時使用的分隔標記（見 BrowserCrawler._merge_content_and_replies）。
+COMMENT_SECTION_MARKER = "【留言】"
+
+
+def extract_comments_from_content(content: str | None) -> list[str]:
+    """從文章內文的「【留言】」段落還原留言清單。
+
+    爬蟲以「- 留言內容」的形式把每則留言寫進內文。留言本身可能換行，
+    所以「不是以 - 開頭」的後續行要視為上一則留言的延續，不能當成新留言。
+    """
+
+    if not content or COMMENT_SECTION_MARKER not in content:
+        return []
+
+    section = content.split(COMMENT_SECTION_MARKER, 1)[1]
+    comments: list[str] = []
+
+    for line in section.splitlines():
+        stripped = line.strip()
+
+        if not stripped:
+            continue
+
+        if stripped.startswith("- "):
+            comments.append(stripped[2:].strip())
+        elif comments:
+            # 同一則留言的換行內容。
+            comments[-1] = comments[-1] + chr(10) + stripped
+
+    return [comment for comment in comments if comment]
+
+
+def backfill_comments_from_content(db, limit: int | None = None) -> dict:
+    """把既有文章內文裡的留言補寫進 comments 表。
+
+    comments 表是後來才加入的，在那之前爬到的文章只把留言併在 content 裡。
+    重新爬取救不回來（文章已存在會被視為重複而跳過），所以直接從內文還原。
+
+    save_comments 只在文章尚無留言時寫入，因此本函式可重複執行不會重複新增。
+    """
+
+    query = (
+        db.query(Article)
+        .filter(Article.content.like(f"%{COMMENT_SECTION_MARKER}%"))
+        .order_by(Article.id)
+    )
+
+    if limit:
+        query = query.limit(limit)
+
+    articles_done = 0
+    comments_added = 0
+
+    for article in query.all():
+        added = save_comments(db, article, extract_comments_from_content(article.content))
+
+        if added:
+            articles_done += 1
+            comments_added += added
+
+    return {"articles": articles_done, "comments": comments_added}

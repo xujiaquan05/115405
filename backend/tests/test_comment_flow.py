@@ -66,3 +66,62 @@ class TestSaveComments:
         db.commit()
 
         assert db.query(Comment).count() == 0
+
+
+class TestExtractCommentsFromContent:
+    """comments 表是後來才加的，之前的文章只把留言併在內文裡，
+    重爬也救不回來（文章已存在會被跳過），因此要能從內文還原。"""
+
+    def test_extracts_bullet_lines(self):
+        from app.services.article_service import extract_comments_from_content
+
+        content = "主文內容\n【留言】\n- 第一則\n- 第二則"
+
+        assert extract_comments_from_content(content) == ["第一則", "第二則"]
+
+    def test_keeps_multiline_comment_together(self):
+        """留言本身可能換行，後續行不可被當成新的一則留言。"""
+        from app.services.article_service import extract_comments_from_content
+
+        content = "主文\n【留言】\n- 第一行\n接續的第二行\n- 另一則"
+
+        assert extract_comments_from_content(content) == ["第一行\n接續的第二行", "另一則"]
+
+    def test_no_marker_or_empty(self):
+        from app.services.article_service import extract_comments_from_content
+
+        assert extract_comments_from_content("只有主文") == []
+        assert extract_comments_from_content("") == []
+        assert extract_comments_from_content(None) == []
+
+    def test_ignores_main_content_before_marker(self):
+        from app.services.article_service import extract_comments_from_content
+
+        content = "- 這行在標記之前，不是留言\n【留言】\n- 真正的留言"
+
+        assert extract_comments_from_content(content) == ["真正的留言"]
+
+
+class TestBackfillComments:
+    def test_backfills_and_is_idempotent(self, db):
+        from app.services.article_service import backfill_comments_from_content
+
+        create_article(
+            db=db, unique_id="b1", platform_name="mobile01", board_name="371",
+            author_username="tester", title="測試", url="http://x/b1",
+            content="主文\n【留言】\n- 留言一\n- 留言二",
+        )
+        create_article(
+            db=db, unique_id="b2", platform_name="mobile01", board_name="371",
+            author_username="tester", title="沒有留言", url="http://x/b2",
+            content="這篇沒有留言段落",
+        )
+
+        result = backfill_comments_from_content(db)
+
+        assert result == {"articles": 1, "comments": 2}
+        assert db.query(Comment).count() == 2
+
+        # 重複執行不可重複新增。
+        assert backfill_comments_from_content(db) == {"articles": 0, "comments": 0}
+        assert db.query(Comment).count() == 2
