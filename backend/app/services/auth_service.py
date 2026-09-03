@@ -160,6 +160,33 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+    db: Session = Depends(get_db),
+) -> User | None:
+    """FastAPI dependency：有帶有效 token 就回傳使用者，否則回傳 None。
+
+    用於「訪客也能看、但登入後看到的是自己的資料」的端點，
+    例如預警清單：未登入時回傳空清單而不是 401。
+    憑證無效時一律當作訪客，不拋錯。
+    """
+
+    if credentials is None:
+        return None
+
+    try:
+        payload = decode_access_token(credentials.credentials)
+    except HTTPException:
+        return None
+
+    user = db.query(User).filter(User.id == payload.get("uid")).first()
+
+    if user is None or not user.is_active:
+        return None
+
+    return user
+
+
 def require_admin(current_user: User = Depends(get_current_user)) -> User:
     """
     FastAPI dependency：只允許 admin 角色使用。

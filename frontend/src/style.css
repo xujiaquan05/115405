@@ -6713,3 +6713,31 @@ button:disabled {
 .article-comment-tag.is-neutral { background: var(--surface-2); color: var(--text-muted); }
 .article-comment-tag.is-negative { background: #fee2e2; color: #991b1b; }
 .article-comment-tag.is-none { background: var(--surface-2); color: #9ca3af; }
+
+/* ===== 方案與用量列 ===== */
+
+.monitor-plan-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.monitor-plan-name {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+.monitor-plan-bar strong {
+  color: var(--text);
+}

@@ -16,7 +16,8 @@ from app.services.alert_service import (
     serialize_watch_keyword,
 )
 from app.services.audit_service import record_audit
-from app.services.auth_service import get_current_user, require_admin
+from app.services import plan_service
+from app.services.auth_service import get_current_user, get_optional_user, require_admin
 
 
 router = APIRouter(
@@ -33,11 +34,23 @@ class WatchKeywordRequest(BaseModel):
 
 
 @router.get("/keywords")
-def list_keywords(db: Session = Depends(get_db)):
-    watches = db.query(WatchKeyword).order_by(desc(WatchKeyword.created_at)).all()
+def list_keywords(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """只回傳自己建立的監控關鍵字：每位客戶追蹤自己的品牌，彼此不可見。"""
+    watches = (
+        db.query(WatchKeyword)
+        .filter(WatchKeyword.user_id == current_user.id)
+        .order_by(desc(WatchKeyword.created_at))
+        .all()
+    )
     return {
         "status": "success",
-        "data": {"keywords": [serialize_watch_keyword(w) for w in watches]},
+        "data": {
+            "keywords": [serialize_watch_keyword(w) for w in watches],
+            "plan": plan_service.get_plan_status(db, current_user),
+        },
     }
 
 
@@ -49,11 +62,18 @@ def add_keyword(
 ):
     keyword = payload.keyword.strip()
 
-    existing = db.query(WatchKeyword).filter(WatchKeyword.keyword == keyword).first()
+    # 同名檢查只看自己的清單：不同客戶可以監控同一個關鍵字。
+    existing = (
+        db.query(WatchKeyword)
+        .filter(WatchKeyword.user_id == current_user.id, WatchKeyword.keyword == keyword)
+        .first()
+    )
     if existing is not None:
         raise HTTPException(status_code=409, detail="此關鍵字已在監控清單中。")
 
-    watch = WatchKeyword(keyword=keyword, days=payload.days, enabled=1)
+    plan_service.ensure_keyword_quota(db, current_user)
+
+    watch = WatchKeyword(keyword=keyword, days=payload.days, enabled=1, user_id=current_user.id)
     db.add(watch)
     record_audit(db, actor=current_user, action="add_watch_keyword",
                  target_username=None, detail=f"新增監控關鍵字「{keyword}」")
@@ -74,7 +94,11 @@ def update_keyword(
     payload: UpdateKeywordRequest,
     db: Session = Depends(get_db),
 ):
-    watch = db.query(WatchKeyword).filter(WatchKeyword.id == keyword_id).first()
+    watch = (
+        db.query(WatchKeyword)
+        .filter(WatchKeyword.id == keyword_id, WatchKeyword.user_id == current_user.id)
+        .first()
+    )
     if watch is None:
         raise HTTPException(status_code=404, detail="找不到此監控關鍵字。")
 
@@ -95,7 +119,11 @@ def delete_keyword(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    watch = db.query(WatchKeyword).filter(WatchKeyword.id == keyword_id).first()
+    watch = (
+        db.query(WatchKeyword)
+        .filter(WatchKeyword.id == keyword_id, WatchKeyword.user_id == current_user.id)
+        .first()
+    )
     if watch is None:
         raise HTTPException(status_code=404, detail="找不到此監控關鍵字。")
 
@@ -114,9 +142,18 @@ def delete_keyword(
 def list_alerts(
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
+    current_user=Depends(get_optional_user),
 ):
-    alerts = db.query(Alert).order_by(desc(Alert.created_at), desc(Alert.id)).limit(limit).all()
-    unread = db.query(func.count(Alert.id)).filter(Alert.is_read == 0).scalar() or 0
+    # 未登入（訪客）看不到任何預警：預警都屬於某個使用者的監控關鍵字。
+    if current_user is None:
+        return {"status": "success", "data": {"alerts": [], "unread_count": 0}}
+
+    owned = Alert.user_id == current_user.id
+    alerts = (
+        db.query(Alert).filter(owned)
+        .order_by(desc(Alert.created_at), desc(Alert.id)).limit(limit).all()
+    )
+    unread = db.query(func.count(Alert.id)).filter(owned, Alert.is_read == 0).scalar() or 0
 
     return {
         "status": "success",

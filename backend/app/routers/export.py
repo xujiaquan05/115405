@@ -7,6 +7,8 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services import plan_service
+from app.services.auth_service import get_optional_user
 from app.services.dashboard_service import normalize_filter_boards
 from app.services.export_service import build_articles_xlsx, get_export_articles
 
@@ -24,13 +26,17 @@ def export_articles(
     sort_by: str = Query(default="push_count"),
     boards: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
+    current_user=Depends(get_optional_user),
 ):
+    # 匯出屬於付費功能，先檢查方案是否包含。
+    plan_service.ensure_export_allowed(db, current_user)
+
     # 沒選看板 = 匯出所有平台（PTT / Dcard / Mobile01 / Threads）。
     selected_boards = normalize_filter_boards(boards)
     articles = get_export_articles(
         db=db,
         keyword=keyword,
-        days=days,
+        days=plan_service.clamp_history_days(db, current_user, days),
         sort_by=sort_by,
         boards=selected_boards,
     )

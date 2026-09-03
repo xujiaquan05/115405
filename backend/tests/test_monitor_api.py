@@ -82,7 +82,7 @@ class TestWatchKeywords:
         resp = client.post("/api/monitor/keywords", json={"keyword": "玻尿酸", "days": 30}, headers=h)
         assert resp.status_code == 200
 
-        keywords = client.get("/api/monitor/keywords").json()["data"]["keywords"]
+        keywords = client.get("/api/monitor/keywords", headers=h).json()["data"]["keywords"]
         assert any(k["keyword"] == "玻尿酸" for k in keywords)
 
     def test_add_requires_login(self, client):
@@ -105,7 +105,7 @@ class TestAlertsFlow:
         assert check.status_code == 200
         assert check.json()["created_count"] == 1
 
-        listing = client.get("/api/monitor/alerts").json()["data"]
+        listing = client.get("/api/monitor/alerts", headers=h).json()["data"]
         assert listing["unread_count"] == 1
         assert listing["alerts"][0]["level"] == "critical"
 
@@ -114,10 +114,10 @@ class TestAlertsFlow:
         client.post("/api/monitor/keywords", json={"keyword": "玻尿酸", "days": 30}, headers=h)
         client.post("/api/monitor/alerts/check", headers=h)
 
-        alert_id = client.get("/api/monitor/alerts").json()["data"]["alerts"][0]["id"]
+        alert_id = client.get("/api/monitor/alerts", headers=h).json()["data"]["alerts"][0]["id"]
         client.post(f"/api/monitor/alerts/{alert_id}/read", headers=h)
 
-        assert client.get("/api/monitor/alerts").json()["data"]["unread_count"] == 0
+        assert client.get("/api/monitor/alerts", headers=h).json()["data"]["unread_count"] == 0
 
     def test_run_now_requires_admin(self, client):
         # 建一個一般使用者

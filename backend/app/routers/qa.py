@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services import plan_service
+from app.services.auth_service import get_optional_user
 from app.core.rate_limit import RateLimiter
 from app.services.rag_service import answer_question
 
@@ -41,7 +43,11 @@ class QuestionRequest(BaseModel):
 def ask_question(
     payload: QuestionRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_optional_user),
 ):
+    # 額度先檢查再呼叫 LLM，避免用掉 API 額度後才擋下來。
+    plan_service.ensure_qa_quota(db, current_user)
+
     history = [item.model_dump() for item in payload.history] if payload.history else None
 
     result = answer_question(
@@ -51,6 +57,9 @@ def ask_question(
         history=history,
         use_cache=not payload.no_cache,
     )
+
+    # 成功才計次；LLM 失敗時不該扣使用者的額度。
+    plan_service.record_qa_usage(db, current_user)
 
     return {
         "status": "success",

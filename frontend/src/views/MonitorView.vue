@@ -13,6 +13,7 @@ const { fetchUnread } = useAlerts();
 const isAdmin = computed(() => authState.user?.role === "admin");
 
 const keywords = ref([]);
+const plan = ref(null);
 const alerts = ref([]);
 const loading = reactive({ keywords: false, alerts: false, checking: false, running: false });
 const message = reactive({ text: "", type: "info" });
@@ -29,6 +30,7 @@ async function fetchKeywords() {
   try {
     const response = await api.get("/api/monitor/keywords");
     keywords.value = response.data.data.keywords;
+    plan.value = response.data.data.plan || null;
   } catch (error) {
     console.error(error);
   } finally {
@@ -60,9 +62,11 @@ async function addKeyword() {
     await fetchKeywords();
   } catch (error) {
     console.error(error);
+    // 403 代表方案額度已滿；後端回的訊息已寫明上限與升級提示，直接顯示。
     flash(
       error.response?.status === 409 ? "此關鍵字已在監控清單中。"
       : error.response?.status === 401 ? "加入監控需要登入。"
+      : error.response?.status === 403 ? (error.response.data?.detail || "方案額度已達上限。")
       : "加入失敗，請稍後再試。",
       "error"
     );
@@ -158,6 +162,25 @@ onMounted(() => {
 
 <template>
   <section class="monitor-page">
+
+    <!-- 方案與用量：讓使用者知道自己還能新增幾組關鍵字 -->
+    <div v-if="plan" class="monitor-plan-bar">
+      <span class="monitor-plan-name">{{ plan.plan.display_name }}</span>
+      <span v-if="plan.unlimited_admin">管理員不受額度限制</span>
+      <template v-else>
+        <span>
+          監控關鍵字
+          <strong>{{ plan.usage.watch_keywords }}</strong>
+          / {{ plan.plan.max_watch_keywords === -1 ? "不限" : plan.plan.max_watch_keywords }}
+        </span>
+        <span>
+          本月 AI 問答
+          <strong>{{ plan.usage.qa_questions }}</strong>
+          / {{ plan.plan.monthly_qa_quota === -1 ? "不限" : plan.plan.monthly_qa_quota }}
+        </span>
+        <span>可查詢 {{ plan.plan.max_history_days === -1 ? "不限" : plan.plan.max_history_days + " 天" }}</span>
+      </template>
+    </div>
     <div class="monitor-header">
       <h2>監控與預警</h2>
       <p>設定要長期追蹤的關鍵字，系統會定期分析並在負面聲量升高時主動預警。</p>

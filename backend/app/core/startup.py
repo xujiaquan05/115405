@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from app.core.database import Base, SessionLocal, engine
 from app.models import database_models  # noqa: F401
-from app.models.database_models import User
+from app.models.database_models import Plan, User
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.auth_service import DEFAULT_ADMIN_PASSWORD, hash_password
 from app.services.dashboard_service import (
@@ -50,6 +50,24 @@ def _apply_schema_migrations():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(16)"
         ))
 
+        # 多租戶：監控關鍵字、預警與分析紀錄都要能分辨屬於哪位使用者。
+        connection.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_code VARCHAR(20) DEFAULT 'free'"
+        ))
+        connection.execute(text(
+            "ALTER TABLE watch_keywords ADD COLUMN IF NOT EXISTS user_id INTEGER"
+        ))
+        connection.execute(text(
+            "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS user_id INTEGER"
+        ))
+        connection.execute(text(
+            "ALTER TABLE analysis_results ADD COLUMN IF NOT EXISTS user_id INTEGER"
+        ))
+        for table in ("watch_keywords", "alerts", "analysis_results"):
+            connection.execute(text(
+                f"CREATE INDEX IF NOT EXISTS ix_{table}_user_id ON {table} (user_id)"
+            ))
+
     _apply_search_indexes()
 
 
@@ -83,6 +101,53 @@ def _apply_search_indexes():
                 connection.execute(text(statement))
         except Exception:
             logger.warning("Search index step skipped: %s", statement[:60])
+
+
+# 預設方案內容。-1 代表不限制。
+# 存進資料表後，日後調整額度不必改程式；這裡只負責「第一次建立」。
+DEFAULT_PLANS = [
+    {
+        "code": "free", "display_name": "免費版", "sort_order": 0,
+        "max_watch_keywords": 1, "max_history_days": 7,
+        "allow_all_platforms": 0, "monthly_qa_quota": 0, "allow_export": 0,
+    },
+    {
+        "code": "pro", "display_name": "專業版", "sort_order": 1,
+        "max_watch_keywords": 5, "max_history_days": 90,
+        "allow_all_platforms": 1, "monthly_qa_quota": 100, "allow_export": 1,
+    },
+    {
+        "code": "business", "display_name": "企業版", "sort_order": 2,
+        "max_watch_keywords": 20, "max_history_days": -1,
+        "allow_all_platforms": 1, "monthly_qa_quota": -1, "allow_export": 1,
+    },
+]
+
+
+def _seed_plans(db):
+    """建立預設方案；已存在的方案不覆寫，避免蓋掉管理員調整過的額度。"""
+    for spec in DEFAULT_PLANS:
+        if db.query(Plan).filter(Plan.code == spec["code"]).first() is None:
+            db.add(Plan(**spec))
+
+
+def _backfill_owner(db):
+    """把多租戶上線前就存在的資料歸給第一位管理員。
+
+    這些資料建立時系統還沒有「擁有者」的概念，若留成 NULL
+    會變成沒有人看得到（查詢一律以登入者過濾）。
+    """
+    admin = db.query(User).filter(User.role == "admin").order_by(User.id).first()
+
+    if admin is None:
+        return
+
+    from app.models.database_models import Alert, WatchKeyword
+
+    for model in (WatchKeyword, Alert):
+        db.query(model).filter(model.user_id.is_(None)).update(
+            {model.user_id: admin.id}, synchronize_session=False
+        )
 
 
 def _seed_admin_user(db):
@@ -156,7 +221,11 @@ def initialize_database():
             board.url = f"https://www.threads.com/search?q={quote(keyword)}"
 
         _seed_admin_user(db)
+        _seed_plans(db)
+        db.commit()
 
+        # 需要 admin 已存在才能歸戶，所以放在 commit 之後。
+        _backfill_owner(db)
         db.commit()
     finally:
         db.close()

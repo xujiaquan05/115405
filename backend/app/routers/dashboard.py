@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services import plan_service
+from app.services.auth_service import get_optional_user
 from app.services.dashboard_service import (
     get_board_overview,
     get_dashboard_full,

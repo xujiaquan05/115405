@@ -135,6 +135,9 @@ class User(Base):
     # 停用帳號時設為 0，不直接刪除資料。
     is_active = Column(Integer, nullable=False, default=1)
 
+    # 訂閱方案代碼（free / pro / business），對應 plans 表。
+    plan_code = Column(String(20), nullable=False, default="free")
+
     # 最後一次成功登入的時間（台灣時間），NULL = 從未登入。
     last_login_at = Column(DateTime)
 
@@ -173,6 +176,10 @@ class AnalysisResult(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # 分析紀錄同樣要分租戶，否則客戶會在歷史清單看到別人分析過的關鍵字。
+    # NULL 代表訪客（未登入）產生的紀錄。
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+
     keyword = Column(String(255), nullable=False)
     analysis_type = Column(String(50), nullable=False)
 
@@ -182,6 +189,61 @@ class AnalysisResult(Base):
 
     expired_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+
+class Plan(Base):
+    """
+    說明：
+    訂閱方案與其額度上限。額度值 -1 代表「不限制」。
+
+    存成資料表而不是寫死在程式裡，是為了讓方案內容可以調整
+    （例如促銷期間放寬額度）而不必改程式重新部署。
+    """
+
+    __tablename__ = "plans"
+
+    code = Column(String(20), primary_key=True)
+    display_name = Column(String(50), nullable=False)
+
+    # 可建立幾組監控關鍵字。
+    max_watch_keywords = Column(Integer, nullable=False, default=1)
+
+    # 可查詢的歷史天數上限。
+    max_history_days = Column(Integer, nullable=False, default=7)
+
+    # 是否可使用需要瀏覽器的平台（Dcard / Mobile01 / Threads）。
+    allow_all_platforms = Column(Integer, nullable=False, default=0)
+
+    # 每月 AI 問答次數上限。
+    monthly_qa_quota = Column(Integer, nullable=False, default=0)
+
+    # 是否可匯出報表。
+    allow_export = Column(Integer, nullable=False, default=0)
+
+    sort_order = Column(Integer, nullable=False, default=0)
+
+
+class UsageCounter(Base):
+    """
+    說明：
+    每位使用者每個月的用量計數（目前記錄 AI 問答次數）。
+
+    以「使用者 + 年月」為單位，月份換了自然重新計算，
+    不需要另外寫排程去歸零。
+    """
+
+    __tablename__ = "usage_counters"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # 計費週期，格式 YYYY-MM。
+    period = Column(String(7), nullable=False, index=True)
+
+    qa_count = Column(Integer, nullable=False, default=0)
+
+    updated_at = Column(DateTime)
 
 
 class Setting(Base):
@@ -210,6 +272,10 @@ class WatchKeyword(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
+    # 監控關鍵字屬於「個別使用者」：每個客戶追蹤自己的品牌 / 診所名稱，
+    # 不能互相看到。NULL 代表系統建立初期就存在的舊資料。
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+
     keyword = Column(String(255), nullable=False)
     days = Column(Integer, nullable=False, default=7)
 
@@ -229,6 +295,9 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id = Column(Integer, primary_key=True, index=True)
+
+    # 預警屬於觸發它的那個關鍵字的擁有者。
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
 
     keyword = Column(String(255), nullable=False)
 

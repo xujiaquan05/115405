@@ -69,11 +69,17 @@ def evaluate_keyword(db: Session, keyword: str, days: int) -> dict:
     }
 
 
-def _has_recent_alert(db: Session, keyword: str) -> bool:
+def _has_recent_alert(db: Session, keyword: str, user_id: int | None = None) -> bool:
+    """同一位使用者的同一關鍵字，短時間內不重複發預警。
+
+    比對包含 user_id：不同客戶可能監控同一個關鍵字，
+    只看關鍵字會讓 A 客戶的預警把 B 客戶的擋掉。
+    """
     since = taiwan_now() - timedelta(hours=DEDUPE_HOURS)
     recent = (
         db.query(Alert)
         .filter(Alert.keyword == keyword)
+        .filter(Alert.user_id == user_id)
         .filter(Alert.created_at >= since)
         .first()
     )
@@ -101,11 +107,13 @@ def run_alert_checks(db: Session) -> list[Alert]:
         if not result["level"]:
             continue
 
-        if _has_recent_alert(db, watch.keyword):
+        # 重複檢查限定同一位使用者，不同客戶監控同一關鍵字時互不影響。
+        if _has_recent_alert(db, watch.keyword, watch.user_id):
             continue
 
         level_label = "危機" if result["level"] == "critical" else "警示"
         alert = Alert(
+            user_id=watch.user_id,
             keyword=watch.keyword,
             level=result["level"],
             title=f"「{watch.keyword}」負面聲量{level_label}",
