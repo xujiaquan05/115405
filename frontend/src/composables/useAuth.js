@@ -4,10 +4,10 @@ import { computed, reactive } from "vue";
 import api from "../services/api";
 
 // 說明：
-// token 與使用者資訊存在 localStorage，
-// 重新整理頁面後仍保持登入狀態。
-// 訪客模式只設一個旗標，不發 token。
-const TOKEN_KEY = "auth_token";
+// 登入憑證放在 httpOnly cookie（由後端設定），JavaScript 讀不到，
+// 因此前端只保留「使用者資訊」用來顯示畫面與判斷是否已登入；
+// 重新整理頁面後仍保持登入狀態，靠的是 cookie 而不是 localStorage。
+// 訪客模式只設一個旗標。
 const USER_KEY = "auth_user";
 const GUEST_KEY = "auth_guest";
 
@@ -20,15 +20,16 @@ function readStoredUser() {
 }
 
 const state = reactive({
-  token: localStorage.getItem(TOKEN_KEY) || "",
   user: readStoredUser(),
   guest: localStorage.getItem(GUEST_KEY) === "1",
   loading: false,
   errorMessage: "",
 });
 
-const isAuthenticated = computed(() => Boolean(state.token));
-const isGuest = computed(() => !state.token && state.guest);
+// 讀不到 cookie，所以以「有沒有使用者資料」代表已登入；
+// cookie 若已失效，下一個 API 請求會回 401 並由攔截器導回登入頁。
+const isAuthenticated = computed(() => Boolean(state.user));
+const isGuest = computed(() => !state.user && state.guest);
 
 async function login(username, password) {
   state.loading = true;
@@ -37,11 +38,10 @@ async function login(username, password) {
   try {
     const response = await api.post("/api/auth/login", { username, password });
 
-    state.token = response.data.access_token;
+    // 刻意不保存 access_token：憑證已在 httpOnly cookie 裡。
     state.user = response.data.user;
     state.guest = false;
 
-    localStorage.setItem(TOKEN_KEY, state.token);
     localStorage.setItem(USER_KEY, JSON.stringify(state.user));
     localStorage.removeItem(GUEST_KEY);
 
@@ -65,20 +65,23 @@ async function login(username, password) {
 
 function enterGuestMode() {
   state.guest = true;
-  state.token = "";
   state.user = null;
 
   localStorage.setItem(GUEST_KEY, "1");
-  localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 }
 
-function logout() {
-  state.token = "";
+async function logout() {
+  // cookie 是 httpOnly，前端刪不掉，必須請後端回 Set-Cookie 清除。
+  try {
+    await api.post("/api/auth/logout");
+  } catch (error) {
+    console.error(error);
+  }
+
   state.user = null;
   state.guest = false;
 
-  localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(GUEST_KEY);
 }

@@ -164,3 +164,67 @@ class TestSessionInvalidation:
 
         assert resp.status_code == 400
         assert "常見" in resp.json()["detail"]
+
+
+class TestCookieAuth:
+    """憑證改放 httpOnly cookie：JavaScript 讀不到，XSS 就偷不走。"""
+
+    def test_login_sets_httponly_cookie(self, client):
+        c, _ = client
+
+        resp = login(c)
+        cookie = resp.headers.get("set-cookie", "")
+
+        assert "access_token=" in cookie
+        assert "HttpOnly" in cookie
+        # SameSite=strict 讓跨站請求不帶此 cookie，等同擋掉 CSRF。
+        assert "strict" in cookie.lower()
+
+    def test_cookie_alone_authenticates(self, client):
+        """不帶 Authorization header，只靠瀏覽器自動附上的 cookie 也要能通過。"""
+        c, _ = client
+        login(c)
+
+        assert c.get("/api/auth/me").status_code == 200
+
+    def test_logout_clears_cookie(self, client):
+        c, _ = client
+        login(c)
+        assert c.get("/api/auth/me").status_code == 200
+
+        c.post("/api/auth/logout")
+
+        assert c.get("/api/auth/me").status_code == 401
+
+    def test_header_takes_precedence_over_cookie(self, client):
+        """兩者並存時以 header 為準，避免瀏覽器殘留的 cookie 蓋掉指定身分。"""
+        c, TestSession = client
+
+        session = TestSession()
+        session.add(User(username="bob", password_hash=hash_password(GOOD_PASSWORD),
+                         display_name="Bob", role="user", is_active=1))
+        session.commit()
+        session.close()
+
+        login(c)  # cookie = alice
+        bob_token = login(c, username="bob").json()["access_token"]
+        # 此時 cookie 已是 bob，改用 alice 的 token 明確指定
+        alice_token = c.post("/api/auth/login",
+                             json={"username": "alice", "password": GOOD_PASSWORD}).json()["access_token"]
+
+        me = c.get("/api/auth/me", headers={"Authorization": f"Bearer {alice_token}"})
+
+        assert me.json()["user"]["username"] == "alice"
+        assert bob_token  # 確認上面確實登入過 bob
+
+
+class TestSecurityHeaders:
+    def test_headers_present(self, client):
+        c, _ = client
+
+        headers = c.get("/health").headers
+
+        assert headers["X-Content-Type-Options"] == "nosniff"
+        assert headers["X-Frame-Options"] == "DENY"
+        assert "Content-Security-Policy" in headers
+        assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 from dotenv import load_dotenv
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -48,6 +48,40 @@ PBKDF2_DEFAULT_ITERATIONS = 600_000
 PBKDF2_ITERATIONS = int(os.getenv("PBKDF2_ITERATIONS", str(PBKDF2_DEFAULT_ITERATIONS)))
 
 _bearer_scheme = HTTPBearer(auto_error=False)
+
+# 說明：
+# token 改放在 httpOnly cookie，JavaScript 讀不到，
+# 這樣即使前端某處有 XSS，攻擊者也偷不走登入憑證
+#（存在 localStorage 的話一行 JS 就拿走了）。
+#
+# 仍保留 Authorization header 的支援：測試與外部 API 用戶端沿用原本方式，
+# 兩者擇一即可。
+ACCESS_TOKEN_COOKIE = "access_token"
+
+# SameSite=strict：跨站請求一律不帶這個 cookie，等於擋掉 CSRF。
+# 本系統前端與 API 同源，全部靠 XHR 呼叫，因此不受影響。
+COOKIE_SAMESITE = "strict"
+
+# Secure cookie 只有 https 才會被瀏覽器接受。
+# 開發時走 http://localhost，設了會讓 cookie 直接被丟棄而登不進去，
+# 因此依 APP_ENV 判斷；正式部署務必讓 APP_ENV 不是 development。
+COOKIE_SECURE = os.getenv("APP_ENV", "development").lower() != "development"
+
+
+def _read_token(request: Request | None, credentials: HTTPAuthorizationCredentials | None) -> str | None:
+    """優先讀 Authorization header，其次讀 cookie。
+
+    header 是呼叫端「明確指定」的身分，cookie 則是瀏覽器自動附帶的；
+    兩者同時存在時應以明確指定者為準，否則帶了 header 卻被瀏覽器殘留的
+    cookie 蓋掉，會變成難以察覺的錯誤身分。
+    """
+    if credentials is not None:
+        return credentials.credentials
+
+    if request is not None:
+        return request.cookies.get(ACCESS_TOKEN_COOKIE) or None
+
+    return None
 
 
 def hash_password(password: str) -> str:
@@ -199,6 +233,7 @@ def token_issued_before_password_change(payload: dict, user: User) -> bool:
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User:
@@ -207,10 +242,12 @@ def get_current_user(
     需要登入的 endpoint 加上 Depends(get_current_user) 即可。
     """
 
-    if credentials is None:
+    token = _read_token(request, credentials)
+
+    if token is None:
         raise HTTPException(status_code=401, detail="請先登入。")
 
-    payload = decode_access_token(credentials.credentials)
+    payload = decode_access_token(token)
 
     user = db.query(User).filter(User.id == payload.get("uid")).first()
 
@@ -224,6 +261,7 @@ def get_current_user(
 
 
 def get_optional_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
     db: Session = Depends(get_db),
 ) -> User | None:
@@ -234,11 +272,13 @@ def get_optional_user(
     憑證無效時一律當作訪客，不拋錯。
     """
 
-    if credentials is None:
+    token = _read_token(request, credentials)
+
+    if token is None:
         return None
 
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token)
     except HTTPException:
         return None
 

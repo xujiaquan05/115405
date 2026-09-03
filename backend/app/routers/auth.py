@@ -1,6 +1,6 @@
 # backend/app/routers/auth.py
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -11,6 +11,10 @@ from app.core.time_utils import taiwan_now
 from app.models.database_models import User
 from app.services.password_policy import validate_password
 from app.services.auth_service import (
+    ACCESS_TOKEN_COOKIE,
+    COOKIE_SAMESITE,
+    COOKIE_SECURE,
+    TOKEN_EXPIRE_HOURS,
     authenticate_user,
     create_access_token,
     get_current_user,
@@ -38,12 +42,16 @@ class LoginRequest(BaseModel):
 @router.post("/login", dependencies=[Depends(login_rate_limiter)])
 def login(
     payload: LoginRequest,
+    response: Response,
     db: Session = Depends(get_db),
 ):
     """
     說明：
-    帳號密碼登入，成功回傳 JWT access token 與使用者資訊。
-    前端把 token 放進 Authorization: Bearer <token> 使用。
+    帳號密碼登入。token 會寫進 httpOnly cookie，JavaScript 讀不到，
+    因此就算前端有 XSS 也偷不走登入憑證。
+
+    回應中仍附上 access_token，供測試與外部 API 用戶端以
+    Authorization: Bearer <token> 呼叫；瀏覽器端不需要（也不應）保存它。
     """
 
     user = authenticate_user(db, payload.username.strip(), payload.password)
@@ -55,12 +63,46 @@ def login(
     user.last_login_at = taiwan_now()
     db.commit()
 
+    token = create_access_token(user)
+    response.set_cookie(
+        key=ACCESS_TOKEN_COOKIE,
+        value=token,
+        httponly=True,
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+        max_age=TOKEN_EXPIRE_HOURS * 3600,
+        path="/",
+    )
+
     return {
         "status": "success",
-        "access_token": create_access_token(user),
+        # 與 cookie 內是同一個 token，不要另外簽一個。
+        "access_token": token,
         "token_type": "bearer",
         "user": serialize_user(user),
     }
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """
+    說明：
+    清除登入 cookie。
+
+    因為 cookie 是 httpOnly，前端 JavaScript 無法自行刪除，
+    一定要由伺服器回應 Set-Cookie 才能真正登出。
+    不需要驗證身分：沒登入時呼叫也只是清一個不存在的 cookie。
+    """
+
+    response.delete_cookie(
+        key=ACCESS_TOKEN_COOKIE,
+        path="/",
+        samesite=COOKIE_SAMESITE,
+        secure=COOKIE_SECURE,
+        httponly=True,
+    )
+
+    return {"status": "success", "message": "已登出。"}
 
 
 @router.get("/me")

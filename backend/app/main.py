@@ -35,6 +35,10 @@ app = FastAPI(
 )
 
 
+# APP_ENV=development 時放寬部分只在正式環境才適用的限制（HSTS、Secure cookie）。
+IS_DEVELOPMENT = os.getenv("APP_ENV", "development").lower() == "development"
+
+
 def get_cors_origins() -> list[str]:
     configured_origins = os.getenv("CORS_ORIGINS", "")
     origins = [
@@ -52,6 +56,44 @@ def get_cors_origins() -> list[str]:
         )
 
     return origins
+
+
+# 說明：
+# 安全性標頭。這些是「瀏覽器層」的防護，跟密碼雜湊互補：
+# 雜湊保護的是資料庫外洩，這些保護的是使用者的瀏覽器連線。
+#
+# CSP 只允許自家資源：前端是建置後的靜態檔（同源），
+# 樣式需要 unsafe-inline 是因為 Vue 會注入行內樣式。
+CSP_POLICY = "; ".join([
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data:",
+    "font-src 'self' data:",
+    "connect-src 'self' ws: wss:",
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+])
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+
+    # 不要讓瀏覽器自己猜檔案型別（可被用來把上傳內容當成腳本執行）。
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # 禁止被嵌入 iframe，避免點擊劫持。
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = CSP_POLICY
+
+    # HSTS 只在正式環境送出：開發時走 http://localhost，
+    # 送了會讓瀏覽器記住「這個網域只准 https」而連不上。
+    if not IS_DEVELOPMENT:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+
+    return response
 
 
 app.add_middleware(
