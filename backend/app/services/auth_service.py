@@ -5,6 +5,7 @@ import hmac
 import logging
 import os
 import secrets
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -14,6 +15,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.time_utils import taiwan_now
 from app.models.database_models import User
 
 
@@ -56,6 +58,12 @@ _bearer_scheme = HTTPBearer(auto_error=False)
 #
 # 仍保留 Authorization header 的支援：測試與外部 API 用戶端沿用原本方式，
 # 兩者擇一即可。
+# 帳號層級的登入保護。
+# 既有的 RateLimiter 只看 IP，攻擊者換 IP 就能繞過；
+# 這裡改以「帳號」為單位計數並寫進資料庫，換 IP 或重啟服務都不會重置。
+MAX_FAILED_LOGINS = int(os.getenv("MAX_FAILED_LOGINS", "5"))
+LOCKOUT_MINUTES = int(os.getenv("LOCKOUT_MINUTES", "15"))
+
 ACCESS_TOKEN_COOKIE = "access_token"
 
 # SameSite=strict：跨站請求一律不帶這個 cookie，等於擋掉 CSRF。
@@ -178,27 +186,80 @@ def decode_access_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="無效的登入憑證，請重新登入。")
 
 
-def authenticate_user(db: Session, username: str, password: str) -> User | None:
+@dataclass
+class LoginResult:
+    """登入結果。
+
+    status:
+      ok      驗證通過
+      invalid 帳號不存在 / 已停用 / 密碼錯誤（一律相同，避免帳號枚舉）
+      locked  密碼正確，但帳號因連續失敗而暫時鎖定
+    """
+
+    status: str
+    user: User | None = None
+    retry_after_minutes: int = 0
+
+
+def is_locked(user: User) -> bool:
+    locked_until = getattr(user, "locked_until", None)
+    return locked_until is not None and locked_until > taiwan_now()
+
+
+def _register_failure(db: Session, user: User) -> None:
+    """累計失敗次數，達門檻就鎖定一段時間。"""
+    user.failed_login_count = (user.failed_login_count or 0) + 1
+
+    if user.failed_login_count >= MAX_FAILED_LOGINS:
+        user.locked_until = taiwan_now() + timedelta(minutes=LOCKOUT_MINUTES)
+        user.failed_login_count = 0  # 鎖定後重新計數，解鎖再犯才會再次鎖
+
+    db.commit()
+
+
+def authenticate_user(db: Session, username: str, password: str) -> LoginResult:
     """
     以帳號密碼驗證使用者。
-    帳號不存在、已停用或密碼錯誤都回傳 None，
-    不透露是哪一項錯誤，避免帳號枚舉攻擊。
+
+    帳號不存在、已停用或密碼錯誤一律回傳 invalid，不透露是哪一項，
+    避免攻擊者用錯誤訊息判斷帳號是否存在。
+
+    唯一的例外是「密碼正確但帳號被鎖定」才回報 locked：
+    對方既然已經知道密碼，告知鎖定並不會多洩漏什麼，
+    卻能讓真正的使用者明白為何登不進去。
     """
 
     user = db.query(User).filter(User.username == username).first()
 
     if user is None or not user.is_active:
-        return None
+        return LoginResult(status="invalid")
 
-    if not verify_password(password, user.password_hash):
-        return None
+    password_ok = verify_password(password, user.password_hash)
+
+    if is_locked(user):
+        if password_ok:
+            remaining = user.locked_until - taiwan_now()
+            minutes = max(1, int(remaining.total_seconds() // 60) + 1)
+            return LoginResult(status="locked", retry_after_minutes=minutes)
+
+        return LoginResult(status="invalid")
+
+    if not password_ok:
+        _register_failure(db, user)
+        return LoginResult(status="invalid")
+
+    # 登入成功：清掉失敗計數與鎖定狀態。
+    if user.failed_login_count or user.locked_until:
+        user.failed_login_count = 0
+        user.locked_until = None
 
     # 密碼正確時順手把舊雜湊升級到目前的迭代次數（使用者無感）。
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(password)
-        db.commit()
 
-    return user
+    db.commit()
+
+    return LoginResult(status="ok", user=user)
 
 
 def token_issued_before_password_change(payload: dict, user: User) -> bool:

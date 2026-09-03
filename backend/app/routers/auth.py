@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.time_utils import utc_now
+from app.services.audit_service import record_audit, record_security_event
 from app.core.rate_limit import RateLimiter
 from app.core.time_utils import taiwan_now
 from app.models.database_models import User
@@ -54,10 +55,25 @@ def login(
     Authorization: Bearer <token> 呼叫；瀏覽器端不需要（也不應）保存它。
     """
 
-    user = authenticate_user(db, payload.username.strip(), payload.password)
+    username = payload.username.strip()
+    result = authenticate_user(db, username, payload.password)
 
-    if user is None:
+    if result.status == "locked":
+        record_security_event(
+            db, "login_locked", username,
+            f"帳號鎖定中，仍嘗試登入（約 {result.retry_after_minutes} 分鐘後解鎖）",
+        )
+        raise HTTPException(
+            status_code=423,
+            detail=f"因連續登入失敗，帳號已暫時鎖定，請於約 {result.retry_after_minutes} 分鐘後再試。",
+        )
+
+    if result.status != "ok":
+        # 訊息與「密碼錯誤」完全相同，不讓攻擊者判斷帳號是否存在。
+        record_security_event(db, "login_failed", username, "登入失敗（帳號或密碼錯誤）")
         raise HTTPException(status_code=401, detail="帳號或密碼錯誤，請重新輸入。")
+
+    user = result.user
 
     # 記錄最後登入時間（台灣時間），供後台觀察帳號活躍度。
     user.last_login_at = taiwan_now()
@@ -182,6 +198,14 @@ def change_password(
     current_user.password_hash = hash_password(payload.new_password)
     # 記錄變更時間，讓在此之前簽發的 token 全部失效（其他裝置會被登出）。
     current_user.password_changed_at = utc_now()
+
+    record_audit(
+        db,
+        actor=current_user,
+        action="change_password",
+        target_username=current_user.username,
+        detail="自行變更密碼（其他裝置的登入已失效）",
+    )
     db.commit()
 
     return {

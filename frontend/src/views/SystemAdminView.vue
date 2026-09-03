@@ -39,6 +39,11 @@ const AUDIT_ACTIONS = [
   { value: "add_watch_keyword", label: "新增監控" },
   { value: "delete_watch_keyword", label: "移除監控" },
   { value: "delete_history", label: "刪除紀錄" },
+  // 安全性事件：登入失敗與帳號鎖定沒有已登入的操作者，
+  // actor_username 存的是「嘗試登入的帳號」。
+  { value: "login_failed", label: "登入失敗" },
+  { value: "login_locked", label: "帳號鎖定" },
+  { value: "change_password", label: "變更密碼" },
 ];
 
 function auditActionLabel(action) {

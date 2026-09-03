@@ -58,6 +58,12 @@ def _apply_schema_migrations():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMP"
         ))
         connection.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_count INTEGER DEFAULT 0"
+        ))
+        connection.execute(text(
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP"
+        ))
+        connection.execute(text(
             "ALTER TABLE watch_keywords ADD COLUMN IF NOT EXISTS user_id INTEGER"
         ))
         connection.execute(text(

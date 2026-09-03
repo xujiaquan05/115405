@@ -138,6 +138,13 @@ class User(Base):
     # 訂閱方案代碼（free / pro / business），對應 plans 表。
     plan_code = Column(String(20), nullable=False, default="free")
 
+    # 連續登入失敗次數；成功登入或鎖定到期後歸零。
+    failed_login_count = Column(Integer, nullable=False, default=0)
+
+    # 鎖定到什麼時候（台灣時間）。NULL 或已過期代表未鎖定。
+    # 存在資料庫而非記憶體，才不會重啟後歸零，也擋得住換 IP 重試。
+    locked_until = Column(DateTime)
+
     # 最後一次變更密碼的時間（UTC，與 JWT 的 iat 同基準）。
     # 用來讓「改密碼」能真正把舊 token 踢下線：簽發時間早於此值的 token 一律失效。
     password_changed_at = Column(DateTime)

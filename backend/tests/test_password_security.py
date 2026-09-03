@@ -228,3 +228,104 @@ class TestSecurityHeaders:
         assert headers["X-Frame-Options"] == "DENY"
         assert "Content-Security-Policy" in headers
         assert "frame-ancestors 'none'" in headers["Content-Security-Policy"]
+
+
+class TestAccountLockout:
+    """既有的 RateLimiter 只看 IP，換 IP 就能繞過；
+    這裡的鎖定以「帳號」為單位並存在資料庫，換 IP 或重啟都不會重置。"""
+
+    def _fail_login(self, c, times):
+        from app.services.auth_service import login_rate_limiter as _unused  # noqa: F401
+        for _ in range(times):
+            c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
+
+    def test_locks_after_repeated_failures(self, client):
+        c, _ = client
+        login_rate_limiter._hits.clear()
+
+        for _ in range(5):
+            c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
+            login_rate_limiter._hits.clear()  # 排除 IP 限流干擾，單獨驗證帳號鎖定
+
+        # 密碼正確也進不去，且要說明原因（對方已知道密碼，告知鎖定不算洩漏）
+        resp = login(c)
+
+        assert resp.status_code == 423
+        assert "鎖定" in resp.json()["detail"]
+
+    def test_lockout_message_does_not_leak_account_existence(self, client):
+        """帳號不存在、密碼錯誤、被鎖定卻密碼也錯 —— 三者訊息必須一模一樣。"""
+        c, _ = client
+        login_rate_limiter._hits.clear()
+
+        missing = c.post("/api/auth/login", json={"username": "nobody", "password": "whatever-123"})
+        login_rate_limiter._hits.clear()
+        wrong = c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
+
+        assert missing.status_code == wrong.status_code == 401
+        assert missing.json()["detail"] == wrong.json()["detail"]
+
+    def test_successful_login_resets_counter(self, client):
+        c, TestSession = client
+        login_rate_limiter._hits.clear()
+
+        for _ in range(3):
+            c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
+            login_rate_limiter._hits.clear()
+
+        assert login(c).status_code == 200
+
+        session = TestSession()
+        user = session.query(User).filter(User.username == "alice").first()
+        count, locked = user.failed_login_count, user.locked_until
+        session.close()
+
+        assert count == 0
+        assert locked is None
+
+
+class TestSecurityAuditLog:
+    def test_failed_login_is_recorded(self, client):
+        from app.models.database_models import AuditLog
+
+        c, TestSession = client
+        login_rate_limiter._hits.clear()
+        c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
+
+        session = TestSession()
+        logs = session.query(AuditLog).filter(AuditLog.action == "login_failed").all()
+        session.close()
+
+        assert len(logs) == 1
+        assert logs[0].actor_username == "alice"
+        assert logs[0].actor_id is None  # 尚未通過驗證，沒有 actor
+
+    def test_unknown_account_attempt_is_also_recorded(self, client):
+        """帳號不存在也要記錄：那本身就是值得追查的訊號。"""
+        from app.models.database_models import AuditLog
+
+        c, TestSession = client
+        login_rate_limiter._hits.clear()
+        c.post("/api/auth/login", json={"username": "hacker", "password": "whatever-123"})
+
+        session = TestSession()
+        logs = session.query(AuditLog).filter(AuditLog.action == "login_failed").all()
+        session.close()
+
+        assert [log.actor_username for log in logs] == ["hacker"]
+
+    def test_password_change_is_recorded(self, client):
+        from app.models.database_models import AuditLog
+
+        c, TestSession = client
+        header = {"Authorization": f"Bearer {login(c).json()['access_token']}"}
+        c.post("/api/auth/change-password",
+               json={"old_password": GOOD_PASSWORD, "new_password": "N3w-Secret-2026"},
+               headers=header)
+
+        session = TestSession()
+        logs = session.query(AuditLog).filter(AuditLog.action == "change_password").all()
+        session.close()
+
+        assert len(logs) == 1
+        assert logs[0].actor_username == "alice"
