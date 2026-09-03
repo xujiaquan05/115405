@@ -41,7 +41,11 @@ TOKEN_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "12"))
 # 說明：
 # 密碼雜湊使用 Python 標準函式庫的 PBKDF2-HMAC-SHA256，
 # 不需額外安裝原生套件（如 bcrypt），部署到任何環境都能運作。
-PBKDF2_ITERATIONS = 260_000
+# OWASP 目前建議 PBKDF2-HMAC-SHA256 使用 600,000 次迭代。
+# 迭代次數會寫進雜湊字串裡，所以舊密碼仍可驗證；使用者下次登入時會自動升級。
+# 測試以環境變數調低，否則每次建立測試帳號都要多花數百毫秒。
+PBKDF2_DEFAULT_ITERATIONS = 600_000
+PBKDF2_ITERATIONS = int(os.getenv("PBKDF2_ITERATIONS", str(PBKDF2_DEFAULT_ITERATIONS)))
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -85,6 +89,26 @@ def verify_password(password: str, password_hash: str) -> bool:
 
         return hmac.compare_digest(digest.hex(), expected)
     except (ValueError, AttributeError):
+        return False
+
+
+def needs_rehash(password_hash: str) -> bool:
+    """判斷雜湊是否用較舊（較弱）的迭代次數產生。
+
+    提高迭代次數後不能強迫所有人改密碼，因此改成「下次登入時
+    用明文重新雜湊一次」，逐步把舊帳號升級上來。
+    """
+    try:
+        algorithm, iterations, _salt, _digest = password_hash.split("$")
+    except (ValueError, AttributeError):
+        return False
+
+    if algorithm != "pbkdf2_sha256":
+        return False
+
+    try:
+        return int(iterations) < PBKDF2_ITERATIONS
+    except ValueError:
         return False
 
 
@@ -135,7 +159,43 @@ def authenticate_user(db: Session, username: str, password: str) -> User | None:
     if not verify_password(password, user.password_hash):
         return None
 
+    # 密碼正確時順手把舊雜湊升級到目前的迭代次數（使用者無感）。
+    if needs_rehash(user.password_hash):
+        user.password_hash = hash_password(password)
+        db.commit()
+
     return user
+
+
+def token_issued_before_password_change(payload: dict, user: User) -> bool:
+    """token 是否在使用者變更密碼之前簽發。
+
+    沒有這個檢查，改密碼並不會把已經登入的攻擊者踢下線 ——
+    他手上的 token 仍可用到過期為止，而那正是最需要擋住的時候。
+    """
+    changed_at = getattr(user, "password_changed_at", None)
+
+    if changed_at is None:
+        return False
+
+    issued_at = payload.get("iat")
+
+    if issued_at is None:
+        return False
+
+    # iat 是 UTC 時戳；password_changed_at 也以 UTC 儲存（見 time_utils.utc_now）。
+    if isinstance(issued_at, datetime):
+        issued_dt = issued_at.replace(tzinfo=None)
+    else:
+        issued_dt = datetime.fromtimestamp(int(issued_at), tz=timezone.utc).replace(tzinfo=None)
+
+    # 不要把 changed_at 也截到整秒：iat 本身已經是整秒，
+    # 兩邊都截秒的話，同一秒內簽發的 token 會比對成「不早於」而擋不掉。
+    # 保留微秒讓「該秒稍早簽發的 token」確實小於變更時間。
+    #
+    # 代價是：若使用者在改密碼的同一秒內重新登入，新 token 也會被判失效，
+    # 需要再登入一次。這個方向是安全的（寧可多登一次，不可放行舊 token）。
+    return issued_dt < changed_at
 
 
 def get_current_user(
@@ -156,6 +216,9 @@ def get_current_user(
 
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="帳號不存在或已停用。")
+
+    if token_issued_before_password_change(payload, user):
+        raise HTTPException(status_code=401, detail="密碼已變更，請重新登入。")
 
     return user
 
@@ -182,6 +245,9 @@ def get_optional_user(
     user = db.query(User).filter(User.id == payload.get("uid")).first()
 
     if user is None or not user.is_active:
+        return None
+
+    if token_issued_before_password_change(payload, user):
         return None
 
     return user

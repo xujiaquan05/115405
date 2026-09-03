@@ -111,7 +111,7 @@ class TestLastLoginAndAudit:
     def test_audit_log_records_create(self, client):
         client.post(
             "/api/admin/users",
-            json={"username": "editor", "password": "editor123"},
+            json={"username": "editor", "password": "Str0ng-Pass-99"},
             headers=admin_header(client),
         )
 
@@ -139,20 +139,20 @@ class TestCreateUser:
     def test_create_success(self, client):
         response = client.post(
             "/api/admin/users",
-            json={"username": "editor", "password": "editor123", "role": "user"},
+            json={"username": "editor", "password": "Str0ng-Pass-99", "role": "user"},
             headers=admin_header(client),
         )
         assert response.status_code == 200
         assert response.json()["user"]["username"] == "editor"
         # 新帳號可以立即登入。
         assert client.post("/api/auth/login", json={
-            "username": "editor", "password": "editor123",
+            "username": "editor", "password": "Str0ng-Pass-99",
         }).status_code == 200
 
     def test_duplicate_username_rejected(self, client):
         response = client.post(
             "/api/admin/users",
-            json={"username": "normal", "password": "another123"},
+            json={"username": "normal", "password": "Another-Pass-77"},
             headers=admin_header(client),
         )
         assert response.status_code == 409
@@ -168,7 +168,7 @@ class TestCreateUser:
     def test_invalid_role_rejected(self, client):
         response = client.post(
             "/api/admin/users",
-            json={"username": "weird", "password": "weird123", "role": "superuser"},
+            json={"username": "weird", "password": "Weird-Pass-55", "role": "superuser"},
             headers=admin_header(client),
         )
         assert response.status_code == 400
@@ -217,12 +217,12 @@ class TestUpdateUser:
         normal_id = self._normal_id(client)
         response = client.patch(
             f"/api/admin/users/{normal_id}",
-            json={"new_password": "reset123"},
+            json={"new_password": "Reset-Pass-33"},
             headers=admin_header(client),
         )
         assert response.status_code == 200
         assert client.post("/api/auth/login", json={
-            "username": "normal", "password": "reset123",
+            "username": "normal", "password": "Reset-Pass-33",
         }).status_code == 200
 
     def test_deactivated_user_cannot_login(self, client):

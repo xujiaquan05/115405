@@ -50,7 +50,9 @@ class TestPasswordHashing:
         algorithm, iterations, salt, digest = password_hash.split("$")
 
         assert algorithm == "pbkdf2_sha256"
-        assert int(iterations) >= 100_000
+        # conftest 為了測試速度調低了迭代次數，這裡確認雜湊確實照設定值產生。
+        from app.services.auth_service import PBKDF2_ITERATIONS
+        assert int(iterations) == PBKDF2_ITERATIONS
         assert len(salt) == 32
         assert len(digest) == 64
 
@@ -100,3 +102,15 @@ class TestJwtTokens:
 
         with pytest.raises(HTTPException):
             decode_access_token(forged)
+
+
+class TestIterationDefault:
+    def test_production_default_meets_owasp(self):
+        """正式預設值必須符合 OWASP 對 PBKDF2-HMAC-SHA256 的建議（600,000 次）。
+
+        測試環境用環境變數調低以加快速度，所以這裡檢查的是「未設定時的預設值」，
+        避免有人為了讓測試跑快而把正式值一起調低。
+        """
+        from app.services.auth_service import PBKDF2_DEFAULT_ITERATIONS
+
+        assert PBKDF2_DEFAULT_ITERATIONS >= 600_000

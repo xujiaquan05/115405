@@ -5,9 +5,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.time_utils import utc_now
 from app.core.rate_limit import RateLimiter
 from app.core.time_utils import taiwan_now
 from app.models.database_models import User
+from app.services.password_policy import validate_password
 from app.services.auth_service import (
     authenticate_user,
     create_access_token,
@@ -133,7 +135,11 @@ def change_password(
     if payload.old_password == payload.new_password:
         raise HTTPException(status_code=400, detail="新密碼不可與舊密碼相同。")
 
+    validate_password(payload.new_password, current_user.username)
+
     current_user.password_hash = hash_password(payload.new_password)
+    # 記錄變更時間，讓在此之前簽發的 token 全部失效（其他裝置會被登出）。
+    current_user.password_changed_at = utc_now()
     db.commit()
 
     return {

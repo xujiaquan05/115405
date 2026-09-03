@@ -336,7 +336,7 @@ onMounted(async () => {
           </label>
 
           <label>
-            <span>新密碼（至少 6 個字元）</span>
+            <span>新密碼（至少 8 個字元）</span>
             <div class="profile-pw-field">
               <input v-model="form.newPassword" :type="reveal.new ? 'text' : 'password'" autocomplete="new-password" />
               <button class="profile-pw-toggle" type="button" :aria-label="reveal.new ? '隱藏密碼' : '顯示密碼'" @click="reveal.new = !reveal.new">

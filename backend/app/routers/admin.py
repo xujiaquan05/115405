@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.scheduler import reschedule_daily_job
-from app.core.time_utils import taiwan_now
+from app.core.time_utils import taiwan_now, utc_now
 from app.models.database_models import Alert, Article, Board, CrawlLog, User, WatchKeyword
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.audit_service import list_recent_audits, record_audit
@@ -21,6 +21,7 @@ from app.services.auth_service import (
     serialize_user_admin,
     uses_default_password,
 )
+from app.services.password_policy import validate_password
 from app.services.settings_service import get_all_settings, get_setting, update_settings
 
 
@@ -128,6 +129,8 @@ def create_user(
 
     role_label = "管理員" if payload.role == "admin" else "一般使用者"
 
+    validate_password(payload.password, username)
+
     user = User(
         username=username,
         password_hash=hash_password(payload.password),
@@ -194,7 +197,10 @@ def update_user(
         changes.append("修改顯示名稱")
 
     if payload.new_password is not None:
+        validate_password(payload.new_password, user.username)
         user.password_hash = hash_password(payload.new_password)
+        # 管理員重設密碼同樣要把該帳號的既有 token 踢掉。
+        user.password_changed_at = utc_now()
         changes.append("重設密碼")
 
     if changes:

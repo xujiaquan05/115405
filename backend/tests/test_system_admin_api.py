@@ -133,6 +133,11 @@ class TestSecurityStatus:
                     json={"old_password": "admin123", "new_password": "a-strong-pass-123"},
                     headers=headers)
 
+        # 改密碼會讓變更前簽發的 token 失效；JWT 的 iat 只精確到秒，
+        # 因此等過一秒再登入，否則新 token 也會落在同一秒而被擋下。
+        import time
+        time.sleep(1.1)
+
         headers = auth_header(client, "admin", "a-strong-pass-123")
         security = client.get("/api/admin/system-overview", headers=headers).json()["data"]["security"]
 
