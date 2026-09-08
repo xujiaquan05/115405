@@ -104,7 +104,10 @@ function readStoredRole() {
 }
 
 router.beforeEach((to) => {
-  const hasToken = Boolean(localStorage.getItem('auth_token'))
+  // 憑證改放 httpOnly cookie 後，JavaScript 讀不到 token，
+  // 因此以「本機是否記著使用者資料」代表已登入。
+  // cookie 若已失效，第一個 API 請求會收到 401，由 api.js 的攔截器導回登入頁。
+  const hasAccount = Boolean(localStorage.getItem('auth_user'))
   const isGuest = localStorage.getItem('auth_guest') === '1'
 
   // 公開首頁，不設限。
@@ -113,21 +116,21 @@ router.beforeEach((to) => {
   }
 
   if (to.path === '/login') {
-    return hasToken ? { path: '/dashboard' } : true
+    return hasAccount ? { path: '/dashboard' } : true
   }
 
   // 只有 admin 能進的頁面：未登入導登入頁，非 admin 導回 Dashboard。
   if (to.meta.requiresAdmin) {
-    if (!hasToken) return { path: '/login' }
+    if (!hasAccount) return { path: '/login' }
     if (readStoredRole() !== 'admin') return { path: '/dashboard' }
   }
 
   // 需要真正帳號的頁面（例如帳號資訊），訪客一律導回登入頁。
-  if (to.meta.requiresAccount && !hasToken) {
+  if (to.meta.requiresAccount && !hasAccount) {
     return { path: '/login' }
   }
 
-  if (!hasToken && !isGuest) {
+  if (!hasAccount && !isGuest) {
     return { path: '/login' }
   }
 
