@@ -1304,9 +1304,10 @@ select {
 }
 
 .landing-nav-inner {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 15px 24px;
+  /* 導覽列橫跨整個畫面：logo 貼左、選單貼右。
+     頁面其他區塊仍維持 1120px 置中，維持長文的可讀寬度。
+     左右內距用 clamp，窄螢幕不會貼邊、寬螢幕也不會離邊太遠。 */
+  padding: 15px clamp(20px, 4vw, 56px);
   display: flex;
   justify-content: space-between;
   align-items: center;
