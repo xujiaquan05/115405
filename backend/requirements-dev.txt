@@ -1,1 +1,9 @@
-pytest>=8.0
+# 開發與測試用相依。正式執行不需要這些，因此與 requirements.txt 分開，
+# 部署映像檔才不會裝進測試工具。
+#
+# 安裝：pip install -r requirements.txt -r requirements-dev.txt
+
+pytest==9.1.1
+pytest-cov==7.0.0
+PyYAML==6.0.3          # 測試會讀 render.yaml 檢查部署設定
+ruff==0.16.6

@@ -21,5 +21,6 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# 測試不需要正式的雜湊強度，調低可讓整套測試快上數倍。
-env = ["PBKDF2_ITERATIONS=1000"]
+# 註：降低雜湊強度是由 tests/conftest.py 在匯入應用程式前設定環境變數完成。
+# 這裡不用 pytest 的 env 選項——那需要額外安裝 pytest-env，
+# 沒安裝時 pytest 只會發出「Unknown config option」警告而不會生效。

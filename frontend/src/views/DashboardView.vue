@@ -28,7 +28,6 @@ const {
   dataStatus,
   searchDashboard,
   fetchDashboard,
-  fetchInsight,
   changeSort,
 } = useDashboard();
 

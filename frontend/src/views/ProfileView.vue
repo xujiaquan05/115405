@@ -1,7 +1,7 @@
 <!-- frontend/src/views/ProfileView.vue -->
 
 <script setup>
-import { computed, onMounted, reactive, ref } from "vue";
+import {computed, onMounted, reactive } from "vue";
 import { useAuth } from "../composables/useAuth";
 import { passwordStrength } from "../utils/password";
 import api from "../services/api";
