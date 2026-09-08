@@ -257,6 +257,49 @@ class UsageCounter(Base):
     updated_at = Column(DateTime)
 
 
+class SystemLock(Base):
+    """跨行程的互斥鎖。
+
+    原本的爬取旗標是 process 內的全域變數，只有單一 worker 時才正確；
+    多開一個 worker，兩邊各有一份旗標，就會同時跑兩批爬取
+    ——重複打來源站台，crawl_logs 也會互相混在一起。
+    改存資料庫後，所有 worker 看到的是同一把鎖。
+
+    expires_at 是必要的保險：worker 若在持鎖時被強制關閉，
+    沒有到期時間的話這把鎖會永遠卡住。
+    """
+
+    __tablename__ = "system_locks"
+
+    name = Column(String(64), primary_key=True)
+
+    acquired_at = Column(DateTime, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+
+    # 方便排查是誰持有（目前存 process id）。
+    owner = Column(String(64))
+
+
+class RateLimitHit(Base):
+    """依 key（通常是 IP）計數的請求次數。
+
+    同樣是為了跨 worker：狀態放記憶體時，開 N 個 worker
+    等於把限制放寬成 N 倍。
+
+    採「固定視窗」而非原本的滑動視窗：滑動視窗要保存每一次請求的時戳，
+    寫入量大得多；固定視窗每個 key 只需一列，對資料庫友善，
+    代價是視窗交界處最多可能放行接近兩倍的請求，對登入保護而言可以接受
+    （帳號層級的鎖定才是主要防線）。
+    """
+
+    __tablename__ = "rate_limit_hits"
+
+    key = Column(String(200), primary_key=True)
+
+    window_start = Column(DateTime, nullable=False)
+    count = Column(Integer, nullable=False, default=0)
+
+
 class Setting(Base):
     """
     說明：

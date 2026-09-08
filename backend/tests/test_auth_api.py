@@ -9,7 +9,6 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
 from app.models.database_models import User
-from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password
 
 
@@ -37,7 +36,6 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
 
     # 登入 rate limiter 是全域狀態，先清空避免測試之間互相影響。
-    login_rate_limiter._hits.clear()
 
     session = TestSession()
     session.add(User(

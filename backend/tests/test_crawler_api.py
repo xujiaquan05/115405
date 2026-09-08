@@ -12,7 +12,6 @@ from app.crawlers.ptt_crawler import PTTCrawler
 from app.crawlers.registry import get_crawler
 from app.main import app
 from app.models.database_models import User
-from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password
 
 
@@ -41,7 +40,6 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    login_rate_limiter._hits.clear()
 
     session = TestSession()
     session.add(User(username="admin", password_hash=hash_password("admin123"),

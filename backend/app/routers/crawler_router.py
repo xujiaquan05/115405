@@ -1,4 +1,4 @@
-import threading
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, get_db
 from app.crawlers.registry import get_crawler
 from app.models.database_models import Article, Board, CrawlLog, Platform
+from app.services import lock_service
 from app.services.article_service import (
     create_article,
     get_or_create_board,
@@ -29,6 +30,9 @@ from app.services.relevance_filter import evaluate_article_relevance
 from app.services.sentiment_service import classify_pending_sentiments
 from app.services.settings_service import get_setting
 from app.websocket.manager import websocket_manager
+
+logger = logging.getLogger(__name__)
+
 
 router = APIRouter(
     prefix="/api/crawler",
@@ -278,29 +282,17 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
 
 
 # 說明：
-# 爬取在 background task 中執行，因此需要狀態旗標 + lock，
-# 避免兩個 request 同時觸發兩批重疊的爬取
-# （既加倍打到 PTT，log 也會互相混在一起）。
-_crawl_state_lock = threading.Lock()
-_crawl_running = False
+# 爬取在 background task 中執行，需要互斥以避免兩個 request 同時觸發
+# 兩批重疊的爬取（既加倍打到來源站台，crawl_logs 也會互相混在一起）。
+#
+# 這把鎖存在資料庫而不是 process 記憶體：舊版用 threading.Lock + 全域旗標，
+# 只有單一 worker 時才正確，多開一個 worker 就會各自持有一份旗標而同時開跑。
+def _try_start_crawl(db: Session) -> bool:
+    return lock_service.try_acquire(db, lock_service.CRAWL_LOCK)
 
 
-def _try_start_crawl() -> bool:
-    global _crawl_running
-
-    with _crawl_state_lock:
-        if _crawl_running:
-            return False
-
-        _crawl_running = True
-        return True
-
-
-def _finish_crawl():
-    global _crawl_running
-
-    with _crawl_state_lock:
-        _crawl_running = False
+def _finish_crawl(db: Session):
+    lock_service.release(db, lock_service.CRAWL_LOCK)
 
 
 def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page: int | None):
@@ -332,8 +324,14 @@ def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page
                 "scored_count": scored_count,
             })
     finally:
+        # 先釋放鎖再關閉 session：鎖現在存在資料庫，
+        # session 關掉之後就沒辦法刪那一列了。
+        try:
+            _finish_crawl(db)
+        except Exception:
+            logger.exception("Failed to release the crawl lock")
+
         db.close()
-        _finish_crawl()
 
 
 # 說明：
@@ -361,7 +359,7 @@ def crawl_ptt_board(
     if not selected_boards:
         raise HTTPException(status_code=400, detail="沒有可爬取的看板，請確認看板名稱。")
 
-    if not _try_start_crawl():
+    if not _try_start_crawl(db):
         raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
 
     record_audit(
@@ -424,7 +422,7 @@ def crawl_dcard_board(
     if not selected_boards:
         raise HTTPException(status_code=400, detail="沒有可爬取的 Dcard 看板，請確認看板名稱或是否已啟用。")
 
-    if not _try_start_crawl():
+    if not _try_start_crawl(db):
         raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
 
     record_audit(
@@ -486,7 +484,7 @@ def crawl_mobile01_board(
     if not selected_boards:
         raise HTTPException(status_code=400, detail="沒有可爬取的 Mobile01 討論區，請確認編號或是否已啟用。")
 
-    if not _try_start_crawl():
+    if not _try_start_crawl(db):
         raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
 
     labels = "、".join(f"{b}（{MOBILE01_BOARDS.get(b, b)}）" for b in selected_boards)
@@ -549,7 +547,7 @@ def crawl_threads_keyword(
     if not selected_boards:
         raise HTTPException(status_code=400, detail="沒有可爬取的 Threads 關鍵字，請確認關鍵字或是否已啟用。")
 
-    if not _try_start_crawl():
+    if not _try_start_crawl(db):
         raise HTTPException(status_code=409, detail="已有爬取任務執行中，請稍後再試。")
 
     record_audit(
@@ -578,16 +576,15 @@ def crawl_threads_keyword(
 # DB 留下一筆永遠是 running 的紀錄，導致前端一直顯示執行中、無法開新任務）。
 #
 # 做兩件事：
-# 1. 清掉記憶體中的執行旗標，讓新的爬取可以開始。
+# 1. 釋放共享的爬取鎖，讓新的爬取可以開始。
 # 2. 把 DB 裡卡住的 running 紀錄標記為 failed。
 # 注意：若真的有背景執行緒還在跑，Python 無法強制中斷它，但重置後
 # 仍可開新任務；卡住的舊任務會自行結束或出錯。
 @router.post("/reset")
 def reset_crawl(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    global _crawl_running
-
-    with _crawl_state_lock:
-        _crawl_running = False
+    # 鎖存在資料庫，所以這裡的釋放對所有 worker 都有效
+    #（舊版只清得掉自己這個 process 的旗標）。
+    _finish_crawl(db)
 
     stuck_logs = db.query(CrawlLog).filter(CrawlLog.status == "running").all()
 

@@ -21,7 +21,7 @@ router = APIRouter(
 # 每個問題會消耗 1-2 次 Gemini 呼叫（花費 API key 額度），
 # 因此限制每個 IP 每分鐘 10 個問題，
 # 避免 public URL 被灌爆。
-qa_rate_limiter = RateLimiter(max_requests=10, window_seconds=60)
+qa_rate_limiter = RateLimiter(max_requests=10, window_seconds=60, scope="qa")
 
 
 class HistoryItem(BaseModel):

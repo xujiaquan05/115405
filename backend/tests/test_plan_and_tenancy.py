@@ -15,7 +15,6 @@ from sqlalchemy.pool import StaticPool
 from app.core.database import Base, get_db
 from app.main import app
 from app.models.database_models import Plan, User
-from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password
 
 PLANS = [
@@ -40,7 +39,6 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    login_rate_limiter._hits.clear()
 
     session = TestSession()
     session.add_all([Plan(**spec) for spec in PLANS])

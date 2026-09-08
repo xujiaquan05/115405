@@ -10,13 +10,25 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
+from app.core.rate_limit import clear_rate_limits
 from app.main import app
 from app.models.database_models import User
-from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password, needs_rehash
 from app.services.password_policy import score_password, validate_password
 
 GOOD_PASSWORD = "Str0ng-Pass-99"
+
+
+def _clear_rate_limits(TestSession):
+    """清掉 IP 頻率限制的計數。
+
+    計數改存資料庫後不能再清記憶體；這些測試要驗的是「帳號層級鎖定」，
+    必須先把 IP 限制排除掉才不會在第 5 次嘗試前就被 429 擋下。
+    """
+    session = TestSession()
+    clear_rate_limits(session)
+    session.close()
+
 
 
 @pytest.fixture
@@ -33,7 +45,6 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    login_rate_limiter._hits.clear()
 
     session = TestSession()
     session.add(User(username="alice", password_hash=hash_password(GOOD_PASSWORD),
@@ -239,12 +250,12 @@ class TestAccountLockout:
             c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
 
     def test_locks_after_repeated_failures(self, client):
-        c, _ = client
-        login_rate_limiter._hits.clear()
+        c, TestSession = client
+        _clear_rate_limits(TestSession)
 
         for _ in range(5):
             c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
-            login_rate_limiter._hits.clear()  # 排除 IP 限流干擾，單獨驗證帳號鎖定
+            _clear_rate_limits(TestSession)  # 排除 IP 限流干擾，單獨驗證帳號鎖定
 
         # 密碼正確也進不去，且要說明原因（對方已知道密碼，告知鎖定不算洩漏）
         resp = login(c)
@@ -254,11 +265,11 @@ class TestAccountLockout:
 
     def test_lockout_message_does_not_leak_account_existence(self, client):
         """帳號不存在、密碼錯誤、被鎖定卻密碼也錯 —— 三者訊息必須一模一樣。"""
-        c, _ = client
-        login_rate_limiter._hits.clear()
+        c, TestSession = client
+        _clear_rate_limits(TestSession)
 
         missing = c.post("/api/auth/login", json={"username": "nobody", "password": "whatever-123"})
-        login_rate_limiter._hits.clear()
+        _clear_rate_limits(TestSession)
         wrong = c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
 
         assert missing.status_code == wrong.status_code == 401
@@ -266,11 +277,11 @@ class TestAccountLockout:
 
     def test_successful_login_resets_counter(self, client):
         c, TestSession = client
-        login_rate_limiter._hits.clear()
+        _clear_rate_limits(TestSession)
 
         for _ in range(3):
             c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
-            login_rate_limiter._hits.clear()
+            _clear_rate_limits(TestSession)
 
         assert login(c).status_code == 200
 
@@ -288,7 +299,7 @@ class TestSecurityAuditLog:
         from app.models.database_models import AuditLog
 
         c, TestSession = client
-        login_rate_limiter._hits.clear()
+        _clear_rate_limits(TestSession)
         c.post("/api/auth/login", json={"username": "alice", "password": "wrong-password-x"})
 
         session = TestSession()
@@ -304,7 +315,7 @@ class TestSecurityAuditLog:
         from app.models.database_models import AuditLog
 
         c, TestSession = client
-        login_rate_limiter._hits.clear()
+        _clear_rate_limits(TestSession)
         c.post("/api/auth/login", json={"username": "hacker", "password": "whatever-123"})
 
         session = TestSession()

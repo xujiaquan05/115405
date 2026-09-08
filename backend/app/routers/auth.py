@@ -30,7 +30,7 @@ router = APIRouter(
 
 # 說明：
 # 限制每個 IP 每分鐘最多 5 次登入嘗試，防止暴力破解密碼。
-login_rate_limiter = RateLimiter(max_requests=5, window_seconds=60)
+login_rate_limiter = RateLimiter(max_requests=5, window_seconds=60, scope="login")
 
 
 class LoginRequest(BaseModel):
