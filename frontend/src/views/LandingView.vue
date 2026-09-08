@@ -1,13 +1,18 @@
 <!-- frontend/src/views/LandingView.vue -->
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 import LogoMark from "../components/LogoMark.vue";
 
 const router = useRouter();
-const { isAuthenticated, isGuest, enterGuestMode } = useAuth();
+const { state: authState, isAuthenticated, isGuest, enterGuestMode } = useAuth();
+
+// 已登入時導覽列改成顯示使用者與「進入系統」，不再叫人再登入一次。
+const displayName = computed(
+  () => authState.user?.display_name || authState.user?.username || ""
+);
 
 let revealObserver = null;
 
@@ -56,7 +61,7 @@ const features = [
   {
     icon: "◫",
     title: "多平台輿情爬蟲",
-    desc: "自動爬取 PTT 十大美容看板討論，架構已預留 Dcard、Threads 等平台擴充。",
+    desc: "自動爬取 PTT、Dcard、Mobile01 與 Threads 四大社群平台的醫美與時尚討論。",
   },
   {
     icon: "⚗",
@@ -104,7 +109,7 @@ const keywords = ["玻尿酸", "音波拉提", "皮秒雷射", "肉毒", "隆鼻
 const faqs = [
   {
     q: "系統的資料從哪裡來？",
-    a: "目前自動爬取 PTT 十大美容相關看板，以及 Dcard 的醫美、美妝、穿搭看板；架構已預留 Threads 等平台擴充。爬取當下即濾除公告、版務與交易等雜訊，只保留與醫美、時尚消費相關的真實討論。",
+    a: "目前涵蓋四個平台：PTT 十大美容相關看板、Dcard 的醫美 / 美妝 / 穿搭看板、Mobile01 的彩妝保養等討論區，以及 Threads 的醫美相關關鍵字搜尋。爬取當下即濾除公告、版務與交易等雜訊，只保留與醫美、時尚消費相關的真實討論。",
   },
   {
     q: "情緒分析是怎麼判讀的？準確嗎？",
@@ -162,7 +167,11 @@ function toggleFaq(index) {
           <a href="#flow">運作流程</a>
           <a href="#audience">適用對象</a>
           <a href="#faq">常見問題</a>
-          <button class="landing-nav-login" type="button" @click="goLogin">登入系統</button>
+          <template v-if="isAuthenticated">
+            <span class="landing-nav-user">{{ displayName }}</span>
+            <button class="landing-nav-login" type="button" @click="enterDashboard">進入系統</button>
+          </template>
+          <button v-else class="landing-nav-login" type="button" @click="goLogin">登入系統</button>
         </nav>
       </div>
     </header>
@@ -178,8 +187,10 @@ function toggleFaq(index) {
           協助分析師與行銷人員快速掌握市場需求。
         </p>
         <div class="landing-hero-actions hero-in" style="--d: 300ms">
-          <button class="landing-btn-primary" type="button" @click="enterDashboard">立即體驗 Dashboard</button>
-          <button class="landing-btn-secondary" type="button" @click="goLogin">登入系統</button>
+          <button class="landing-btn-primary" type="button" @click="enterDashboard">
+            {{ isAuthenticated ? "前往 Dashboard" : "立即體驗 Dashboard" }}
+          </button>
+          <button v-if="!isAuthenticated" class="landing-btn-secondary" type="button" @click="goLogin">登入系統</button>
         </div>
       </div>
       <div class="landing-hero-visual hero-in" style="--d: 250ms" aria-hidden="true">
@@ -289,10 +300,13 @@ function toggleFaq(index) {
     <!-- CTA -->
     <section class="landing-cta reveal">
       <h2>現在就開始分析醫美市場輿情</h2>
-      <p>以訪客身分即可瀏覽 Dashboard，登入後可執行爬蟲與完整功能。</p>
+      <p v-if="isAuthenticated">您已登入，可直接進入系統查看最新輿情分析。</p>
+      <p v-else>以訪客身分即可瀏覽 Dashboard，登入後可執行爬蟲與完整功能。</p>
       <div class="landing-hero-actions">
-        <button class="landing-btn-primary" type="button" @click="enterDashboard">立即體驗 Dashboard</button>
-        <button class="landing-btn-ghost" type="button" @click="goLogin">登入系統</button>
+        <button class="landing-btn-primary" type="button" @click="enterDashboard">
+          {{ isAuthenticated ? "前往 Dashboard" : "立即體驗 Dashboard" }}
+        </button>
+        <button v-if="!isAuthenticated" class="landing-btn-ghost" type="button" @click="goLogin">登入系統</button>
       </div>
     </section>
 
@@ -305,7 +319,7 @@ function toggleFaq(index) {
           <p>醫美時尚輿情分析系統</p>
         </div>
       </div>
-      <p class="landing-footer-note">115405 專題製作 · 資料來源：PTT（Dcard、Threads 規劃中）</p>
+      <p class="landing-footer-note">115405 專題製作 · 資料來源：PTT、Dcard、Mobile01、Threads</p>
     </footer>
 
   </div>
