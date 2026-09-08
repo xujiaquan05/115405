@@ -520,6 +520,7 @@ Deploy flow:
    - medical-beauty-opinion web service
    - medical-beauty-db PostgreSQL database
 6. When Render asks for GOOGLE_API_KEY, paste your Gemini API key.
+   （ADMIN_PASSWORD 也要填，否則會建立密碼為 admin123 的預設管理員。）
 7. Wait for the first deploy to finish.
 8. Open the Render service URL.
 ```
@@ -528,9 +529,18 @@ Production behavior:
 
 ```text
 Frontend and backend are served from the same Render URL.
+Database migrations (alembic upgrade head) run before the server starts.
 The backend automatically creates database tables on startup.
 The backend automatically seeds the target PTT boards.
 ```
+
+> **雲端只會爬 PTT。** Dcard、Mobile01、Threads 需要真實瀏覽器，
+> Render 的容器沒有 Chromium，因此 render.yaml 已把這三個平台的
+> `*_CRAWL_ENABLED` 設為 false，避免每日排程天天失敗。
+> 要收集這三個平台的資料，請在本機執行爬蟲。
+>
+> **`APP_ENV=production` 不可省略**：程式以它決定登入 cookie 要不要加上
+> `Secure`、以及要不要送出 HSTS。留空會被當成 development，等於關掉這兩項防護。
 
 Useful production URLs:
 

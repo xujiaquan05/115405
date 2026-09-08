@@ -11,7 +11,20 @@ services:
       - key: GOOGLE_API_KEY
         sync: false
       - key: GEMINI_MODEL
-        value: gemini-2.5-flash
+        # 與本機 .env 一致；flash-lite 便宜很多，情緒評分用它就夠。
+        value: gemini-2.5-flash-lite
+      # 一定要設成 production：程式以此決定 cookie 是否加 Secure、
+      # 以及是否送出 HSTS。留空會被當成 development，等於關掉這兩項防護。
+      - key: APP_ENV
+        value: production
+      # Dcard / Mobile01 / Threads 需要真實瀏覽器，Render 的容器沒有 Chromium。
+      # 不關掉的話，每日排程會天天嘗試開瀏覽器並失敗。只有 PTT 能在雲端跑。
+      - key: DCARD_CRAWL_ENABLED
+        value: "false"
+      - key: MOBILE01_CRAWL_ENABLED
+        value: "false"
+      - key: THREADS_CRAWL_ENABLED
+        value: "false"
       - key: CORS_ORIGINS
         value: ""
       - key: JWT_SECRET

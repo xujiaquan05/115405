@@ -1,10 +1,12 @@
+import logging
 import os
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -14,6 +16,17 @@ from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.core.startup import initialize_database
 from app.routers import admin, analysis, articles, auth, dashboard, export, monitor, qa, websocket
 from app.routers.crawler_router import router as crawler_router
+
+# 說明：
+# 設定 root logger，讓各模組的 logger.exception() 真的會輸出。
+# 沒有這段的話，uvicorn 只會顯示自己的存取紀錄，
+# 應用程式內部記的錯誤在正式環境等於消失。
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)-8s %(name)s | %(message)s",
+)
+
+logger = logging.getLogger(__name__)
 
 
 # 說明：
@@ -56,6 +69,34 @@ def get_cors_origins() -> list[str]:
         )
 
     return origins
+
+
+# 說明：
+# 未被攔截的例外統一在這裡處理。
+# 沒有這段的話，錯誤會變成沒有內容的 500，而且看不出是哪一次請求出錯——
+# 使用者回報「剛剛壞了」時，log 裡找不到對應的那一筆。
+#
+# 作法：產生一組短代碼，同時寫進 log 與回傳給使用者，
+# 使用者把代碼提供給維運，就能直接定位到那一次的堆疊。
+# 回應本身不含例外內容，避免洩漏內部結構。
+@app.exception_handler(Exception)
+async def handle_unexpected_error(request: Request, exc: Exception):
+    incident_id = uuid.uuid4().hex[:8]
+
+    logger.exception(
+        "Unhandled error [%s] on %s %s",
+        incident_id,
+        request.method,
+        request.url.path,
+    )
+
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"系統發生未預期的錯誤，請稍後再試。（錯誤代碼：{incident_id}）",
+            "incident_id": incident_id,
+        },
+    )
 
 
 # 說明：
@@ -122,8 +163,12 @@ def health_check(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
         database_status = "ok"
-    except Exception as error:
-        database_status = f"error: {error}"
+    except Exception:
+        # 只回報「有問題」，不要把例外訊息原封不動吐出去：
+        # 這個端點不需登入即可存取，而資料庫的錯誤訊息會帶出
+        # 主機位址與連接埠等內部資訊。細節寫進 log 供維運查看。
+        logger.exception("Health check failed to reach the database")
+        database_status = "error"
 
     return {
         "api": "ok",
