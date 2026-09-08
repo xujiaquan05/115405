@@ -16,7 +16,6 @@ from sqlalchemy.orm import Session
 from app.core.time_utils import taiwan_now
 from app.models.database_models import Plan, UsageCounter, WatchKeyword
 
-
 UNLIMITED = -1
 
 DEFAULT_PLAN_CODE = "free"

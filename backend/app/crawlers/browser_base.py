@@ -14,7 +14,6 @@ import random
 import time
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Optional
 
 
 class BrowserCrawler:
@@ -54,7 +53,7 @@ class BrowserCrawler:
         return hashlib.md5(raw_text.encode("utf-8")).hexdigest()
 
     @staticmethod
-    def _parse_dt(value: str | None) -> Optional[datetime]:
+    def _parse_dt(value: str | None) -> datetime | None:
         """解析 ISO 時間字串（例如 2026-08-19T06:35:40.000Z）。
 
         時間格式不同的平台（例如 Mobile01 是 2026-08-17 16:43）自行覆寫。

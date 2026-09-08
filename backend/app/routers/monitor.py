@@ -10,15 +10,14 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.scheduler import run_daily_job
 from app.models.database_models import Alert, WatchKeyword
+from app.services import plan_service
 from app.services.alert_service import (
     run_alert_checks,
     serialize_alert,
     serialize_watch_keyword,
 )
 from app.services.audit_service import record_audit
-from app.services import plan_service
 from app.services.auth_service import get_current_user, get_optional_user, require_admin
-
 
 router = APIRouter(
     prefix="/api/monitor",
@@ -93,6 +92,7 @@ def update_keyword(
     keyword_id: int,
     payload: UpdateKeywordRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
     watch = (
         db.query(WatchKeyword)

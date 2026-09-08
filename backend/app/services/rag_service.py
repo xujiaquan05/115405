@@ -15,7 +15,6 @@ from app.services.article_compressor import clean_text, compress_articles_for_ll
 from app.services.cache_service import get_cache, set_cache
 from app.services.llm_client import generate_json_response
 
-
 # 支援查詢的平台（用於意圖解析與檢索過濾）。
 KNOWN_PLATFORMS = {"ptt", "dcard"}
 

@@ -1,6 +1,6 @@
 # backend/tests/test_auth_service.py
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import jwt
@@ -67,7 +67,7 @@ class TestJwtTokens:
         assert payload["role"] == "user"
 
     def test_expired_token_rejected(self):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         expired_token = jwt.encode(
             {
                 "sub": "tester",

@@ -1,12 +1,12 @@
 # backend/tests/test_time_utils.py
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from app.core.time_utils import taiwan_now
 
 
 def test_taiwan_now_is_utc_plus_8():
-    utc_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+    utc_naive = datetime.now(UTC).replace(tzinfo=None)
     taiwan = taiwan_now()
 
     diff_hours = (taiwan - utc_naive).total_seconds() / 3600

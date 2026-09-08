@@ -1,6 +1,6 @@
 # backend/tests/test_cache_service.py
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -10,7 +10,7 @@ from app.services import cache_service
 def _expired_time():
     # cache_service 內部使用 timezone-aware UTC 時間，
     # 測試也必須用 aware datetime 才能比較。
-    return datetime.now(timezone.utc) - timedelta(minutes=1)
+    return datetime.now(UTC) - timedelta(minutes=1)
 
 
 @pytest.fixture(autouse=True)

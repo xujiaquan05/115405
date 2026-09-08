@@ -7,7 +7,6 @@ import jieba
 
 from app.services.dashboard_service import BEAUTY_KEYWORDS
 
-
 # 說明：
 # 把醫美領域詞加入 jieba 詞庫，避免像「玻尿酸」「皮秒雷射」被切碎。
 for _word in BEAUTY_KEYWORDS:

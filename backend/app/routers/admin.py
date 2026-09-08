@@ -24,7 +24,6 @@ from app.services.auth_service import (
 from app.services.password_policy import validate_password
 from app.services.settings_service import get_all_settings, get_setting, update_settings
 
-
 router = APIRouter(
     prefix="/api/admin",
     tags=["Admin"],

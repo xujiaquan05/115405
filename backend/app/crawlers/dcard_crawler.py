@@ -30,7 +30,7 @@ Dcard（2026）位於 Cloudflare 之後，且鎖死了公開 API：
   因此情緒評分、關鍵字雲與 LLM 洞察都會涵蓋留言區的聲音（輿情重點常在留言）。
 """
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from app.crawlers.browser_base import BrowserCrawler
 
@@ -238,7 +238,7 @@ class DcardCrawler(BrowserCrawler):
         board: str = "makeup",
         pages: int = 1,
         start_page: int | None = None,
-        progress_callback: Optional[Callable[[dict], None]] = None,
+        progress_callback: Callable[[dict], None] | None = None,
     ) -> list[dict]:
         """爬取一個 Dcard 看板的文章列表。
 

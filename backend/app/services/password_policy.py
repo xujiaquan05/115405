@@ -9,7 +9,6 @@
 
 from fastapi import HTTPException
 
-
 MIN_LENGTH = 8
 MAX_LENGTH = 200
 

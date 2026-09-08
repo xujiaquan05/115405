@@ -2,6 +2,8 @@
 
 本專案是一個輿情分析系統，用於收集文章資料、儲存到 PostgreSQL，並透過 FastAPI 後端與 Vue 前端進行展示。
 
+[![CI](https://github.com/xujiaquan05/115405/actions/workflows/ci.yml/badge.svg)](https://github.com/xujiaquan05/115405/actions/workflows/ci.yml)
+
 Repository：  
 https://github.com/xujiaquan05/115405
 

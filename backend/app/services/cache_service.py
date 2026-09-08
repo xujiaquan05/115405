@@ -1,12 +1,12 @@
 # backend/app/services/cache_service.py
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 
 def _now():
     # datetime.utcnow() 已被 Python 標記為 deprecated，
     # 改用帶時區的 UTC 時間；cache 內部只互相比較，所以安全。
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # 說明：

@@ -6,7 +6,7 @@ import logging
 import os
 import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 from dotenv import load_dotenv
@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.time_utils import taiwan_now
 from app.models.database_models import User
-
 
 load_dotenv()
 
@@ -159,7 +158,7 @@ def create_access_token(user: User) -> str:
     簽發 JWT access token，內容包含使用者 id、帳號與角色。
     """
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     payload = {
         "sub": user.username,
@@ -180,10 +179,10 @@ def decode_access_token(token: str) -> dict:
 
     try:
         return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="登入已過期，請重新登入。")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="無效的登入憑證，請重新登入。")
+    except jwt.ExpiredSignatureError as error:
+        raise HTTPException(status_code=401, detail="登入已過期，請重新登入。") from error
+    except jwt.InvalidTokenError as error:
+        raise HTTPException(status_code=401, detail="無效的登入憑證，請重新登入。") from error
 
 
 @dataclass
@@ -282,7 +281,7 @@ def token_issued_before_password_change(payload: dict, user: User) -> bool:
     if isinstance(issued_at, datetime):
         issued_dt = issued_at.replace(tzinfo=None)
     else:
-        issued_dt = datetime.fromtimestamp(int(issued_at), tz=timezone.utc).replace(tzinfo=None)
+        issued_dt = datetime.fromtimestamp(int(issued_at), tz=UTC).replace(tzinfo=None)
 
     # 不要把 changed_at 也截到整秒：iat 本身已經是整秒，
     # 兩邊都截秒的話，同一秒內簽發的 token 會比對成「不早於」而擋不掉。

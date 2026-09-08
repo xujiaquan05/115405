@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base
-from app.models.database_models import Article, Board, Platform, WatchKeyword, Alert
+from app.models.database_models import Article, Board, Platform, WatchKeyword
 from app.services import alert_service
 
 

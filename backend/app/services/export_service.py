@@ -2,8 +2,8 @@
 
 from datetime import timedelta
 from io import BytesIO
-from zipfile import ZIP_DEFLATED, ZipFile
 from xml.sax.saxutils import escape
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from sqlalchemy import desc
 from sqlalchemy.orm import Session

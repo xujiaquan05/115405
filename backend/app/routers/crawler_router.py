@@ -26,10 +26,9 @@ from app.services.dashboard_service import (
     normalize_boards,
 )
 from app.services.relevance_filter import evaluate_article_relevance
-from app.services.settings_service import get_setting
 from app.services.sentiment_service import classify_pending_sentiments
+from app.services.settings_service import get_setting
 from app.websocket.manager import websocket_manager
-
 
 router = APIRouter(
     prefix="/api/crawler",

@@ -16,7 +16,6 @@ from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password, needs_rehash
 from app.services.password_policy import score_password, validate_password
 
-
 GOOD_PASSWORD = "Str0ng-Pass-99"
 
 

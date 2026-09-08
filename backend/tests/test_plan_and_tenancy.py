@@ -18,7 +18,6 @@ from app.models.database_models import Plan, User
 from app.routers.auth import login_rate_limiter
 from app.services.auth_service import hash_password
 
-
 PLANS = [
     dict(code="free", display_name="免費版", max_watch_keywords=1, max_history_days=7,
          allow_all_platforms=0, monthly_qa_quota=0, allow_export=0, sort_order=0),
@@ -160,3 +159,31 @@ class TestAdminBypass:
         for index in range(3):
             assert c.post("/api/monitor/keywords", json={"keyword": f"K{index}", "days": 7},
                           headers=root).status_code == 200
+
+
+class TestKeywordUpdate:
+    """PATCH 端點曾經只寫 dependencies=[Depends(get_current_user)]，
+    沒有把使用者綁進參數，導致函式裡的 current_user 未定義而 500。
+    這個缺陷是靜態檢查（ruff F821）發現的，測試補上以免再犯。"""
+
+    def test_owner_can_toggle_keyword(self, client):
+        c, _ = client
+        alice = header(c, "alice")
+        created = c.post("/api/monitor/keywords", json={"keyword": "A診所", "days": 7}, headers=alice)
+        keyword_id = created.json()["keyword"]["id"]
+
+        resp = c.patch(f"/api/monitor/keywords/{keyword_id}", json={"enabled": False}, headers=alice)
+
+        assert resp.status_code == 200
+        assert resp.json()["keyword"]["enabled"] is False
+
+    def test_cannot_toggle_another_users_keyword(self, client):
+        c, _ = client
+        created = c.post("/api/monitor/keywords", json={"keyword": "A診所", "days": 7},
+                         headers=header(c, "alice"))
+        keyword_id = created.json()["keyword"]["id"]
+
+        resp = c.patch(f"/api/monitor/keywords/{keyword_id}", json={"enabled": False},
+                       headers=header(c, "bob"))
+
+        assert resp.status_code == 404

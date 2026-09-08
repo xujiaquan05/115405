@@ -18,7 +18,6 @@ from app.services.dashboard_service import (
     THREADS_BOARDS,
 )
 
-
 logger = logging.getLogger(__name__)
 
 

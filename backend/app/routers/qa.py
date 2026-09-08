@@ -1,17 +1,16 @@
 # backend/app/routers/qa.py
 
-from fastapi import APIRouter, Depends
 from typing import Any
 
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rate_limit import RateLimiter
 from app.services import plan_service
 from app.services.auth_service import get_optional_user
-from app.core.rate_limit import RateLimiter
 from app.services.rag_service import answer_question
-
 
 router = APIRouter(
     prefix="/api/qa",

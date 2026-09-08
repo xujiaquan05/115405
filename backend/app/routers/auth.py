@@ -5,12 +5,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.time_utils import utc_now
-from app.services.audit_service import record_audit, record_security_event
 from app.core.rate_limit import RateLimiter
-from app.core.time_utils import taiwan_now
+from app.core.time_utils import taiwan_now, utc_now
 from app.models.database_models import User
-from app.services.password_policy import validate_password
+from app.services.audit_service import record_audit, record_security_event
 from app.services.auth_service import (
     ACCESS_TOKEN_COOKIE,
     COOKIE_SAMESITE,
@@ -23,7 +21,7 @@ from app.services.auth_service import (
     serialize_user,
     verify_password,
 )
-
+from app.services.password_policy import validate_password
 
 router = APIRouter(
     prefix="/api/auth",

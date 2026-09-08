@@ -2,12 +2,12 @@
 
 import re
 from datetime import timedelta
+
+from sqlalchemy import and_, desc, func, or_
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func, or_, desc
 
 from app.core.time_utils import taiwan_now
 from app.models.database_models import Article, Board, Platform
-
 
 TARGET_BOARDS = [
     "facelift",

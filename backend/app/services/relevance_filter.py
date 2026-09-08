@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-
 FOCUSED_BOARDS = {
     "facelift",
     "BeautySalon",

@@ -1,5 +1,5 @@
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Platform, Board, Author, Article, Comment
+from app.models.database_models import Article, Author, Board, Comment, Platform
 
 
 def get_or_create_platform(db, name: str):

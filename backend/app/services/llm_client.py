@@ -1,10 +1,10 @@
 # backend/app/services/llm_client.py
 
 import os
+
 from dotenv import load_dotenv
 from google import genai
-from google.genai import errors
-from google.genai import types
+from google.genai import errors, types
 
 # 載入 .env 的環境變數，
 # 其中包含 GOOGLE_API_KEY 和 GEMINI_MODEL。

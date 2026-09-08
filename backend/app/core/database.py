@@ -1,10 +1,10 @@
 # backend/app/database.py
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from dotenv import load_dotenv
 import os
 
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # 載入 .env 檔案中的環境變數
 load_dotenv()

@@ -4,16 +4,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.services import plan_service
-from app.services.auth_service import get_optional_user
+from app.services.cache_service import get_cache, set_cache
 from app.services.dashboard_service import (
     get_board_overview,
     get_dashboard_full,
     normalize_filter_boards,
 )
-
-from app.services.cache_service import get_cache, set_cache
-
 
 router = APIRouter(
     prefix="/api/dashboard",

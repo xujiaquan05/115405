@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.database_models import Article, Comment
 
-
 router = APIRouter(
     prefix="/api/articles",
     tags=["Articles"],

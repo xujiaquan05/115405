@@ -1,0 +1,62 @@
+name: CI
+
+# 每次 push 與 PR 都跑，讓「測試是綠是紅」不必靠人記得執行。
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝套件
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov ruff
+
+      - name: 程式碼檢查
+        working-directory: backend
+        run: ruff check app tests
+
+      # 測試不連外部服務：DB 用 SQLite in-memory、LLM 呼叫都被 mock，
+      # 因此 CI 不需要 PostgreSQL 或 API key。
+      - name: 執行測試
+        working-directory: backend
+        env:
+          # 正式值 600,000 會讓每次建立測試帳號多花數百毫秒。
+          PBKDF2_ITERATIONS: "1000"
+          JWT_SECRET: "ci-only-not-a-real-secret"
+        run: pytest -q --cov=app --cov-report=term
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安裝套件
+        working-directory: frontend
+        run: npm ci
+
+      - name: 執行測試
+        working-directory: frontend
+        run: npx vitest run
+
+      - name: 建置
+        working-directory: frontend
+        run: npm run build

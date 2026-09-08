@@ -11,7 +11,6 @@ from app.services.article_compressor import clean_text
 from app.services.article_service import COMMENT_SECTION_MARKER
 from app.services.llm_client import LLMServiceUnavailableError, generate_json_response
 
-
 logger = logging.getLogger(__name__)
 
 SENTIMENT_VALUES = {"positive", "neutral", "negative"}

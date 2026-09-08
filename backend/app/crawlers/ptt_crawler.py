@@ -2,11 +2,12 @@ import hashlib
 import random
 import re
 import time
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, Optional
 
 import requests
 from bs4 import BeautifulSoup
+
 
 class PTTCrawler:
     """
@@ -68,7 +69,7 @@ class PTTCrawler:
             "User-Agent": random.choice(self.user_agents)
         }
 
-    def _safe_get(self, url: str, retries: int = 3) -> Optional[str]:
+    def _safe_get(self, url: str, retries: int = 3) -> str | None:
         """
         安全發送 GET request。
 
@@ -298,7 +299,7 @@ class PTTCrawler:
     board: str = "BeautySalon",
     pages: int = 1,
     start_page: int | None = None,
-    progress_callback: Optional[Callable[[dict], None]] = None
+    progress_callback: Callable[[dict], None] | None = None
 ):
     
         all_articles = []

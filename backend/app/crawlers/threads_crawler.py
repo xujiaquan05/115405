@@ -27,7 +27,7 @@ Gemini 情緒評分）完全不需修改。
 import hashlib
 import re
 import urllib.parse
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from app.crawlers.browser_base import BrowserCrawler
 
@@ -81,7 +81,7 @@ class ThreadsCrawler(BrowserCrawler):
         刻意不含搜尋關鍵字：同一篇貼文可能同時出現在多個關鍵字的搜尋結果中，
         若把關鍵字算進去，同一篇文章會被重複寫入資料庫。
         """
-        return hashlib.md5(f"threads:{url}".encode("utf-8")).hexdigest()
+        return hashlib.md5(f"threads:{url}".encode()).hexdigest()
 
     @classmethod
     def _split_text_and_counts(
@@ -171,7 +171,7 @@ class ThreadsCrawler(BrowserCrawler):
         board: str = "醫美",
         pages: int = 1,
         start_page: int | None = None,
-        progress_callback: Optional[Callable[[dict], None]] = None,
+        progress_callback: Callable[[dict], None] | None = None,
     ) -> list[dict]:
         """以關鍵字搜尋 Threads，回傳貼文清單。
 

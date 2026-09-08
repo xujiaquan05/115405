@@ -1,0 +1,25 @@
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes：未使用的匯入 / 變數
+    "I",   # isort：匯入排序
+    "B",   # flake8-bugbear：常見錯誤模式
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # 行長由 formatter 控制，中文註解容易誤判寬度
+    "B008",  # FastAPI 的 Depends() 必須寫在預設值，這是框架慣例
+]
+
+[tool.ruff.lint.per-file-ignores]
+# 測試裡為了聚焦而做的區域匯入是刻意的。
+"tests/*" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# 測試不需要正式的雜湊強度，調低可讓整套測試快上數倍。
+env = ["PBKDF2_ITERATIONS=1000"]

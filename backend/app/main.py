@@ -1,6 +1,6 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-import os
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.scheduler import shutdown_scheduler, start_scheduler
 from app.core.startup import initialize_database
-from app.routers.crawler_router import router as crawler_router
 from app.routers import admin, analysis, articles, auth, dashboard, export, monitor, qa, websocket
+from app.routers.crawler_router import router as crawler_router
 
 
 # 說明：

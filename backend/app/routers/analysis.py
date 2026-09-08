@@ -6,16 +6,15 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.database_models import AnalysisResult, Article
+from app.services.audit_service import record_audit
+from app.services.auth_service import get_current_user
 from app.services.dashboard_service import (
     get_overview_metrics,
     get_sentiment_distribution,
     normalize_filter_boards,
 )
-from app.services.audit_service import record_audit
-from app.services.auth_service import get_current_user
 from app.services.llm_analysis_service import analyze_keyword_with_llm
 from app.services.sentiment_service import classify_pending_sentiments
-
 
 router = APIRouter(
     prefix="/api/analysis",

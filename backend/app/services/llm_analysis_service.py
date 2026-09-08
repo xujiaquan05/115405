@@ -3,17 +3,17 @@
 import hashlib
 import json
 from datetime import datetime, timedelta
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.database_models import AnalysisResult
 from app.services.article_compressor import (
-    get_related_articles,
     compress_articles_for_llm,
+    get_related_articles,
 )
-from app.services.llm_prompts import build_prompt
 from app.services.llm_client import LLMServiceUnavailableError, generate_json_response
-
+from app.services.llm_prompts import build_prompt
 
 CACHE_HOURS = 6
 # 2026-07-12：洞察分析提示詞改回 5W2H1E 詳細版本（QA 提示詞維持原始版），

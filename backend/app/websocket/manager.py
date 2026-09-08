@@ -1,7 +1,8 @@
 # backend/app/websocket/manager.py
 
 import asyncio
-from typing import List, Dict, Any
+from typing import Any
+
 from fastapi import WebSocket
 
 
@@ -24,7 +25,7 @@ class ConnectionManager:
 
     def __init__(self):
         # active_connections 保存仍在連線中的 WebSocket client。
-        self.active_connections: List[WebSocket] = []
+        self.active_connections: list[WebSocket] = []
         self._loop = None
 
     async def connect(self, websocket: WebSocket):
@@ -46,7 +47,7 @@ class ConnectionManager:
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
 
-    async def broadcast(self, message: Dict[str, Any]):
+    async def broadcast(self, message: dict[str, Any]):
         """
         把同一則訊息送給所有連線中的 client。
 
@@ -68,7 +69,7 @@ class ConnectionManager:
         for connection in disconnected_clients:
             self.disconnect(connection)
 
-    def broadcast_sync(self, message: Dict[str, Any]):
+    def broadcast_sync(self, message: dict[str, Any]):
         """
         提供給同步程式呼叫 broadcast 的入口。
 

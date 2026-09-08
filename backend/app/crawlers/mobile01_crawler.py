@@ -23,8 +23,8 @@ create_article → Gemini 情緒評分）完全不需修改。
 """
 
 import re
+from collections.abc import Callable
 from datetime import datetime
-from typing import Callable, Optional
 
 from bs4 import BeautifulSoup
 
@@ -52,7 +52,7 @@ class Mobile01Crawler(BrowserCrawler):
     # ── 純函式工具（不需瀏覽器，便於單元測試） ──────────────────
 
     @staticmethod
-    def _parse_dt(text: str | None) -> Optional[datetime]:
+    def _parse_dt(text: str | None) -> datetime | None:
         """覆寫基底的 ISO 解析：Mobile01 的時間格式是 '2026-08-17 16:43'。"""
         if not text or not isinstance(text, str):
             return None
@@ -158,7 +158,7 @@ class Mobile01Crawler(BrowserCrawler):
         board: str = "371",
         pages: int = 1,
         start_page: int | None = None,
-        progress_callback: Optional[Callable[[dict], None]] = None,
+        progress_callback: Callable[[dict], None] | None = None,
     ) -> list[dict]:
         """爬取一個 Mobile01 討論區。
 

@@ -14,7 +14,6 @@ from app.services.dashboard_service import (
 )
 from app.services.settings_service import get_setting
 
-
 logger = logging.getLogger(__name__)
 
 # 說明：

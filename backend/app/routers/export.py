@@ -12,7 +12,6 @@ from app.services.auth_service import get_optional_user
 from app.services.dashboard_service import normalize_filter_boards
 from app.services.export_service import build_articles_xlsx, get_export_articles
 
-
 router = APIRouter(
     prefix="/api/export",
     tags=["Export"],
