@@ -1,0 +1,48 @@
+資料庫結構版本管理（Alembic）
+================================
+
+為什麼要用 Alembic
+------------------
+導入之前，結構變更是寫在 startup.py 裡的
+`ALTER TABLE ... ADD COLUMN IF NOT EXISTS`。這種做法可以動，但：
+
+- 無法 downgrade，改壞了只能手動修
+- 沒有版本歷史，看不出「這個欄位是哪次改的、為什麼」
+- 結構變更不會出現在 PR 的 diff 裡，沒辦法被審查
+
+常用指令
+--------
+    # 目前資料庫在哪個版本
+    python -m alembic current
+
+    # 修改 models 後，自動產生 migration
+    python -m alembic revision --autogenerate -m "說明"
+
+    # 套用到最新版本
+    python -m alembic upgrade head
+
+    # 回復一個版本
+    python -m alembic downgrade -1
+
+重要：autogenerate 產生後一定要看過再套用
+------------------------------------------
+autogenerate 只比對「SQLAlchemy 模型」與「實際資料庫」，
+凡是模型裡沒有的東西，它都會判定為多餘而產生 drop。
+
+本專案有一批索引不是模型建立的：
+- database/init.sql 建的 idx_articles_* 效能索引
+- startup.py 建的 pg_trgm GIN 索引（gin_trgm_ops 在模型層無法表達）
+
+第一次執行 autogenerate 時，它確實產生了刪除這兩個 trgm 索引的指令——
+若照做，關鍵字查詢會從 9ms 退回 228ms。
+因此 env.py 加了 include_object()，明確排除名稱以 idx_ 開頭的索引。
+
+即便如此，**每次仍要讀過產生的檔案再套用**，
+特別留意 drop_table / drop_column / drop_index。
+
+基準版本
+--------
+第一個 revision 是空的，只代表「現有資料庫的狀態」，
+以 `alembic stamp head` 標記而非執行。
+startup.py 既有的 ALTER TABLE 保留不動（它們是冪等的），
+但**今後的結構變更一律走 Alembic**。

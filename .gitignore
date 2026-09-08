@@ -22,3 +22,5 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+# Alembic ban ghi tam khi autogenerate thu nghiem
+backend/alembic/versions/__pycache__/
