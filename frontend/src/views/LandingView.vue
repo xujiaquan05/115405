@@ -1,18 +1,14 @@
 <!-- frontend/src/views/LandingView.vue -->
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, computed } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../composables/useAuth";
 import LogoMark from "../components/LogoMark.vue";
 
 const router = useRouter();
-const { state: authState, isAuthenticated, isGuest, enterGuestMode } = useAuth();
-
-// 已登入時導覽列改成顯示使用者與「進入系統」，不再叫人再登入一次。
-const displayName = computed(
-  () => authState.user?.display_name || authState.user?.username || ""
-);
+// 已登入時導覽列改成「進入系統」，不再叫人再登入一次。
+const { isAuthenticated, isGuest, enterGuestMode } = useAuth();
 
 let revealObserver = null;
 
@@ -167,10 +163,12 @@ function toggleFaq(index) {
           <a href="#flow">運作流程</a>
           <a href="#audience">適用對象</a>
           <a href="#faq">常見問題</a>
-          <template v-if="isAuthenticated">
-            <span class="landing-nav-user">{{ displayName }}</span>
-            <button class="landing-nav-login" type="button" @click="enterDashboard">進入系統</button>
-          </template>
+          <button
+            v-if="isAuthenticated"
+            class="landing-nav-login"
+            type="button"
+            @click="enterDashboard"
+          >進入系統</button>
           <button v-else class="landing-nav-login" type="button" @click="goLogin">登入系統</button>
         </nav>
       </div>
