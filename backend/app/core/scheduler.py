@@ -7,6 +7,7 @@ from datetime import timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.database import SessionLocal
+from app.core.shutdown import CrawlAborted, clear_stop, request_stop, stop_requested
 from app.core.time_utils import taiwan_now
 from app.crawlers.registry import get_crawler
 from app.services import lock_service
@@ -79,6 +80,11 @@ def _crawl_all_boards(db, pages: int) -> int:
         if not browser_platform_enabled.get(platform_name, True):
             continue
 
+        # 系統要關閉時就不要再開下一個看板（每個看板都可能跑好幾分鐘）。
+        if stop_requested():
+            logger.info("Crawl stopped before board %s: shutdown requested", board_name)
+            break
+
         try:
             platform = get_or_create_platform(db, platform_name)
             get_or_create_board(db, platform.id, board_name)
@@ -106,6 +112,10 @@ def _crawl_all_boards(db, pages: int) -> int:
                 if is_new:
                     new_total += 1
                     save_comments(db, article, item.get("comments") or [])
+        except CrawlAborted:
+            # 不是錯誤，是系統關閉時主動收手；已寫入的文章保留。
+            logger.info("Crawl aborted while crawling board %s", board_name)
+            break
         except Exception:
             logger.exception("Daily crawl failed for board %s", board_name)
 
@@ -145,6 +155,12 @@ def run_daily_job(pages: int | None = None, force: bool = False) -> dict:
         finally:
             # 爬取結束就放開，後面的評分與預警不需要佔著鎖。
             lock_service.release(db, lock_service.CRAWL_LOCK)
+
+        # 被中止的話就到此為止：不呼叫 Gemini（省額度），
+        # 也不記錄「今天已完成」，讓下次啟動能再補跑一次。
+        if stop_requested():
+            logger.info("Daily job aborted after crawling %d new articles", new_articles)
+            return {"aborted": True, "new_articles": new_articles}
 
         scored = classify_pending_sentiments(db)
         scored_comments = classify_pending_comments(db)
@@ -187,6 +203,9 @@ def start_scheduler():
 
     if _scheduler is not None:
         return
+
+    # 新的行程重新開始，清掉上一輪可能留下的停止旗標。
+    clear_stop()
 
     hour = _read_schedule_hour()
     _scheduler = BackgroundScheduler(timezone="Asia/Taipei")
@@ -263,6 +282,13 @@ def reschedule_daily_job(hour: int) -> bool:
 
 def shutdown_scheduler():
     global _scheduler
+
+    # 先叫進行中的爬取收手，再關排程。
+    # 少了這一步，shutdown(wait=False) 只會停止「派新工作」，
+    # 正在跑的爬取仍會被 concurrent.futures 在直譯器結束時 join——
+    # 行程於是停止服務卻死不掉，還佔著 8000 埠，
+    # 前端每個請求都石沉大海（--reload 存檔重啟時最容易遇到）。
+    request_stop()
 
     if _scheduler is not None:
         _scheduler.shutdown(wait=False)

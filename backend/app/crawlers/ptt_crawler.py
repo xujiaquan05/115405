@@ -1,12 +1,13 @@
 import hashlib
 import random
 import re
-import time
 from collections.abc import Callable
 from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
+
+from app.core.shutdown import random_sleep_or_abort, sleep_or_abort
 
 
 class PTTCrawler:
@@ -96,12 +97,11 @@ class PTTCrawler:
                 # HTTP 429 代表請求太頻繁。
                 # 遇到這種狀況要等久一點，避免造成網站壓力。
                 if response.status_code == 429:
-                    wait_seconds = random.uniform(10, 30)
-                    time.sleep(wait_seconds)
+                    sleep_or_abort(random.uniform(10, 30))
 
             except requests.RequestException:
                 # 指數退避：第 1 次等 1 秒，第 2 次等 2 秒，第 3 次等 4 秒。
-                time.sleep(2 ** attempt)
+                sleep_or_abort(2 ** attempt)
 
         # 如果重試後仍失敗，回傳 None。
         return None
@@ -333,8 +333,8 @@ class PTTCrawler:
 
                 all_articles.append(article)
 
-                # 隨機延遲，減少對 PTT 的壓力。
-                time.sleep(random.uniform(0.8, 1.5))
+                # 隨機延遲，減少對 PTT 的壓力（系統關閉時會提前中止）。
+                random_sleep_or_abort(0.8, 1.5)
 
             # 爬完一頁後尋找「上頁」連結，
             # 「上頁」代表更舊一頁的列表。

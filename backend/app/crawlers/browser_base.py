@@ -10,10 +10,10 @@ Dcard、Mobile01、Threads 都因為各自的原因無法用一般 HTTP request 
 """
 
 import hashlib
-import random
-import time
 from contextlib import contextmanager
 from datetime import datetime
+
+from app.core.shutdown import random_sleep_or_abort
 
 
 class BrowserCrawler:
@@ -44,8 +44,12 @@ class BrowserCrawler:
     # ── 共用工具（不需瀏覽器，便於單元測試） ────────────────────
 
     def _sleep(self) -> None:
-        """禮貌性隨機延遲，降低對來源站台的壓力。"""
-        time.sleep(random.uniform(self.min_delay, self.max_delay))
+        """禮貌性隨機延遲，降低對來源站台的壓力。
+
+        延遲期間若系統要求關閉會丟出 CrawlAborted，
+        讓爬取立刻收手，不會拖著整個行程無法結束。
+        """
+        random_sleep_or_abort(self.min_delay, self.max_delay)
 
     def _generate_unique_id(self, platform: str, board: str, url: str) -> str:
         """產生文章唯一 ID，讓重複爬取時能判斷文章是否已存在。"""
