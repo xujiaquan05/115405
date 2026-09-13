@@ -5,9 +5,10 @@ from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.database_models import AnalysisResult, Article
+from app.core.time_utils import taiwan_now
+from app.models.database_models import AnalysisHistory, Article
 from app.services.audit_service import record_audit
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_user, get_optional_user
 from app.services.dashboard_service import (
     get_overview_metrics,
     get_sentiment_distribution,
@@ -47,6 +48,7 @@ def analyze_keyword(
         description="要包含的 PTT 看板，重複此參數可選多個看板。",
     ),
     db: Session = Depends(get_db),
+    current_user=Depends(get_optional_user),
 ):
     """
     說明：
@@ -71,6 +73,20 @@ def analyze_keyword(
         force_refresh=force_refresh,
         boards=selected_boards,
     )
+
+    # 記錄「這位使用者分析過什麼」。
+    # 只記已登入者：訪客沒有身分，共用一筆 NULL 反而會讓訪客之間互看。
+    # 存的是當下快照，共用快取日後被覆蓋也不影響這筆歷史。
+    if current_user is not None:
+        db.add(AnalysisHistory(
+            user_id=current_user.id,
+            keyword=keyword,
+            analysis_type=analysis_type,
+            days=days,
+            result_json=result,
+            created_at=taiwan_now(),
+        ))
+        db.commit()
 
     return {
         "status": "success",
@@ -222,7 +238,7 @@ def compute_sentiment_score(sentiment: dict) -> int:
 
 
 def _serialize_history_record(
-    record: AnalysisResult,
+    record: AnalysisHistory,
     db: Session,
     metrics_cache: dict | None = None,
 ) -> dict:
@@ -270,10 +286,17 @@ def _serialize_history_record(
 def analysis_history(
     limit: int = Query(default=50, ge=1, le=200),
     db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
+    """只回傳自己的分析紀錄。
+
+    先前這裡讀的是 analysis_results（共用快取），所以每位客戶都看得到
+    別人分析過哪些關鍵字——對付費系統來說是商業資訊外洩。
+    """
     records = (
-        db.query(AnalysisResult)
-        .order_by(desc(AnalysisResult.created_at))
+        db.query(AnalysisHistory)
+        .filter(AnalysisHistory.user_id == current_user.id)
+        .order_by(desc(AnalysisHistory.created_at))
         .limit(limit)
         .all()
     )
@@ -298,7 +321,13 @@ def delete_history_record(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    record = db.query(AnalysisResult).filter(AnalysisResult.id == record_id).first()
+    # 限定自己的紀錄，而且刪的是 analysis_history 而不是共用快取：
+    # 舊版刪到 analysis_results，等於把大家共用的 Gemini 快取一起刪掉。
+    record = (
+        db.query(AnalysisHistory)
+        .filter(AnalysisHistory.id == record_id, AnalysisHistory.user_id == current_user.id)
+        .first()
+    )
 
     if record is None:
         raise HTTPException(status_code=404, detail="找不到此分析紀錄。")

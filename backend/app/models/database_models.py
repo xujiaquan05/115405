@@ -183,13 +183,16 @@ class AuditLog(Base):
 
 
 class AnalysisResult(Base):
+    """Gemini 分析結果的「共用快取」，不是使用者的歷史紀錄。
+
+    以 keyword + analysis_type 為鍵，所有人共用同一筆——這正是重點：
+    兩個客戶分析同一個關鍵字時只需呼叫一次 Gemini。
+    因此這張表刻意「不」分使用者；誰分析過什麼請看 analysis_history。
+    """
+
     __tablename__ = "analysis_results"
 
     id = Column(Integer, primary_key=True, index=True)
-
-    # 分析紀錄同樣要分租戶，否則客戶會在歷史清單看到別人分析過的關鍵字。
-    # NULL 代表訪客（未登入）產生的紀錄。
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
 
     keyword = Column(String(255), nullable=False)
     analysis_type = Column(String(50), nullable=False)
@@ -298,6 +301,34 @@ class RateLimitHit(Base):
 
     window_start = Column(DateTime, nullable=False)
     count = Column(Integer, nullable=False, default=0)
+
+
+class AnalysisHistory(Base):
+    """每位使用者「分析過什麼」的紀錄。
+
+    為什麼不共用 analysis_results？
+    那張表是以 keyword 為鍵的共用快取：同一個關鍵字只有一筆，
+    而且後來的分析會覆蓋它。拿它當歷史紀錄會有兩個問題——
+    客戶會看到別人分析過的關鍵字，而且刪掉「自己的紀錄」
+    實際上是刪掉大家共用的快取，害所有人重新付一次 Gemini 費用。
+
+    result_json 存的是當下的快照，不是指向快取。
+    快取之後被覆蓋或過期，歷史仍應呈現使用者當時看到的內容。
+    """
+
+    __tablename__ = "analysis_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    keyword = Column(String(255), nullable=False)
+    analysis_type = Column(String(50), nullable=False)
+    days = Column(Integer, nullable=False, default=30)
+
+    result_json = Column(JSON, nullable=False)
+
+    created_at = Column(DateTime)
 
 
 class Setting(Base):
