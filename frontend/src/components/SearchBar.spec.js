@@ -49,13 +49,24 @@ describe("SearchBar 平台篩選", () => {
     vi.clearAllMocks();
   });
 
-  it("依看板清單推導出平台按鈕，並加總各平台文章數", () => {
+  it("依看板清單推導出平台按鈕", () => {
     const wrapper = mount(SearchBar);
     const labels = chips(wrapper).map((c) => c.text);
 
     expect(labels).toContain("全部");
-    expect(labels.some((l) => l.startsWith("PTT"))).toBe(true);
-    expect(wrapper.text()).toContain("9110");
+    expect(labels).toContain("PTT");
+    expect(labels).toContain("Dcard");
+  });
+
+  it("按鈕只顯示平台名稱，不帶文章數", () => {
+    const wrapper = mount(SearchBar);
+
+    // 不能單純檢查「沒有數字」——Mobile01 的名稱本來就含數字。
+    // 改成比對文字必須「剛好等於」平台名稱。
+    const labels = chips(wrapper).map((c) => c.text);
+
+    expect(labels).toEqual(["全部", "PTT", "Dcard", "Mobile01"]);
+    expect(wrapper.find(".platform-filter-strip").text()).not.toContain("9110");
   });
 
   it("沒有選看板時「全部」為選取狀態", () => {

@@ -14,9 +14,6 @@ const platforms = computed(() => {
   return names.map((name) => ({
     name,
     label: PLATFORM_LABELS[name] || name,
-    count: state.availableBoards
-      .filter((board) => board.platform === name)
-      .reduce((sum, board) => sum + (board.article_count || 0), 0),
   }));
 });
 
@@ -190,7 +187,6 @@ function handleSubmit() {
           @click="filterByPlatform(platform.name)"
         >
           {{ platform.label }}
-          <em>{{ platform.count }}</em>
         </button>
       </div>
 

@@ -6544,15 +6544,6 @@ button:disabled {
   font-weight: 600;
 }
 
-.platform-chip em {
-  font-style: normal;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.platform-chip.active em {
-  color: #4338ca;
-}
 
 .platform-count-grid {
   display: grid;
