@@ -6,7 +6,7 @@ from datetime import timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, close_transaction
 from app.core.shutdown import CrawlAborted, clear_stop, request_stop, stop_requested
 from app.core.time_utils import taiwan_now
 from app.crawlers.registry import get_crawler
@@ -76,7 +76,11 @@ def _crawl_all_boards(db, pages: int) -> int:
         "threads": get_setting(db, "threads_crawl_enabled"),
     }
 
-    for platform_name, board_name in get_active_crawl_targets(db):
+    # 先把目標讀成 list 並結束交易，之後才進入耗時的爬取階段。
+    targets = list(get_active_crawl_targets(db))
+    close_transaction(db)
+
+    for platform_name, board_name in targets:
         if not browser_platform_enabled.get(platform_name, True):
             continue
 
@@ -88,6 +92,11 @@ def _crawl_all_boards(db, pages: int) -> int:
         try:
             platform = get_or_create_platform(db, platform_name)
             get_or_create_board(db, platform.id, board_name)
+
+            # 一個看板一個交易：爬取本身不碰資料庫，不該讓交易跟著開好幾分鐘。
+            # （get_or_create_* 只有在「需要新增」時才會 commit，
+            #   看板早就存在的日常情況下，這裡不主動結束就會一直開著。）
+            close_transaction(db)
 
             crawler = get_crawler(platform_name)
             articles = crawler.crawl_board(board=board_name, pages=pages)
@@ -112,12 +121,19 @@ def _crawl_all_boards(db, pages: int) -> int:
                 if is_new:
                     new_total += 1
                     save_comments(db, article, item.get("comments") or [])
+
+            # 收尾這個看板的交易，下一個看板從乾淨的狀態開始。
+            close_transaction(db)
         except CrawlAborted:
             # 不是錯誤，是系統關閉時主動收手；已寫入的文章保留。
             logger.info("Crawl aborted while crawling board %s", board_name)
+            db.rollback()
             break
         except Exception:
             logger.exception("Daily crawl failed for board %s", board_name)
+            # 沒有 rollback 的話，這個看板留下的失敗交易會讓
+            # 下一個看板的每一次查詢都直接拋 PendingRollbackError。
+            db.rollback()
 
     return new_total
 

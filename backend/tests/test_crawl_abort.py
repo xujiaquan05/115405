@@ -79,6 +79,19 @@ class TestShutdownScheduler:
         assert shutdown.stop_requested() is True
 
 
+class FakeSession:
+    """只需要 commit / rollback 的假 session（這些測試不寫入資料）。"""
+
+    def __init__(self):
+        self.rolled_back = 0
+
+    def commit(self):
+        pass
+
+    def rollback(self):
+        self.rolled_back += 1
+
+
 class TestCrawlAllBoardsStopsEarly:
     """_crawl_all_boards 收到停止要求時不再開下一個看板。"""
 
@@ -101,7 +114,7 @@ class TestCrawlAllBoardsStopsEarly:
 
         self._patch(monkeypatch, [("ptt", "a"), ("ptt", "b"), ("ptt", "c")], crawl_board)
 
-        assert scheduler._crawl_all_boards(db=None, pages=1) == 0
+        assert scheduler._crawl_all_boards(db=FakeSession(), pages=1) == 0
         assert crawled == ["a"]
 
     def test_crawl_aborted_is_not_treated_as_a_board_failure(self, monkeypatch):
@@ -114,7 +127,7 @@ class TestCrawlAllBoardsStopsEarly:
         self._patch(monkeypatch, [("ptt", "a"), ("ptt", "b")], crawl_board)
 
         # 中止要停下整輪，而不是跳過這個看板再去爬下一個。
-        assert scheduler._crawl_all_boards(db=None, pages=1) == 0
+        assert scheduler._crawl_all_boards(db=FakeSession(), pages=1) == 0
         assert crawled == ["a"]
 
     def test_a_failing_board_still_does_not_stop_the_others(self, monkeypatch):
@@ -128,5 +141,5 @@ class TestCrawlAllBoardsStopsEarly:
 
         self._patch(monkeypatch, [("ptt", "a"), ("ptt", "b")], crawl_board)
 
-        assert scheduler._crawl_all_boards(db=None, pages=1) == 0
+        assert scheduler._crawl_all_boards(db=FakeSession(), pages=1) == 0
         assert crawled == ["a", "b"]

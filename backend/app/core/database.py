@@ -36,6 +36,20 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
+def close_transaction(db) -> None:
+    """結束目前交易，把連線還給連線池。
+
+    給「接下來要做很久、而且完全不碰資料庫的事」使用（例如爬一個看板，
+    可能要好幾分鐘）。SQLAlchemy 在第一次查詢時就會開啟交易，
+    而且要等到 commit / rollback 才結束——中間就算只是讀取也一樣。
+
+    不主動結束的話，在 PostgreSQL 會看到 idle in transaction：
+    一條連線被佔著不放，autovacuum 也無法回收那段期間的舊資料列
+    （實際量測過一次爬取讓交易開了 18 分鐘）。
+    """
+    db.commit()
+
+
 def get_db():
     """
     提供 database session 給 FastAPI 的相依函式。

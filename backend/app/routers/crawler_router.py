@@ -5,7 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal, get_db
+from app.core.database import SessionLocal, close_transaction, get_db
 from app.crawlers.registry import get_crawler
 from app.models.database_models import Article, Board, CrawlLog, Platform
 from app.services import lock_service
@@ -179,6 +179,11 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
             "start_page": start_page,
         })
 
+        # 爬取期間完全不需要資料庫，先結束交易再出發。
+        # （create_crawl_log 雖然 commit 了，但緊接著的 refresh 又開了一個交易，
+        #   不處理的話整段爬取都會是 idle in transaction。）
+        close_transaction(db)
+
         crawler = get_crawler(platform_name)
         crawled_articles = crawler.crawl_board(
             board=board,
@@ -256,6 +261,9 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
         return result
 
     except Exception as error:
+        # 先把失敗的交易收掉，否則接下來寫 crawl_log 會直接拋 PendingRollbackError。
+        db.rollback()
+
         if crawl_log:
             finish_crawl_log(
                 db=db,
