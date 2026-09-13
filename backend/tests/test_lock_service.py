@@ -89,3 +89,43 @@ class TestHelpers:
         worker_a, _ = sessions
 
         lock_service.release(worker_a, "crawler")  # 不應該拋錯
+
+
+class TestScheduledJobRespectsTheLock:
+    """排程與手動爬取必須共用同一把鎖。
+
+    先前把鎖移進資料庫時只接上了 API 端點，排程仍直接開爬；
+    凌晨排程啟動時若剛好有人從後台按下爬取，兩批會同時進行。
+    """
+
+    def test_daily_job_skips_when_a_crawl_is_running(self, sessions):
+        from unittest.mock import patch
+
+        from app.core import scheduler
+
+        worker_a, _ = sessions
+        lock_service.try_acquire(worker_a, lock_service.CRAWL_LOCK)
+
+        with patch.object(scheduler, "SessionLocal", return_value=worker_a), \
+             patch.object(scheduler, "get_setting", return_value=True), \
+             patch.object(scheduler, "_crawl_all_boards") as crawl:
+            result = scheduler.run_daily_job(pages=1, force=True)
+
+        assert result == {"skipped": True, "reason": "crawl_in_progress"}
+        crawl.assert_not_called()
+
+    def test_lock_is_released_even_if_crawling_fails(self, sessions):
+        """爬取途中出錯也要放開鎖，否則之後再也發不動。"""
+        from unittest.mock import patch
+
+        from app.core import scheduler
+
+        worker_a, worker_b = sessions
+
+        with patch.object(scheduler, "SessionLocal", return_value=worker_a), \
+             patch.object(scheduler, "get_setting", return_value=True), \
+             patch.object(scheduler, "_crawl_all_boards", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError):
+                scheduler.run_daily_job(pages=1, force=True)
+
+        assert lock_service.try_acquire(worker_b, lock_service.CRAWL_LOCK) is True

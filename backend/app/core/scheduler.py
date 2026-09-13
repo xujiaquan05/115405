@@ -6,6 +6,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.database import SessionLocal
 from app.crawlers.registry import get_crawler
+from app.services import lock_service
 from app.services.alert_service import run_alert_checks
 from app.services.article_service import (
     create_article,
@@ -105,7 +106,19 @@ def run_daily_job(pages: int | None = None, force: bool = False) -> dict:
 
         effective_pages = pages if pages is not None else get_setting(db, "auto_crawl_pages")
 
-        new_articles = _crawl_all_boards(db, effective_pages)
+        # 和手動爬取共用同一把鎖。
+        # 少了這一步，排程在凌晨開跑時，若剛好有人從後台按下爬取，
+        # 兩批就會同時進行——正是這把鎖要避免的情況。
+        if not lock_service.try_acquire(db, lock_service.CRAWL_LOCK):
+            logger.info("Daily job skipped: another crawl is already running")
+            return {"skipped": True, "reason": "crawl_in_progress"}
+
+        try:
+            new_articles = _crawl_all_boards(db, effective_pages)
+        finally:
+            # 爬取結束就放開，後面的評分與預警不需要佔著鎖。
+            lock_service.release(db, lock_service.CRAWL_LOCK)
+
         scored = classify_pending_sentiments(db)
         scored_comments = classify_pending_comments(db)
         alerts = run_alert_checks(db)
