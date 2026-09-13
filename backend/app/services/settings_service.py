@@ -23,6 +23,10 @@ SETTING_DEFS = {
     "auto_crawl_enabled": (_env_bool("AUTO_CRAWL_ENABLED", "true"), bool),
     "auto_crawl_hour": (os.getenv("AUTO_CRAWL_HOUR", "3"), int),
     "auto_crawl_pages": (os.getenv("AUTO_CRAWL_PAGES", "2"), int),
+    # 啟動時若今天還沒跑過每日任務就補跑一次。
+    # 在本機執行時特別有用：排程只在後端執行中才會觸發，
+    # 半夜電腦關著就整天沒有資料，補跑讓「每天開一次後端」就足夠。
+    "startup_catchup_enabled": (_env_bool("STARTUP_CATCHUP_ENABLED", "true"), bool),
     # Dcard 需要真實瀏覽器（Playwright + Chromium），無頭伺服器上可能無法執行。
     # 部署到這類環境時可關掉，避免每日排程白跑、產生錯誤 log。
     "dcard_crawl_enabled": (_env_bool("DCARD_CRAWL_ENABLED", "true"), bool),
@@ -89,3 +93,28 @@ def update_settings(db: Session, values: dict) -> dict:
 
     db.commit()
     return get_all_settings(db)
+
+
+# ── 內部記錄（不是使用者設定）─────────────────────────────────
+# 這些值存在同一張表，但刻意不放進 SETTING_DEFS：
+# get_all_settings 只回傳 SETTING_DEFS 的內容，後台設定頁因此不會顯示它們，
+# update_settings 也不會接受外部傳入修改。
+
+def get_internal_value(db: Session, key: str) -> str | None:
+    """讀取內部記錄值，沒有就回傳 None。"""
+    row = db.query(Setting).filter(Setting.key == key).first()
+    return row.value if row is not None else None
+
+
+def set_internal_value(db: Session, key: str, value: str) -> None:
+    """寫入內部記錄值。"""
+    row = db.query(Setting).filter(Setting.key == key).first()
+
+    if row is None:
+        row = Setting(key=key, value=value, updated_at=taiwan_now())
+        db.add(row)
+    else:
+        row.value = value
+        row.updated_at = taiwan_now()
+
+    db.commit()

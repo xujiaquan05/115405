@@ -79,6 +79,7 @@ const settings = reactive({
   auto_crawl_enabled: true,
   auto_crawl_hour: 3,
   auto_crawl_pages: 2,
+  startup_catchup_enabled: true,
   dcard_crawl_enabled: true,
   mobile01_crawl_enabled: true,
   threads_crawl_enabled: true,
@@ -139,6 +140,7 @@ async function saveSettings() {
       auto_crawl_enabled: settings.auto_crawl_enabled,
       auto_crawl_hour: Number(settings.auto_crawl_hour),
       auto_crawl_pages: Number(settings.auto_crawl_pages),
+      startup_catchup_enabled: settings.startup_catchup_enabled,
       dcard_crawl_enabled: settings.dcard_crawl_enabled,
       mobile01_crawl_enabled: settings.mobile01_crawl_enabled,
       threads_crawl_enabled: settings.threads_crawl_enabled,
@@ -355,6 +357,12 @@ onMounted(() => {
         <div class="sysadmin-field">
           <label>每個看板爬取頁數</label>
           <input v-model.number="settings.auto_crawl_pages" type="number" min="1" max="20" />
+        </div>
+        <div class="sysadmin-field checkbox">
+          <label>
+            <input v-model="settings.startup_catchup_enabled" type="checkbox" />
+            啟動時若今天尚未執行，補跑一次每日任務（本機使用建議開啟）
+          </label>
         </div>
         <div class="sysadmin-field checkbox">
           <label>

@@ -1,10 +1,13 @@
 # backend/app/core/scheduler.py
 
 import logging
+import os
+from datetime import timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.core.database import SessionLocal
+from app.core.time_utils import taiwan_now
 from app.crawlers.registry import get_crawler
 from app.services import lock_service
 from app.services.alert_service import run_alert_checks
@@ -20,7 +23,7 @@ from app.services.sentiment_service import (
     classify_pending_comments,
     classify_pending_sentiments,
 )
-from app.services.settings_service import get_setting
+from app.services.settings_service import get_internal_value, get_setting, set_internal_value
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +31,30 @@ logger = logging.getLogger(__name__)
 # 每日自動任務的設定（是否啟用 / 幾點執行 / 每個看板爬幾頁）
 # 改由「系統設定」提供，管理員可在後台調整；預設值仍沿用環境變數。
 JOB_ID = "daily_opinion_job"
+
+# 補跑用的一次性任務 id。
+CATCHUP_JOB_ID = "daily_opinion_catchup"
+
+# 記錄「每日任務最後成功執行的日期」（YYYY-MM-DD，台灣時間）。
+LAST_RUN_KEY = "last_daily_job_date"
+
+# 後端啟動後隔多久才補跑。
+# 不立刻執行是為了讓服務先能回應請求；開發時用 --reload 頻繁重啟，
+# 也不會每存一次檔就馬上開一堆瀏覽器。
+CATCHUP_DELAY_SECONDS = int(os.getenv("STARTUP_CATCHUP_DELAY", "20"))
+
+
+def _today() -> str:
+    return taiwan_now().strftime("%Y-%m-%d")
+
+
+def has_run_today(db) -> bool:
+    """今天是否已經成功跑過每日任務。
+
+    只認每日任務自己的紀錄，不看 crawl_logs：
+    手動爬取單一看板和「跑完整套流程」不是同一件事。
+    """
+    return get_internal_value(db, LAST_RUN_KEY) == _today()
 
 _scheduler: BackgroundScheduler | None = None
 
@@ -129,6 +156,9 @@ def run_daily_job(pages: int | None = None, force: bool = False) -> dict:
             "scored_comments": scored_comments,
             "new_alerts": len(alerts),
         }
+        # 記錄完成日期，讓下次啟動知道今天不用補跑。
+        set_internal_value(db, LAST_RUN_KEY, _today())
+
         logger.info("Daily job finished: %s", summary)
         return summary
     finally:
@@ -170,6 +200,47 @@ def start_scheduler():
     )
     _scheduler.start()
     logger.info("Scheduler started: daily job at %02d:00 (Asia/Taipei)", hour)
+
+    _schedule_startup_catchup()
+
+
+def _schedule_startup_catchup() -> None:
+    """若今天還沒跑過每日任務，啟動後補跑一次。
+
+    為什麼需要這個？
+    排程只在後端執行中才會觸發。在本機使用時，半夜三點電腦通常是關的，
+    而 APScheduler 預設不會補跑錯過的排程——結果是排程設定好了卻從未執行
+    （實際查資料庫：所有爬取都發生在使用者操作的時段，凌晨三點一次也沒有）。
+
+    有了補跑，只要每天開一次後端就會收到當天的資料，
+    不必讓電腦整夜開著。
+    """
+    db = SessionLocal()
+
+    try:
+        if not get_setting(db, "auto_crawl_enabled"):
+            return
+
+        if not get_setting(db, "startup_catchup_enabled"):
+            return
+
+        if has_run_today(db):
+            logger.info("Startup catch-up skipped: daily job already ran today")
+            return
+    finally:
+        db.close()
+
+    run_at = taiwan_now() + timedelta(seconds=CATCHUP_DELAY_SECONDS)
+
+    _scheduler.add_job(
+        run_daily_job,
+        trigger="date",
+        run_date=run_at,
+        id=CATCHUP_JOB_ID,
+        # 重啟時若前一次補跑還排在佇列中，換成新的即可，不要排兩次。
+        replace_existing=True,
+    )
+    logger.info("Daily job has not run today; catching up in %ds", CATCHUP_DELAY_SECONDS)
 
 
 def reschedule_daily_job(hour: int) -> bool:
