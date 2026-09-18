@@ -1,7 +1,13 @@
 # backend/tests/test_sentiment_service.py
 
 import json
+import re
+from types import SimpleNamespace
 
+import pytest
+
+from app.services import sentiment_service
+from app.services.llm_client import LLMServiceUnavailableError
 from app.services.sentiment_service import _parse_batch_response
 
 
@@ -107,3 +113,75 @@ class TestExcerptForScoring:
 
         assert _excerpt_for_scoring(None) == ""
         assert _excerpt_for_scoring("") == ""
+
+
+class TestBlockedBatchFallback:
+    """整批被 Gemini 安全機制擋下時的處理。
+
+    實測：補評分舊文章時，有 1,074 篇卡住評不出來。
+    追下去發現 API 回 200 但 response.text 是 None，
+    prompt_feedback 顯示 block_reason=PROHIBITED_CONTENT——
+    同一批 20 篇裡只要一篇踩到安全機制，整個 prompt 就被擋，
+    另外 19 篇正常文章跟著拿不到結果，而且下次還會挑到同一批。
+    """
+
+    def _articles(self, count: int):
+        return [SimpleNamespace(id=index, title=f"t{index}", content="c") for index in range(count)]
+
+    def test_returns_the_parsed_result_when_nothing_is_blocked(self, monkeypatch):
+        monkeypatch.setattr(
+            sentiment_service,
+            "generate_json_response",
+            lambda _prompt: '{"results": [{"id": 0, "sentiment": "positive"}]}',
+        )
+
+        assert sentiment_service._score_batch(self._articles(1)) == {0: "positive"}
+
+    def test_splits_the_batch_so_one_blocked_article_does_not_sink_the_rest(self, monkeypatch):
+        blocked_id = 2
+
+        def fake_generate(prompt):
+            # 只要這一批含有問題文章，整批就回空——模擬真實的 block 行為。
+            if f'"id": {blocked_id}' in prompt:
+                return ""
+
+            # 只看「文章列表：」之後的內容：prompt 的格式說明裡有個
+            # {"id": 123} 範例，整段一起抓會多出一個不存在的文章。
+            article_list = prompt.split("文章列表：")[-1]
+            ids = re.findall(r'"id": (\d+)', article_list)
+            results = ", ".join(f'{{"id": {i}, "sentiment": "neutral"}}' for i in ids)
+            return f'{{"results": [{results}]}}'
+
+        monkeypatch.setattr(sentiment_service, "generate_json_response", fake_generate)
+
+        result = sentiment_service._score_batch(self._articles(4))
+
+        # 另外三篇照樣評到分，只有那一篇被標記起來。
+        assert result == {
+            0: "neutral",
+            1: "neutral",
+            blocked_id: sentiment_service.BLOCKED_SENTIMENT,
+            3: "neutral",
+        }
+
+    def test_a_single_blocked_article_is_marked_so_it_is_not_retried_forever(self, monkeypatch):
+        monkeypatch.setattr(sentiment_service, "generate_json_response", lambda _prompt: "")
+
+        result = sentiment_service._score_batch(self._articles(1))
+
+        assert result == {0: sentiment_service.BLOCKED_SENTIMENT}
+
+    def test_quota_errors_stop_the_run_instead_of_splitting(self, monkeypatch):
+        calls = []
+
+        def fake_generate(prompt):
+            calls.append(prompt)
+            raise LLMServiceUnavailableError("quota")
+
+        monkeypatch.setattr(sentiment_service, "generate_json_response", fake_generate)
+
+        with pytest.raises(LLMServiceUnavailableError):
+            sentiment_service._score_batch(self._articles(8))
+
+        # 額度用完時再拆下去只是白白多打幾次，必須第一次就停。
+        assert len(calls) == 1

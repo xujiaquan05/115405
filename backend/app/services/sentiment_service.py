@@ -22,6 +22,14 @@ SENTIMENT_VALUES = {"positive", "neutral", "negative"}
 BATCH_SIZE = 20
 MAX_ARTICLES_PER_RUN = 200
 
+# 被 Gemini 內容安全機制擋下、無法評分的文章標記。
+# 為什麼需要一個標記而不是留著 NULL？
+# 待評分清單是「sentiment IS NULL」，被擋的文章永遠留在清單最前面，
+# 下次執行又挑到同一批、又被擋——實測有 1,074 篇舊文就這樣卡住，
+# 每次都白白花掉 API 額度卻一篇也評不出來。
+# 標記起來就不會再被挑中；儀表板遇到這個值會跟 NULL 一樣走 push_count 推估。
+BLOCKED_SENTIMENT = "blocked"
+
 
 # 內文取樣長度。
 # 中文心得文常見結構是「背景 → 過程 → 結論」，結論寫在最後
@@ -139,29 +147,60 @@ def classify_pending_sentiments(
         batch = pending[start:start + batch_size]
 
         try:
-            raw_response = generate_json_response(_build_batch_prompt(batch))
+            sentiments = _score_batch(batch)
         except LLMServiceUnavailableError:
             logger.warning(
                 "Gemini unavailable, stopped sentiment scoring after %s articles",
                 updated_count,
             )
             break
-        except Exception:
-            logger.exception("Sentiment scoring failed, stopping this run")
-            break
-
-        sentiments = _parse_batch_response(raw_response)
 
         for article in batch:
             sentiment = sentiments.get(article.id)
 
-            if sentiment:
+            if sentiment == BLOCKED_SENTIMENT:
+                article.sentiment = BLOCKED_SENTIMENT
+            elif sentiment:
                 article.sentiment = sentiment
                 updated_count += 1
 
         db.commit()
 
     return updated_count
+
+
+def _score_batch(batch: list[Article]) -> dict[int, str]:
+    """對一批文章評分，回傳 {article_id: sentiment}。
+
+    整批拿不到結果時，通常不是 API 壞了，而是其中某一篇踩到 Gemini 的
+    內容安全機制，整個 prompt 被擋下（block_reason=PROHIBITED_CONTENT），
+    連同批另外 19 篇正常文章一起陪葬。
+
+    因此改成對半拆開各自重送，只往「有問題的那一半」繼續拆；
+    一篇有問題的話大約多花 8 次呼叫就能找出來，比 20 篇逐一重送省得多。
+    """
+    try:
+        sentiments = _parse_batch_response(generate_json_response(_build_batch_prompt(batch)))
+    except LLMServiceUnavailableError:
+        # 額度用完或服務忙碌，往外拋讓整個回合停下來，不要再拆下去重試。
+        raise
+    except Exception:
+        logger.exception("Sentiment scoring failed for a batch of %d", len(batch))
+        return {}
+
+    if sentiments:
+        return sentiments
+
+    if len(batch) == 1:
+        logger.warning("Article %s was blocked by the safety filter", batch[0].id)
+        return {batch[0].id: BLOCKED_SENTIMENT}
+
+    middle = len(batch) // 2
+
+    return {
+        **_score_batch(batch[:middle]),
+        **_score_batch(batch[middle:]),
+    }
 
 
 def _build_comment_prompt(comments: list[Comment]) -> str:

@@ -37,8 +37,9 @@ logger = logging.getLogger("backfill_sentiment")
 # 送出請求被拒（429 / 5xx）之後等多久再試。
 RETRY_WAIT_SECONDS = 60
 
-# 連續幾輪都沒有任何文章被評分就放棄。
-# 防止「Gemini 一直回不出這幾篇的結果」變成無限迴圈重複燒額度。
+# 連續幾輪「待評分數量都沒有減少」就放棄。
+# 看數量而不是看評分成功數：被安全機制擋下的文章會被標記起來，
+# 這種批次評分數是 0 但確實有進展，不該被當成卡住。
 MAX_STALLED_ROUNDS = 3
 
 
@@ -67,6 +68,8 @@ def backfill(limit: int | None, pause: float) -> int:
                 logger.info("所有文章都已評分。")
                 break
 
+            before = count_pending(db)
+
             try:
                 # 一次只送一批，節奏才握在自己手上
                 # （classify_pending_sentiments 內部會連續送完 max_articles，
@@ -79,10 +82,12 @@ def backfill(limit: int | None, pause: float) -> int:
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
 
-            if scored == 0:
+            remaining = count_pending(db)
+
+            if remaining >= before:
                 stalled_rounds += 1
                 logger.warning(
-                    "這一批沒有任何文章被評分（第 %d/%d 次），可能是額度用完或回應格式有問題",
+                    "這一批待評分數量沒有減少（第 %d/%d 次），可能是額度用完",
                     stalled_rounds,
                     MAX_STALLED_ROUNDS,
                 )
@@ -96,8 +101,14 @@ def backfill(limit: int | None, pause: float) -> int:
 
             stalled_rounds = 0
             scored_total += scored
-            remaining = count_pending(db)
-            logger.info("本批 +%d｜累計 %d｜剩餘 %d", scored, scored_total, remaining)
+            blocked = (before - remaining) - scored
+            logger.info(
+                "本批 +%d%s｜累計 %d｜剩餘 %d",
+                scored,
+                f"（被擋 {blocked}）" if blocked else "",
+                scored_total,
+                remaining,
+            )
 
             if remaining:
                 time.sleep(pause)
