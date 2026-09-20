@@ -15,8 +15,22 @@ from app.services.article_compressor import clean_text, compress_articles_for_ll
 from app.services.cache_service import get_cache, set_cache
 from app.services.llm_client import generate_json_response
 
+# 問題裡出現這些字就把查詢鎖定到該平台。
+# 四個平台都要列全：少列一個，使用者問「Mobile01 上怎麼說」時，
+# 平台條件會被當成無效而整個忽略，結果混入其他三個平台的文章，
+# 而且畫面上不會有任何提示。
+#
+# 刻意不收 Threads 的俗稱「脆」：醫美討論裡「脆弱肌膚」之類的詞太常見，
+# 會把一般問題誤判成只問 Threads。
+PLATFORM_ALIASES = {
+    "ptt": ("ptt",),
+    "dcard": ("dcard",),
+    "mobile01": ("mobile01", "mobile 01"),
+    "threads": ("threads",),
+}
+
 # 支援查詢的平台（用於意圖解析與檢索過濾）。
-KNOWN_PLATFORMS = {"ptt", "dcard"}
+KNOWN_PLATFORMS = set(PLATFORM_ALIASES)
 
 
 DEFAULT_KEYWORDS = [
@@ -68,13 +82,13 @@ def _fallback_intent(question: str) -> dict[str, Any]:
     elif any(word in question for word in ["比較", "競品", "對比"]):
         question_type = "comparison"
 
-    # 平台：問題裡若明確提到 Dcard / PTT 就鎖定該平台，否則不限。
+    # 平台：問題裡若明確提到某個平台就鎖定它，否則不限。
     lowered = question.lower()
     platform = "all"
-    if "dcard" in lowered:
-        platform = "dcard"
-    elif "ptt" in lowered:
-        platform = "ptt"
+    for name, aliases in PLATFORM_ALIASES.items():
+        if any(alias in lowered for alias in aliases):
+            platform = name
+            break
 
     return {
         "keywords": keywords[:3] or [question[:30]],
@@ -96,14 +110,14 @@ JSON 格式：
   "sentiment": "positive / negative / all",
   "days": 30,
   "question_type": "opinion / trend / count / comparison",
-  "platform": "ptt / dcard / all"
+  "platform": "ptt / dcard / mobile01 / threads / all"
 }}
 
 規則：
 - keywords 必須是適合查詢資料庫的短詞。
 - days 只能是 7, 30, 90, 180 其中一個；無法判斷就用 30。
 - sentiment 無法判斷就用 all。
-- platform 只有問題明確提到 Dcard 或 PTT 才鎖定，否則用 all。
+- platform 只有問題明確提到 PTT、Dcard、Mobile01 或 Threads 才鎖定，否則用 all。
 
 使用者問題：{question}
 """
@@ -125,7 +139,7 @@ JSON 格式：
         "sentiment": parsed.get("sentiment") if parsed.get("sentiment") in {"positive", "negative", "all"} else fallback["sentiment"],
         "days": parsed.get("days") if parsed.get("days") in {7, 30, 90, 180} else fallback["days"],
         "question_type": parsed.get("question_type") if parsed.get("question_type") in {"opinion", "trend", "count", "comparison"} else fallback["question_type"],
-        "platform": parsed.get("platform") if parsed.get("platform") in {"ptt", "dcard", "all"} else fallback["platform"],
+        "platform": parsed.get("platform") if parsed.get("platform") in KNOWN_PLATFORMS | {"all"} else fallback["platform"],
     }
 
 
@@ -255,10 +269,14 @@ def generate_rag_answer(
             "confidence": "low",
         }
 
+    # 總額度要放得下 12 篇 ×（主文 300 + 留言 300 + 欄位約 160）。
+    # 抓太緊的話後面幾篇會被截掉不送進 prompt，
+    # 但 sources 仍然列出全部 12 篇——使用者會看到模型沒讀過的來源。
     articles_context = compress_articles_for_llm(
         articles,
         max_chars_per_article=300,
-        max_total_chars=9000,
+        max_total_chars=13000,
+        max_comment_chars=300,
     )
 
     prompt = f"""
