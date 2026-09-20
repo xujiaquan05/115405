@@ -17,6 +17,10 @@ google-api-python-client==2.196.0
 google-auth==2.52.0
 google-auth-httplib2==0.4.0
 google-genai==2.3.0
+
+# 向量檢索：把候選文章的向量一次算完餘弦相似度。
+# 純 Python 逐筆算，1,700 篇候選要數百毫秒；numpy 只要幾毫秒。
+numpy==2.3.4
 google-generativeai==0.8.6
 googleapis-common-protos==1.75.0
 greenlet==3.5.0

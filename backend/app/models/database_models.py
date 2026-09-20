@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -423,3 +423,38 @@ class CrawlLog(Base):
 
     platform = relationship("Platform")
     board = relationship("Board")
+
+
+class ArticleEmbedding(Base):
+    """文章的語意向量，供 RAG 以「意思相近」而非「字面相同」檢索。
+
+    為什麼另開一張表而不是加在 articles 上？
+    - 向量佔 3KB，articles 幾乎每個查詢都會掃，不該讓每次掃描都拖著它。
+    - 換模型時只要清掉這張表重新產生，不必動到文章本體。
+
+    為什麼存 bytea 而不是 float 陣列或 pgvector？
+    - 這台 PostgreSQL 沒有 vector 擴充（pg_available_extensions 查無），
+      而目前規模（近一萬篇、單次查詢候選最多約 1,700 篇）用 Python 精確計算
+      餘弦相似度只要幾毫秒，比近似索引還準。
+    - 打包成 float32 連續位元組，讀出來直接就是 numpy 陣列，不必逐筆轉型。
+    - 日後真的需要 ANN 索引，換成 pgvector 只要改這一個欄位與查詢函式。
+    """
+
+    __tablename__ = "article_embeddings"
+
+    article_id = Column(
+        Integer,
+        ForeignKey("articles.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # 記下產生來源，換模型或換維度時才知道哪些需要重算。
+    model = Column(String(50), nullable=False)
+    dimensions = Column(Integer, nullable=False)
+
+    # float32 小端序，長度為 dimensions × 4 bytes。
+    vector = Column(LargeBinary, nullable=False)
+
+    created_at = Column(DateTime, server_default=func.now())
+
+    article = relationship("Article")

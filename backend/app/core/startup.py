@@ -24,8 +24,12 @@ logger = logging.getLogger(__name__)
 def _apply_schema_migrations():
     # 說明：
     # create_all 只會建立新資料表，不會在既有資料表上新增欄位。
-    # 專案尚未使用 Alembic，所以之後新增的欄位必須在這裡
-    # 手動 ALTER TABLE（加 IF NOT EXISTS 讓重複執行也安全）。
+    # 這裡保留的是導入 Alembic 之前就寫好的手動 ALTER TABLE
+    # （加 IF NOT EXISTS 讓重複執行也安全），為的是讓既有資料庫仍能升級。
+    #
+    # 新的結構變更請改寫 Alembic migration，不要再往這裡加：
+    # 部署時是先跑 alembic upgrade head 才啟動服務，
+    # 兩邊都改會變成同一件事有兩個來源，日後對不起來。
     with engine.begin() as connection:
         connection.execute(text(
             "ALTER TABLE articles ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20)"

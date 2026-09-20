@@ -19,6 +19,7 @@ from app.services.article_service import (
     save_comments,
 )
 from app.services.dashboard_service import get_active_crawl_targets
+from app.services.embedding_service import embed_pending_articles
 from app.services.relevance_filter import evaluate_article_relevance
 from app.services.sentiment_service import (
     classify_pending_comments,
@@ -180,12 +181,15 @@ def run_daily_job(pages: int | None = None, force: bool = False) -> dict:
 
         scored = classify_pending_sentiments(db)
         scored_comments = classify_pending_comments(db)
+        # 新文章要有向量，RAG 的語意檢索才找得到它們。
+        embedded = embed_pending_articles(db)
         alerts = run_alert_checks(db)
 
         summary = {
             "new_articles": new_articles,
             "scored": scored,
             "scored_comments": scored_comments,
+            "embedded": embedded,
             "new_alerts": len(alerts),
         }
         # 記錄完成日期，讓下次啟動知道今天不用補跑。

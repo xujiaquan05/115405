@@ -13,6 +13,7 @@ from app.core.time_utils import taiwan_now
 from app.models.database_models import Article, Platform
 from app.services.article_compressor import clean_text, compress_articles_for_llm
 from app.services.cache_service import get_cache, set_cache
+from app.services.embedding_service import rank_by_similarity
 from app.services.llm_client import generate_json_response
 
 # 問題裡出現這些字就把查詢鎖定到該平台。
@@ -31,6 +32,12 @@ PLATFORM_ALIASES = {
 
 # 支援查詢的平台（用於意圖解析與檢索過濾）。
 KNOWN_PLATFORMS = set(PLATFORM_ALIASES)
+
+# Reciprocal Rank Fusion 的常數。
+# 60 是這個方法原始論文採用的值，作用是壓低「只在單一排名衝到第一」的文章：
+# 名次 1 得 1/61，名次 2 得 1/62，差距很小，
+# 因此「兩邊都在前段」會勝過「一邊第一、另一邊沒上榜」。
+RRF_K = 60
 
 
 DEFAULT_KEYWORDS = [
@@ -143,28 +150,22 @@ JSON 格式：
     }
 
 
-def retrieve_articles(
-    db: Session,
-    intent: dict[str, Any],
-    limit: int = 12,
-) -> list[Article]:
+def _apply_hard_filters(query, intent: dict[str, Any]):
+    """套用使用者明確給定的條件：時間、平台、情緒。
+
+    這些是硬條件，兩種檢索都必須遵守——
+    問「最近一週」就不該回一年前的文章，即使那篇語意更接近。
+    """
     end_date = taiwan_now()
     start_date = end_date - timedelta(days=intent.get("days", 30))
 
-    keyword_filters = []
-    for keyword in intent.get("keywords", []):
-        keyword_like = f"%{keyword}%"
-        keyword_filters.append(Article.title.ilike(keyword_like))
-        keyword_filters.append(Article.content.ilike(keyword_like))
-
     query = (
-        db.query(Article)
-        .filter(or_(*keyword_filters))
+        query
         .filter(Article.published_at >= start_date)
         .filter(Article.published_at <= end_date)
     )
 
-    # 平台過濾：問題明確指定 Dcard / PTT 時才套用。
+    # 平台過濾：問題明確指定某個平台時才套用。
     platform = intent.get("platform", "all")
     if platform in KNOWN_PLATFORMS:
         query = query.filter(Article.platform.has(Platform.name == platform))
@@ -188,12 +189,112 @@ def retrieve_articles(
             )
         )
 
+    return query
+
+
+def retrieve_by_keyword(
+    db: Session,
+    intent: dict[str, Any],
+    limit: int = 12,
+) -> list[Article]:
+    """字面檢索：內文或標題要真的出現關鍵字。"""
+    keyword_filters = []
+    for keyword in intent.get("keywords", []):
+        keyword_like = f"%{keyword}%"
+        keyword_filters.append(Article.title.ilike(keyword_like))
+        keyword_filters.append(Article.content.ilike(keyword_like))
+
+    if not keyword_filters:
+        return []
+
+    query = _apply_hard_filters(db.query(Article).filter(or_(*keyword_filters)), intent)
+
     if intent.get("question_type") == "trend":
         query = query.order_by(desc(Article.published_at))
     else:
         query = query.order_by(desc(Article.push_count), desc(Article.published_at))
 
     return query.limit(limit).all()
+
+
+def retrieve_by_vector(
+    db: Session,
+    question: str,
+    intent: dict[str, Any],
+    limit: int = 12,
+) -> list[Article]:
+    """語意檢索：用詞不同但在講同一件事的文章也找得到。
+
+    先用硬條件把候選範圍縮到幾百篇，再對這些候選算餘弦相似度。
+    """
+    candidate_ids = [
+        row[0]
+        for row in _apply_hard_filters(db.query(Article.id), intent).all()
+    ]
+
+    ranked = rank_by_similarity(db, question, candidate_ids, limit=limit)
+
+    if not ranked:
+        return []
+
+    # 依相似度順序取回文章：IN 查詢不保證順序，要自己排回來。
+    ranked_ids = [article_id for article_id, _score in ranked]
+    articles = db.query(Article).filter(Article.id.in_(ranked_ids)).all()
+    by_id = {article.id: article for article in articles}
+
+    return [by_id[article_id] for article_id in ranked_ids if article_id in by_id]
+
+
+def fuse_rankings(rankings: list[list[Article]], limit: int = 12) -> list[Article]:
+    """用 Reciprocal Rank Fusion 把多組排名合併成一組。
+
+    每篇文章的分數是各組排名倒數的總和：score = Σ 1 / (K + 名次)。
+    只看名次不看原始分數，因為兩種檢索的分數量綱完全不同
+    （推文數 vs 餘弦相似度），直接相加沒有意義。
+
+    兩邊都排前面的文章會被推到最上面，這正是想要的結果：
+    既字面命中又語意接近，最可能是使用者要的。
+    """
+    scores: dict[int, float] = {}
+    by_id: dict[int, Article] = {}
+
+    for ranking in rankings:
+        for rank, article in enumerate(ranking, start=1):
+            scores[article.id] = scores.get(article.id, 0) + 1 / (RRF_K + rank)
+            by_id[article.id] = article
+
+    ordered = sorted(scores.items(), key=lambda pair: -pair[1])
+
+    return [by_id[article_id] for article_id, _score in ordered[:limit]]
+
+
+def retrieve_articles(
+    db: Session,
+    intent: dict[str, Any],
+    limit: int = 12,
+    question: str = "",
+) -> list[Article]:
+    """混合檢索：關鍵字與語意各跑一次，再合併排名。
+
+    兩種檢索的盲點剛好互補：
+    - 關鍵字強在專有名詞（診所名、品牌名），但換句話說就失效
+      （問「填充物」找不到寫「玻尿酸」的文章）。
+    - 語意強在換句話說，但可能漏掉只差一個字的精確匹配。
+
+    沒有問題文字（或尚未產生向量）時會自動退回純關鍵字檢索，
+    所以這個功能不是「全有或全無」——向量還沒補完也能正常運作。
+    """
+    keyword_results = retrieve_by_keyword(db, intent, limit)
+
+    if not question:
+        return keyword_results
+
+    vector_results = retrieve_by_vector(db, question, intent, limit)
+
+    if not vector_results:
+        return keyword_results
+
+    return fuse_rankings([keyword_results, vector_results], limit)
 
 
 def serialize_sources(articles: list[Article], limit: int = 5) -> list[dict[str, Any]]:
@@ -440,7 +541,7 @@ def answer_question(
         }
     else:
         intent = parse_question_intent(question)
-        articles = retrieve_articles(db, intent)
+        articles = retrieve_articles(db, intent, question=question)
         answer = generate_rag_answer(question, intent, articles, history)
 
         result = {

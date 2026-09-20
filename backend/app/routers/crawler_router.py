@@ -26,6 +26,7 @@ from app.services.dashboard_service import (
     get_board_overview,
     normalize_boards,
 )
+from app.services.embedding_service import embed_pending_articles
 from app.services.relevance_filter import evaluate_article_relevance
 from app.services.sentiment_service import classify_pending_sentiments
 from app.services.settings_service import get_setting
@@ -324,6 +325,9 @@ def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page
         # （還沒評分的舊文章也會被逐步 backfill）。
         # 這個函式會自行吞掉 LLM 錯誤，不會影響爬取工作。
         scored_count = classify_pending_sentiments(db)
+
+        # 新文章要有向量，RAG 的語意檢索才找得到它們。
+        embed_pending_articles(db)
 
         if scored_count:
             websocket_manager.broadcast_sync({
