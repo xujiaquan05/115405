@@ -6,7 +6,7 @@ import re
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import and_, desc, or_
+from sqlalchemy import and_, case, desc, literal, or_
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
@@ -38,6 +38,13 @@ KNOWN_PLATFORMS = set(PLATFORM_ALIASES)
 # 名次 1 得 1/61，名次 2 得 1/62，差距很小，
 # 因此「兩邊都在前段」會勝過「一邊第一、另一邊沒上榜」。
 RRF_K = 60
+
+# 關鍵字命中的加權。與 relevance_filter 的取捨相同：
+# 標題出現關鍵字，是比內文某處出現強得多的證據。
+# 刻意不直接 import relevance_filter 的常數——那邊調的是「要不要收錄」，
+# 這邊排的是「哪篇更該回答」，兩件事日後可能各自調整。
+TITLE_MATCH_WEIGHT = 3
+CONTENT_MATCH_WEIGHT = 1
 
 
 DEFAULT_KEYWORDS = [
@@ -192,6 +199,26 @@ def _apply_hard_filters(query, intent: dict[str, Any]):
     return query
 
 
+def _match_score(intent: dict[str, Any]):
+    """計算「這篇有多符合問題」的分數，給關鍵字檢索排序用。
+
+    每個關鍵字分開計分：標題命中加 3、內文命中加 1。
+    因此命中兩個關鍵字的文章會排在只命中一個的前面，
+    標題就寫著關鍵字的文章又會排在只在內文提過一次的前面。
+    """
+    score = literal(0)
+
+    for keyword in intent.get("keywords", []):
+        keyword_like = f"%{keyword}%"
+        score = score + case(
+            (Article.title.ilike(keyword_like), TITLE_MATCH_WEIGHT), else_=0
+        ) + case(
+            (Article.content.ilike(keyword_like), CONTENT_MATCH_WEIGHT), else_=0
+        )
+
+    return score
+
+
 def retrieve_by_keyword(
     db: Session,
     intent: dict[str, Any],
@@ -209,10 +236,23 @@ def retrieve_by_keyword(
 
     query = _apply_hard_filters(db.query(Article).filter(or_(*keyword_filters)), intent)
 
+    # 先比命中程度，再比熱度。
+    # 只照 push_count 排的話，一篇熱門文章只要內文某處剛好出現一個關鍵字，
+    # 就會壓過整篇都在講這件事的冷門文章——實測有篇購物分享文
+    # 只因內文第 141 個字出現「消腫」就排到第一，而那次問的是音波拉皮術後。
+    #
+    # 熱度仍然保留在第二順位：這是輿情系統，
+    # 一則 200 推的抱怨本來就比一則 2 推的抱怨更值得看見。
+    match_score = _match_score(intent)
+
     if intent.get("question_type") == "trend":
-        query = query.order_by(desc(Article.published_at))
+        query = query.order_by(desc(match_score), desc(Article.published_at))
     else:
-        query = query.order_by(desc(Article.push_count), desc(Article.published_at))
+        query = query.order_by(
+            desc(match_score),
+            desc(Article.push_count),
+            desc(Article.published_at),
+        )
 
     return query.limit(limit).all()
 

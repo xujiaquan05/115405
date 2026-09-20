@@ -15,8 +15,15 @@ import struct
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+from app.core.database import Base
+from app.core.time_utils import taiwan_now
+from app.models.database_models import Article
 from app.services import embedding_service, rag_service
+from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.embedding_service import pack_vector, unpack_vector
 
 
@@ -167,3 +174,84 @@ class TestRetrieveArticlesFallback:
         result = rag_service.retrieve_articles(db=None, intent={}, question="問題")
 
         assert [article.id for article in result] == [1]
+
+
+class TestKeywordRanking:
+    """關鍵字檢索要先比命中程度，再比熱度。
+
+    實測到的問題：問「音波拉皮術後多久才會消腫」時，排第一的是一篇
+    購物分享文「跟風脆爆買的單品好物推推」——三個關鍵字只命中「消腫」，
+    而且是內文第 141 個字，但它有 217 推。當時排序只看 push_count，
+    於是它壓過了整篇都在講音波術後消腫的文章，還被 RRF 帶進合併結果的前段。
+    """
+
+    @pytest.fixture
+    def db_session(self):
+        engine = create_engine(
+            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
+        Base.metadata.create_all(bind=engine)
+        session = sessionmaker(bind=engine)()
+        yield session
+        session.close()
+
+    def _add(self, db, title, content, push_count):
+        platform = get_or_create_platform(db, "ptt")
+        board = get_or_create_board(db, platform.id, "facelift")
+        article = Article(
+            unique_id=f"u{title}",
+            platform_id=platform.id,
+            board_id=board.id,
+            title=title,
+            content=content,
+            push_count=push_count,
+            published_at=taiwan_now(),
+        )
+        db.add(article)
+        db.commit()
+        return article
+
+    def _intent(self, keywords):
+        return {
+            "keywords": keywords,
+            "sentiment": "all",
+            "days": 30,
+            "question_type": "opinion",
+            "platform": "all",
+        }
+
+    def test_a_popular_incidental_match_loses_to_an_on_topic_article(self, db_session):
+        self._add(db_session, "跟風爆買的單品好物推推", "買了一堆東西，其中有消腫的產品", 217)
+        self._add(db_session, "音波拉皮術後消腫紀錄", "音波拉皮做完的術後消腫過程", 2)
+
+        results = rag_service.retrieve_by_keyword(
+            db_session, self._intent(["音波拉皮", "術後", "消腫"])
+        )
+
+        assert results[0].title == "音波拉皮術後消腫紀錄"
+
+    def test_a_title_match_outranks_a_content_only_match(self, db_session):
+        self._add(db_session, "隨手記錄", "文章中間提到玻尿酸一次", 500)
+        self._add(db_session, "玻尿酸心得", "分享一些感想", 1)
+
+        results = rag_service.retrieve_by_keyword(db_session, self._intent(["玻尿酸"]))
+
+        assert results[0].title == "玻尿酸心得"
+
+    def test_popularity_still_decides_between_equally_matching_articles(self, db_session):
+        # 熱度沒有被廢掉，只是退到第二順位：
+        # 這是輿情系統，200 推的抱怨本來就比 2 推的更該被看見。
+        self._add(db_session, "玻尿酸心得 A", "玻尿酸", 5)
+        self._add(db_session, "玻尿酸心得 B", "玻尿酸", 300)
+
+        results = rag_service.retrieve_by_keyword(db_session, self._intent(["玻尿酸"]))
+
+        assert results[0].title == "玻尿酸心得 B"
+
+    def test_matching_more_keywords_ranks_higher(self, db_session):
+        self._add(db_session, "只提音波", "音波", 100)
+        self._add(db_session, "音波與術後", "音波 術後都有講", 1)
+
+        results = rag_service.retrieve_by_keyword(db_session, self._intent(["音波", "術後"]))
+
+        assert results[0].title == "音波與術後"
