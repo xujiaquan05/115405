@@ -157,7 +157,7 @@ JSON 格式：
     }
 
 
-def _apply_hard_filters(query, intent: dict[str, Any]):
+def apply_hard_filters(query, intent: dict[str, Any]):
     """套用使用者明確給定的條件：時間、平台、情緒。
 
     這些是硬條件，兩種檢索都必須遵守——
@@ -234,7 +234,7 @@ def retrieve_by_keyword(
     if not keyword_filters:
         return []
 
-    query = _apply_hard_filters(db.query(Article).filter(or_(*keyword_filters)), intent)
+    query = apply_hard_filters(db.query(Article).filter(or_(*keyword_filters)), intent)
 
     # 先比命中程度，再比熱度。
     # 只照 push_count 排的話，一篇熱門文章只要內文某處剛好出現一個關鍵字，
@@ -269,7 +269,7 @@ def retrieve_by_vector(
     """
     candidate_ids = [
         row[0]
-        for row in _apply_hard_filters(db.query(Article.id), intent).all()
+        for row in apply_hard_filters(db.query(Article.id), intent).all()
     ]
 
     ranked = rank_by_similarity(db, question, candidate_ids, limit=limit)

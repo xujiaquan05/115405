@@ -21,13 +21,16 @@ RAG 同時跑關鍵字（SQL ILIKE）與語意（向量餘弦相似度）兩種�
 
 import argparse
 import sys
+import time
 from pathlib import Path
 
 # 讓這個腳本不論從哪裡執行都能 import 到 app 套件。
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import SessionLocal  # noqa: E402
+from app.models.database_models import Article  # noqa: E402
 from app.services.rag_service import (  # noqa: E402
+    apply_hard_filters,
     parse_question_intent,
     retrieve_articles,
     retrieve_by_keyword,
@@ -49,27 +52,46 @@ DEFAULT_QUESTIONS = [
 ]
 
 
-def show(label: str, articles: list, limit: int) -> None:
-    print(f"  {label}：{len(articles)} 篇")
+# 全庫掃描用的天數：大到足以涵蓋所有文章。
+ALL_TIME_DAYS = 9999
+
+
+def timed(function, *args, **kwargs):
+    """執行並回傳 (結果, 毫秒)。用來看時間實際花在哪裡。"""
+    started = time.perf_counter()
+    result = function(*args, **kwargs)
+
+    return result, (time.perf_counter() - started) * 1000
+
+
+def show(label: str, articles: list, limit: int, elapsed_ms: float | None = None) -> None:
+    timing = f"（{elapsed_ms:.0f}ms）" if elapsed_ms is not None else ""
+    print(f"  {label}：{len(articles)} 篇{timing}")
 
     for article in articles[:limit]:
         platform = article.platform.name if article.platform else "?"
         print(f"      [{platform}] {(article.title or '')[:46]}")
 
 
-def run_controlled(db, keyword: str, question: str, limit: int) -> None:
+def run_controlled(db, keyword: str, question: str, limit: int, days: int = 180) -> None:
     """對照實驗：固定關鍵字，只比較兩種檢索本身的差別。"""
     intent = {
         "keywords": [keyword],
         "sentiment": "all",
-        "days": 180,
+        "days": days,
         "question_type": "opinion",
         "platform": "all",
     }
 
-    print(f"\n問題：{question}（只用關鍵字「{keyword}」）")
-    show("關鍵字檢索", retrieve_by_keyword(db, intent), limit)
-    show("語意檢索　", retrieve_by_vector(db, question, intent), limit)
+    candidates = apply_hard_filters(db.query(Article.id), intent).count()
+
+    print(f"\n問題：{question}（關鍵字「{keyword}」，{days} 天內共 {candidates} 篇候選）")
+
+    keyword_hits, keyword_ms = timed(retrieve_by_keyword, db, intent)
+    vector_hits, vector_ms = timed(retrieve_by_vector, db, question, intent)
+
+    show("關鍵字檢索", keyword_hits, limit, keyword_ms)
+    show("語意檢索　", vector_hits, limit, vector_ms)
 
 
 def run_full(db, question: str, limit: int) -> None:
@@ -103,6 +125,12 @@ def main() -> None:
     parser.add_argument("--question", help="要測試的問題（預設跑內建示範題）")
     parser.add_argument("--keyword", help="固定關鍵字做對照實驗，跳過意圖解析")
     parser.add_argument("--limit", type=int, default=5, help="每組印出幾篇（預設 5）")
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=180,
+        help=f"對照實驗的時間範圍，用 {ALL_TIME_DAYS} 代表全庫（預設 180）",
+    )
     args = parser.parse_args()
 
     db = SessionLocal()
@@ -115,7 +143,7 @@ def main() -> None:
             print("=" * 72)
             print("對照實驗：固定關鍵字")
             print("=" * 72)
-            run_controlled(db, args.keyword, args.question, args.limit)
+            run_controlled(db, args.keyword, args.question, args.limit, args.days)
             return
 
         if args.question:
@@ -129,7 +157,18 @@ def main() -> None:
         print("對照實驗：關鍵字完全沒有字面命中")
         print("=" * 72)
         for keyword, question in DEFAULT_CONTROLLED:
-            run_controlled(db, keyword, question, args.limit)
+            run_controlled(db, keyword, question, args.limit, args.days)
+
+        # 全庫掃描：不限時間，語意檢索要比對資料庫裡每一篇文章的向量。
+        # 這一段看的是「資料量長大會不會拖垮查詢」。
+        # 實測近一萬篇的精確餘弦計算只要幾十毫秒，時間幾乎都花在
+        # 呼叫 API 把問題轉成向量，而那一段與資料量多寡無關——
+        # 也就是說，在這個規模下換成近似索引（pgvector）並不會比較快。
+        print("\n" + "=" * 72)
+        print("全庫掃描：不限時間範圍")
+        print("=" * 72)
+        for keyword, question in DEFAULT_CONTROLLED:
+            run_controlled(db, keyword, question, args.limit, ALL_TIME_DAYS)
 
         print("\n" + "=" * 72)
         print("完整流程：意圖解析後混合檢索")
