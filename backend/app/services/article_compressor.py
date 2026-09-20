@@ -93,6 +93,14 @@ Content preview: {short_content}
 URL: {article.url}
 """.strip()
 
+        # 語意檢索會把「真正對上問題的那一段」掛在文章上。
+        # 命中的常常是文章中後段，只送開頭的話模型看不到那一段，
+        # 等於拿著正確的文章卻答不出問題。
+        matched_chunk = clean_text(getattr(article, "matched_chunk", "") or "")
+
+        if matched_chunk and matched_chunk[:60] not in short_content:
+            article_text += f"\nMatched excerpt: {matched_chunk[:max_chars_per_article]}"
+
         # 有留言才加這一段，避免在沒有留言的 PTT 文章後面留下空標題。
         if short_comments:
             article_text += f"\nComments: {short_comments}"

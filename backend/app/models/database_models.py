@@ -425,22 +425,24 @@ class CrawlLog(Base):
     board = relationship("Board")
 
 
-class ArticleEmbedding(Base):
-    """文章的語意向量，供 RAG 以「意思相近」而非「字面相同」檢索。
+class ArticleChunk(Base):
+    """文章切段後的語意向量，供 RAG 以「意思相近」而非「字面相同」檢索。
 
-    為什麼另開一張表而不是加在 articles 上？
-    - 向量佔 3KB，articles 幾乎每個查詢都會掃，不該讓每次掃描都拖著它。
-    - 換模型時只要清掉這張表重新產生，不必動到文章本體。
+    為什麼要切段，而不是一篇一個向量？
+    一個向量只能代表一個主題。長文（心得文常見「背景→過程→術後照顧→心得」）
+    壓成單一向量後，每一段的特徵都被平均掉，問細節反而找不到。
+    而且先前為了控制長度只取前 1000 字——實測有 1,138 篇超過這個長度，
+    合計 772,722 字（佔全部內容的 16%）根本進不了向量，等於搜不到。
 
-    為什麼存 bytea 而不是 float 陣列或 pgvector？
-    - 這台 PostgreSQL 沒有 vector 擴充（pg_available_extensions 查無），
-      而目前規模（近一萬篇、單次查詢候選最多約 1,700 篇）用 Python 精確計算
-      餘弦相似度只要幾毫秒，比近似索引還準。
-    - 打包成 float32 連續位元組，讀出來直接就是 numpy 陣列，不必逐筆轉型。
-    - 日後真的需要 ANN 索引，換成 pgvector 只要改這一個欄位與查詢函式。
+    切段後每一段自成一個向量，長文的後半段也找得到；
+    留言也一起切，每則留言是獨立的意見，不會被主文稀釋。
+
+    content 欄位存的是那一段的原文：
+    命中之後可以直接把「真正相符的那一段」送進 prompt，
+    不必再回頭從整篇裡猜是哪一段對上的。
     """
 
-    __tablename__ = "article_embeddings"
+    __tablename__ = "article_chunks"
 
     article_id = Column(
         Integer,
@@ -448,11 +450,22 @@ class ArticleEmbedding(Base):
         primary_key=True,
     )
 
+    # 同一篇文章內的段落序號，從 0 開始。
+    chunk_index = Column(Integer, primary_key=True)
+
+    # 這一段的原文，供命中後直接放進 prompt。
+    content = Column(Text, nullable=False)
+
     # 記下產生來源，換模型或換維度時才知道哪些需要重算。
     model = Column(String(50), nullable=False)
     dimensions = Column(Integer, nullable=False)
 
     # float32 小端序，長度為 dimensions × 4 bytes。
+    #
+    # 為什麼存 bytea 而不是 pgvector 的 vector 型別？
+    # 這台 PostgreSQL 沒有 vector 擴充，而實測全庫精確計算餘弦相似度
+    # 只要 36ms——查詢的 1.7 秒幾乎都花在把問題轉成向量的 API 呼叫上，
+    # 那一段與資料量無關。近似索引能縮短的正是那 36ms。
     vector = Column(LargeBinary, nullable=False)
 
     created_at = Column(DateTime, server_default=func.now())

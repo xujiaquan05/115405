@@ -278,11 +278,21 @@ def retrieve_by_vector(
         return []
 
     # 依相似度順序取回文章：IN 查詢不保證順序，要自己排回來。
-    ranked_ids = [article_id for article_id, _score in ranked]
+    ranked_ids = [article_id for article_id, _score, _chunk in ranked]
+    matched_chunks = {article_id: chunk for article_id, _score, chunk in ranked}
+
     articles = db.query(Article).filter(Article.id.in_(ranked_ids)).all()
     by_id = {article.id: article for article in articles}
 
-    return [by_id[article_id] for article_id in ranked_ids if article_id in by_id]
+    ordered = [by_id[article_id] for article_id in ranked_ids if article_id in by_id]
+
+    # 把「真正對上的那一段」掛在文章物件上，讓組 prompt 時能直接用。
+    # 這是暫時性屬性，不會寫回資料庫；少了它就只能送內文開頭，
+    # 而命中的往往是文章中後段——模型會看不到它被選中的理由。
+    for article in ordered:
+        article.matched_chunk = matched_chunks.get(article.id, "")
+
+    return ordered
 
 
 def fuse_rankings(rankings: list[list[Article]], limit: int = 12) -> list[Article]:

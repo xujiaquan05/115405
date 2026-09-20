@@ -11,12 +11,15 @@
 
 注意：
 - 會實際呼叫 Gemini embedding API 並消耗額度，先用 --dry-run 確認數量。
-- 一次送 50 篇，比情緒評分（20 篇）省很多呼叫次數。
+- 文章會先切成數段，一次送 50 段；一篇長文可能佔掉好幾段，
+  所以要打幾次 API 是看段落數而不是文章數（--dry-run 會兩個都印）。
 - 每批寫入就 commit，中途停掉不會丟失已完成的部分。
+  同一篇文章的所有段落一定在同一批，不會留下只做一半的文章。
 """
 
 import argparse
 import logging
+import math
 import sys
 import time
 from pathlib import Path
@@ -24,9 +27,15 @@ from pathlib import Path
 # 讓這個腳本不論從哪裡執行都能 import 到 app 套件。
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from sqlalchemy import func  # noqa: E402
+
 from app.core.database import SessionLocal  # noqa: E402
+from app.models.database_models import Article, ArticleChunk  # noqa: E402
 from app.services.embedding_service import (  # noqa: E402
+    CHUNK_OVERLAP,
+    CHUNK_SIZE,
     EMBED_BATCH_SIZE,
+    MAX_CHUNKS_PER_ARTICLE,
     count_pending_embeddings,
     embed_pending_articles,
 )
@@ -39,12 +48,35 @@ MAX_STALLED_ROUNDS = 3
 RETRY_WAIT_SECONDS = 60
 
 
+def estimate_chunks(db) -> int:
+    """估算待處理文章會切成幾段，用來推算 API 呼叫次數。
+
+    算式與 split_into_chunks 相同：第一段之後每次前進
+    (CHUNK_SIZE - CHUNK_OVERLAP) 個字，直到覆蓋完整篇。
+    """
+    step = CHUNK_SIZE - CHUNK_OVERLAP
+    lengths = (
+        db.query(func.length(func.coalesce(Article.content, "")))
+        .outerjoin(ArticleChunk, ArticleChunk.article_id == Article.id)
+        .filter(ArticleChunk.article_id.is_(None))
+        .all()
+    )
+
+    total = 0
+
+    for (length,) in lengths:
+        count = 1 + math.ceil(max((length or 0) - CHUNK_SIZE, 0) / step)
+        total += min(count, MAX_CHUNKS_PER_ARTICLE)
+
+    return total
+
+
 def backfill(limit: int | None, pause: float) -> int:
     db = SessionLocal()
 
     try:
         pending = count_pending_embeddings(db)
-        logger.info("尚未產生向量：%d 篇（約 %d 批）", pending, -(-pending // EMBED_BATCH_SIZE))
+        logger.info("尚未產生向量：%d 篇", pending)
 
         created_total = 0
         stalled_rounds = 0
@@ -109,14 +141,19 @@ def main() -> None:
     db = SessionLocal()
     try:
         pending = count_pending_embeddings(db)
+        chunks = estimate_chunks(db) if args.dry_run else 0
     finally:
         db.close()
 
     if args.dry_run:
+        # 用「段落數」估算，不是「文章數」：
+        # 一篇長文會切成好幾段，照文章數算會嚴重低估要打幾次 API，
+        # 而 --dry-run 存在的意義就是先看清楚要花多少額度。
         logger.info(
-            "尚未產生向量：%d 篇，需要約 %d 次 API 呼叫（不會實際呼叫）",
+            "尚未產生向量：%d 篇，約 %d 段，需要約 %d 次 API 呼叫（不會實際呼叫）",
             pending,
-            -(-pending // EMBED_BATCH_SIZE),
+            chunks,
+            -(-chunks // EMBED_BATCH_SIZE),
         )
         return
 

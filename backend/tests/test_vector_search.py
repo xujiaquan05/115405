@@ -53,27 +53,68 @@ class TestVectorPacking:
         assert struct.unpack("<2f", raw) == (1.5, 2.5)
 
 
-class TestTextForEmbedding:
-    def test_uses_title_and_main_post_without_comments(self):
+class TestSplitIntoChunks:
+    def test_a_short_article_is_a_single_chunk(self):
+        article = SimpleNamespace(title="音波拉皮心得", content="做完第三天還是很腫")
+
+        chunks = embedding_service.split_into_chunks(article)
+
+        assert len(chunks) == 1
+        assert "音波拉皮心得" in chunks[0]
+        assert "做完第三天還是很腫" in chunks[0]
+
+    def test_a_long_article_is_split_and_nothing_is_dropped(self):
+        # 先前只取前 1000 字，實測有 1,138 篇超過而被截掉，
+        # 合計 772,722 字從來沒進過向量。切段就是為了這件事。
+        body = "".join(str(index % 10) for index in range(3000))
+        article = SimpleNamespace(title="標題", content=body)
+
+        chunks = embedding_service.split_into_chunks(article)
+
+        assert len(chunks) > 1
+        # 文章結尾也要出現在某一段裡，不能像以前一樣被丟掉。
+        assert any(body[-50:] in chunk for chunk in chunks)
+
+    def test_chunks_overlap_so_a_cut_sentence_survives_on_one_side(self):
+        body = "".join(str(index % 10) for index in range(1000))
+        article = SimpleNamespace(title="", content=body)
+
+        chunks = embedding_service.split_into_chunks(article)
+        tail_of_first = chunks[0][-embedding_service.CHUNK_OVERLAP:]
+
+        assert tail_of_first in chunks[1]
+
+    def test_every_chunk_carries_the_title(self):
+        # 從中段切出來的片段常常只剩代名詞，補上標題才知道在講哪個療程。
+        article = SimpleNamespace(title="音波拉皮心得", content="內" * 1500)
+
+        chunks = embedding_service.split_into_chunks(article)
+
+        assert len(chunks) > 1
+        assert all(chunk.startswith("音波拉皮心得") for chunk in chunks)
+
+    def test_comments_are_chunked_too(self):
+        # 單一向量時留言被排除（會稀釋主題）；切段後每則留言自成一段。
         article = SimpleNamespace(
-            title="音波拉皮心得",
-            content="做完第三天還是很腫\n【留言】\n- 我也是\n- 推薦這家",
+            title="標題",
+            content="主文" * 200 + "\n【留言】\n- 這家診所術後照顧很細心",
         )
 
-        text = embedding_service.text_for_embedding(article)
+        chunks = embedding_service.split_into_chunks(article)
 
-        assert "音波拉皮心得" in text
-        assert "做完第三天還是很腫" in text
-        # 留言是別人的意見；混進來向量會變成「整串討論的平均」。
-        assert "推薦這家" not in text
+        assert any("這家診所術後照顧很細心" in chunk for chunk in chunks)
 
-    def test_truncates_long_content(self):
-        article = SimpleNamespace(title="標題", content="內" * 5000)
+    def test_a_very_long_article_is_capped(self):
+        article = SimpleNamespace(title="標題", content="內" * 100_000)
 
-        assert len(embedding_service.text_for_embedding(article)) <= (
-            embedding_service.MAX_EMBED_CHARS
-        )
+        chunks = embedding_service.split_into_chunks(article)
 
+        assert len(chunks) == embedding_service.MAX_CHUNKS_PER_ARTICLE
+
+    def test_an_empty_article_produces_nothing_to_embed(self):
+        assert embedding_service.split_into_chunks(
+            SimpleNamespace(title="", content="")
+        ) == []
 
 class TestRankBySimilarity:
     """餘弦相似度排序。用假的 embed_texts，不呼叫真正的 API。"""
@@ -82,11 +123,11 @@ class TestRankBySimilarity:
         return SimpleNamespace(execute=lambda _statement: SimpleNamespace(all=lambda: rows))
 
     def test_orders_by_closeness_to_the_question(self, monkeypatch):
-        # 三篇文章的向量：第 2 篇與問題同方向，第 3 篇相反。
+        # 每列是 (article_id, 段落原文, 向量)。
         rows = [
-            (1, pack_vector([1.0, 1.0])),
-            (2, pack_vector([1.0, 0.0])),
-            (3, pack_vector([-1.0, 0.0])),
+            (1, "段落一", pack_vector([1.0, 1.0])),
+            (2, "段落二", pack_vector([1.0, 0.0])),
+            (3, "段落三", pack_vector([-1.0, 0.0])),
         ]
         monkeypatch.setattr(embedding_service, "embed_texts", lambda _texts, task_type: [[1.0, 0.0]])
 
@@ -94,9 +135,30 @@ class TestRankBySimilarity:
             self._db_returning(rows), "問題", [1, 2, 3]
         )
 
-        assert [article_id for article_id, _score in ranked] == [2, 1, 3]
+        assert [article_id for article_id, _score, _chunk in ranked] == [2, 1, 3]
         assert ranked[0][1] == pytest.approx(1.0)
+        assert ranked[0][2] == "段落二"
         assert ranked[-1][1] == pytest.approx(-1.0)
+
+    def test_an_article_is_scored_by_its_best_chunk_not_its_average(self, monkeypatch):
+        # 一篇長文：只有第二段真的回答了問題，其他段落離題。
+        # 取平均的話這篇會被離題的段落拉低而埋掉。
+        rows = [
+            (1, "離題的開場", pack_vector([-1.0, 0.0])),
+            (1, "正好回答問題的那一段", pack_vector([1.0, 0.0])),
+            (2, "普通相關", pack_vector([0.7, 0.7])),
+        ]
+        monkeypatch.setattr(embedding_service, "embed_texts", lambda _texts, task_type: [[1.0, 0.0]])
+
+        ranked = embedding_service.rank_by_similarity(self._db_returning(rows), "問題", [1, 2])
+
+        assert ranked[0][0] == 1
+        assert ranked[0][1] == pytest.approx(1.0)
+        # 而且要回報是哪一段命中，組 prompt 時才送得出去。
+        assert ranked[0][2] == "正好回答問題的那一段"
+
+        # 同一篇只出現一次，不會因為多段而洗版。
+        assert [article_id for article_id, _score, _chunk in ranked] == [1, 2]
 
     def test_no_candidates_means_no_work(self, monkeypatch):
         def fail(*_args, **_kwargs):
@@ -107,7 +169,7 @@ class TestRankBySimilarity:
         assert embedding_service.rank_by_similarity(self._db_returning([]), "問題", []) == []
 
     def test_an_embedding_failure_falls_back_to_no_vector_results(self, monkeypatch):
-        rows = [(1, pack_vector([1.0, 0.0]))]
+        rows = [(1, "段落", pack_vector([1.0, 0.0]))]
 
         def boom(*_args, **_kwargs):
             raise RuntimeError("API down")
