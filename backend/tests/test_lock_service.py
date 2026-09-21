@@ -129,3 +129,37 @@ class TestScheduledJobRespectsTheLock:
                 scheduler.run_daily_job(pages=1, force=True)
 
         assert lock_service.try_acquire(worker_b, lock_service.CRAWL_LOCK) is True
+
+
+class TestRenew:
+    """爬取途中要能續約，否則鎖會在爬取還沒結束時到期。
+
+    實測：一次完整爬取跑了超過 60 分鐘，而 TTL 正好也是 60 分鐘，
+    鎖在爬取進行中就到期了。這時另一批爬取可以接手同一把鎖，
+    兩批同時對來源站台發請求——正是這把鎖存在的目的。
+    """
+
+    def test_renew_extends_the_expiry(self, sessions):
+        db, _other = sessions
+        lock_service.try_acquire(db, "crawler", ttl_minutes=60)
+        before = db.query(SystemLock).filter(SystemLock.name == "crawler").first().expires_at
+
+        assert lock_service.renew(db, "crawler", ttl_minutes=120) is True
+
+        after = db.query(SystemLock).filter(SystemLock.name == "crawler").first().expires_at
+        assert after > before
+
+    def test_renewing_a_lock_nobody_holds_fails(self, sessions):
+        db, _other = sessions
+
+        assert lock_service.renew(db, "crawler") is False
+
+    def test_a_lock_taken_over_by_someone_else_cannot_be_renewed(self, sessions):
+        db, _other = sessions
+        lock_service.try_acquire(db, "crawler")
+        lock = db.query(SystemLock).filter(SystemLock.name == "crawler").first()
+        lock.owner = "pid-99999"  # 模擬鎖已被別的行程接手
+        db.commit()
+
+        # 搶回來的話就會變成兩批同時在跑，必須讓自己停下來。
+        assert lock_service.renew(db, "crawler") is False

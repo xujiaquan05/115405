@@ -21,6 +21,7 @@ import pytest
 from app.core import scheduler, shutdown
 from app.core.shutdown import CrawlAborted
 from app.crawlers.browser_base import BrowserCrawler
+from app.services import lock_service
 
 
 @pytest.fixture(autouse=True)
@@ -96,6 +97,9 @@ class TestCrawlAllBoardsStopsEarly:
     """_crawl_all_boards 收到停止要求時不再開下一個看板。"""
 
     def _patch(self, monkeypatch, targets, crawl_board):
+        # 這些測試用的是假 session，沒有真的鎖可以續約。
+        # 續約本身由 test_lock_service.py 驗證，這裡只關心中止邏輯。
+        monkeypatch.setattr(lock_service, "renew", lambda _db, _name: True)
         monkeypatch.setattr(scheduler, "get_active_crawl_targets", lambda _db: targets)
         monkeypatch.setattr(scheduler, "get_setting", lambda _db, _key: True)
         monkeypatch.setattr(scheduler, "get_or_create_platform", lambda _db, _name: SimpleNamespace(id=1))

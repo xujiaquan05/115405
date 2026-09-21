@@ -21,6 +21,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core import scheduler, shutdown
 from app.core.database import Base
+from app.services import lock_service
 from app.services.article_service import get_or_create_board, get_or_create_platform
 
 BOARDS = [("ptt", "a"), ("ptt", "b")]
@@ -38,6 +39,10 @@ def db():
     for _platform_name, board_name in BOARDS:
         get_or_create_board(session, platform.id, board_name)
     session.commit()
+
+    # 爬取一定是在持有爬取鎖的情況下進行的（run_daily_job 先取鎖才呼叫），
+    # 而 _crawl_all_boards 每個看板都會續約。不先取鎖的話會一開始就中止。
+    lock_service.try_acquire(session, lock_service.CRAWL_LOCK)
 
     yield session
     session.close()

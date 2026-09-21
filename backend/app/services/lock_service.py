@@ -75,6 +75,32 @@ def try_acquire(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) 
     return True
 
 
+def renew(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) -> bool:
+    """把自己持有的鎖延長 TTL，回傳是否成功。
+
+    為什麼需要？
+    TTL 是給「持鎖的行程突然死掉」用的保險，但它同時變成了時間上限：
+    實測一次完整爬取跑了超過 60 分鐘，而 TTL 正好也是 60 分鐘——
+    鎖會在爬取還在進行時到期，另一批爬取就能接手，
+    於是兩批同時對來源站台發請求，正是這把鎖要防的事。
+
+    邊爬邊續約就解開這個矛盾：活著的行程會一直延後到期時間，
+    死掉的行程停止續約，鎖仍然會在一個 TTL 之內自動釋放。
+
+    不是自己持有的鎖不會被延長——那表示鎖已經被別人接手，
+    這時候應該讓自己停下來，而不是把別人的鎖搶回來。
+    """
+    lock = db.query(SystemLock).filter(SystemLock.name == name).first()
+
+    if lock is None or lock.owner != _owner():
+        return False
+
+    lock.expires_at = taiwan_now() + timedelta(minutes=ttl_minutes)
+    db.commit()
+
+    return True
+
+
 def release(db: Session, name: str) -> None:
     """釋放鎖。已經不存在時視為成功，重複呼叫不會出錯。"""
     db.query(SystemLock).filter(SystemLock.name == name).delete()

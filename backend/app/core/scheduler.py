@@ -90,6 +90,12 @@ def _crawl_all_boards(db, pages: int) -> int:
             logger.info("Crawl stopped before board %s: shutdown requested", board_name)
             break
 
+        # 每個看板開始前續約，免得整輪還沒跑完鎖就先到期。
+        # 續約失敗代表鎖已經被別人接手，這時候繼續爬就會變成兩批同時跑。
+        if not lock_service.renew(db, lock_service.CRAWL_LOCK):
+            logger.warning("Lost the crawl lock before board %s, stopping", board_name)
+            break
+
         try:
             platform = get_or_create_platform(db, platform_name)
             get_or_create_board(db, platform.id, board_name)

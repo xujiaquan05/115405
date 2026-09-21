@@ -38,6 +38,7 @@ from app.services.embedding_service import (  # noqa: E402
     MAX_CHUNKS_PER_ARTICLE,
     count_pending_embeddings,
     embed_pending_articles,
+    has_text_to_embed,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s | %(message)s")
@@ -59,6 +60,7 @@ def estimate_chunks(db) -> int:
         db.query(func.length(func.coalesce(Article.content, "")))
         .outerjoin(ArticleChunk, ArticleChunk.article_id == Article.id)
         .filter(ArticleChunk.article_id.is_(None))
+        .filter(has_text_to_embed())
         .all()
     )
 

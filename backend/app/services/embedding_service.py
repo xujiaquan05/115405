@@ -17,7 +17,7 @@
 import logging
 import struct
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.database_models import Article, ArticleChunk
@@ -126,12 +126,26 @@ def embed_texts(texts: list[str], task_type: str = "RETRIEVAL_DOCUMENT") -> list
     return [list(item.values) for item in response.embeddings]
 
 
+def has_text_to_embed():
+    """標題或內文至少要有一個不是空的，否則切不出任何段落。
+
+    少了這個條件，標題與內文都是空字串的文章會永遠留在待處理清單裡：
+    每一輪都被選中、每一輪都切不出東西、數量一篇也沒減少，
+    補跑腳本於是誤判成「額度用完」而停下（實測資料庫裡就有這麼一篇）。
+    """
+    return or_(
+        func.length(func.coalesce(Article.title, "")) > 0,
+        func.length(func.coalesce(Article.content, "")) > 0,
+    )
+
+
 def _pending_articles(db: Session, max_articles: int) -> list[Article]:
-    """還沒有任何段落向量的文章，新文章優先。"""
+    """還沒有任何段落向量、而且有東西可以切段的文章，新文章優先。"""
     return (
         db.query(Article)
         .outerjoin(ArticleChunk, ArticleChunk.article_id == Article.id)
         .filter(ArticleChunk.article_id.is_(None))
+        .filter(has_text_to_embed())
         .order_by(Article.published_at.desc().nullslast())
         .limit(max_articles)
         .all()
@@ -226,11 +240,17 @@ def embed_pending_articles(
 
 
 def count_pending_embeddings(db: Session) -> int:
-    """還有幾篇文章沒有任何段落向量。"""
+    """還有幾篇文章沒有任何段落向量。
+
+    條件要與 _pending_articles 完全一致：
+    兩邊對不上的話，補跑腳本會看到「還有待處理」卻永遠處理不掉，
+    把正常結束誤判成卡住。
+    """
     return (
         db.query(Article)
         .outerjoin(ArticleChunk, ArticleChunk.article_id == Article.id)
         .filter(ArticleChunk.article_id.is_(None))
+        .filter(has_text_to_embed())
         .count()
     )
 

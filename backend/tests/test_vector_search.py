@@ -116,6 +116,7 @@ class TestSplitIntoChunks:
             SimpleNamespace(title="", content="")
         ) == []
 
+
 class TestRankBySimilarity:
     """餘弦相似度排序。用假的 embed_texts，不呼叫真正的 API。"""
 
@@ -317,3 +318,61 @@ class TestKeywordRanking:
         results = rag_service.retrieve_by_keyword(db_session, self._intent(["音波", "術後"]))
 
         assert results[0].title == "音波與術後"
+
+
+class TestPendingExcludesUnembeddableArticles:
+    """空白文章不能永遠留在待處理清單裡。
+
+    實測：補跑腳本跑到 100% 之後仍然停不下來，連續三輪回報
+    「待處理數量沒有減少，可能是額度用完」才被守門機制擋下。
+    追下去是資料庫裡有一篇 id=3127 的文章，標題與內文都是空字串——
+    每輪都被選中、每輪都切不出段落，數量自然一篇也沒少。
+    額度其實完全沒問題，警告訊息是誤導。
+    """
+
+    @pytest.fixture
+    def db_session(self):
+        engine = create_engine(
+            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
+        Base.metadata.create_all(bind=engine)
+        session = sessionmaker(bind=engine)()
+        yield session
+        session.close()
+
+    def _add(self, db, title, content):
+        platform = get_or_create_platform(db, "ptt")
+        board = get_or_create_board(db, platform.id, "facelift")
+        article = Article(
+            unique_id=f"u{title}{content}",
+            platform_id=platform.id,
+            board_id=board.id,
+            title=title,
+            content=content,
+            push_count=0,
+            published_at=taiwan_now(),
+        )
+        db.add(article)
+        db.commit()
+        return article
+
+    def test_an_article_with_no_text_is_not_pending(self, db_session):
+        self._add(db_session, "", "")
+
+        assert embedding_service.count_pending_embeddings(db_session) == 0
+
+    def test_an_article_with_only_a_title_is_still_pending(self, db_session):
+        # 標題就足以切出一段，這種文章該被處理。
+        self._add(db_session, "只有標題的文章", "")
+
+        assert embedding_service.count_pending_embeddings(db_session) == 1
+
+    def test_the_count_matches_what_will_actually_be_processed(self, db_session):
+        # 兩邊條件對不上，就會出現「還有待處理卻永遠處理不掉」的空轉。
+        self._add(db_session, "", "")
+        self._add(db_session, "正常文章", "有內容")
+
+        pending = embedding_service.count_pending_embeddings(db_session)
+        selected = embedding_service._pending_articles(db_session, max_articles=100)
+
+        assert pending == len(selected) == 1
