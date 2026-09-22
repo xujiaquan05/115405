@@ -2,11 +2,12 @@
 
 import hashlib
 import json
+import math
 import re
 from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import and_, case, desc, literal, or_
+from sqlalchemy import and_, case, desc, func, literal, or_
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
@@ -45,6 +46,13 @@ RRF_K = 60
 # 這邊排的是「哪篇更該回答」，兩件事日後可能各自調整。
 TITLE_MATCH_WEIGHT = 3
 CONTENT_MATCH_WEIGHT = 1
+
+# 關鍵字檢索只保留「至少有最高分三分之一」的文章。
+# 實測問「臉部鬆弛 / 拉提 / 療程推薦」時，前 12 篇裡有 6 篇只拿 1 分——
+# 都是內文某處恰好出現一個字的保養品廣告與藝人閒聊，
+# 它們照樣被塞進 prompt，既佔 token 又干擾判讀。
+# 用相對門檻而非固定值：關鍵字數量不同，分數的量級本來就不同。
+KEYWORD_SCORE_FLOOR_RATIO = 3
 
 
 DEFAULT_KEYWORDS = [
@@ -199,21 +207,94 @@ def apply_hard_filters(query, intent: dict[str, Any]):
     return query
 
 
-def _match_score(intent: dict[str, Any]):
+def keyword_document_counts(db: Session, intent: dict[str, Any]) -> dict[str, int]:
+    """一次查出每個關鍵字在「候選範圍內」出現於幾篇文章。
+
+    為什麼算候選範圍而不是整個資料庫？
+    「這個詞在我們正在考慮的文章裡有多常見」比全庫頻率更貼近需要，
+    而且候選已被時間與平台縮小，一次掃描就能全部算完
+    （實測 30 天 68ms、180 天 165ms；全庫則要 1 秒）。
+
+    所有關鍵字共用同一次掃描：分開查的話每個詞都要各掃一次，
+    而中文醫美詞彙多半是兩個字，短於 pg_trgm 索引能用的三字下限。
+    """
+    keywords = intent.get("keywords", [])
+
+    if not keywords:
+        return {}
+
+    columns = [
+        func.count()
+        .filter(or_(Article.title.ilike(f"%{keyword}%"), Article.content.ilike(f"%{keyword}%")))
+        .label(f"c{index}")
+        for index, keyword in enumerate(keywords)
+    ]
+
+    row = apply_hard_filters(db.query(*columns), intent).one()
+
+    return dict(zip(keywords, row, strict=True))
+
+
+def drop_dead_keywords(intent: dict[str, Any], counts: dict[str, int]) -> dict[str, Any]:
+    """去掉一篇都沒命中的關鍵字。
+
+    意圖解析會生出中文使用者其實不會這樣寫的組合詞：
+    實測「療程推薦」在 9,852 篇裡命中 0 篇、「音波拉皮」只命中 1 篇，
+    而大家寫的是「療程」「音波」。命中 0 篇的詞留著有兩個壞處：
+    一是白白多一組 ILIKE 條件，二是它的 IDF 會是全場最高
+    （越罕見權重越大），萬一哪天它碰巧命中一篇不相干的文章，
+    那篇就會被推到第一名。
+
+    全部都沒命中時原樣保留：這時檢索本來就找不到東西，
+    刪光關鍵字只會讓呼叫端誤以為沒有指定過關鍵字。
+    """
+    alive = [keyword for keyword in intent.get("keywords", []) if counts.get(keyword, 0) > 0]
+
+    if not alive or len(alive) == len(intent.get("keywords", [])):
+        return intent
+
+    return {**intent, "keywords": alive}
+
+
+def _term_weight(keyword: str, counts: dict[str, int], total: int) -> float:
+    """關鍵字的稀有度權重（IDF）。
+
+    越少文章出現的詞，命中它越能說明這篇就是在講這件事。
+    沒有這個權重的話，所有詞一律等值，於是「術後」（257 篇）
+    和「音波拉皮」（1 篇）同樣算 1 分——實測問音波拉皮術後時，
+    前 12 篇全部並列 4 分，隆乳術後和雙眼皮術後跟正確答案不分高下。
+
+    用 log(1 + 總數/出現數) 而不是課本上的 log(總數/出現數)：
+    後者在「這個詞每篇候選都有」時會算出 0，等於把該詞整個抹掉，
+    連「出現在標題」和「內文提過一次」的差別都一起消失。
+    這個版本恆為正，最低是 log(2)，仍然保留標題與內文的分別。
+
+    沒有額外設上限：唯一會失控的是 df=0 的詞會拿到全場最高權重，
+    而那種詞已經先被 drop_dead_keywords 濾掉了。
+    """
+    document_count = max(counts.get(keyword, 0), 1)
+
+    return math.log(1 + total / document_count)
+
+
+def _match_score(intent: dict[str, Any], counts: dict[str, int] | None = None, total: int = 0):
     """計算「這篇有多符合問題」的分數，給關鍵字檢索排序用。
 
-    每個關鍵字分開計分：標題命中加 3、內文命中加 1。
+    每個關鍵字分開計分：標題命中加 3、內文命中加 1，
+    再乘上該詞的稀有度權重。
     因此命中兩個關鍵字的文章會排在只命中一個的前面，
-    標題就寫著關鍵字的文章又會排在只在內文提過一次的前面。
+    標題就寫著關鍵字的文章又會排在只在內文提過一次的前面，
+    而命中罕見詞又會勝過命中到處都有的常見詞。
     """
     score = literal(0)
 
     for keyword in intent.get("keywords", []):
         keyword_like = f"%{keyword}%"
+        weight = _term_weight(keyword, counts, total) if counts else 1.0
         score = score + case(
-            (Article.title.ilike(keyword_like), TITLE_MATCH_WEIGHT), else_=0
+            (Article.title.ilike(keyword_like), TITLE_MATCH_WEIGHT * weight), else_=0.0
         ) + case(
-            (Article.content.ilike(keyword_like), CONTENT_MATCH_WEIGHT), else_=0
+            (Article.content.ilike(keyword_like), CONTENT_MATCH_WEIGHT * weight), else_=0.0
         )
 
     return score
@@ -225,16 +306,23 @@ def retrieve_by_keyword(
     limit: int = 12,
 ) -> list[Article]:
     """字面檢索：內文或標題要真的出現關鍵字。"""
+    if not intent.get("keywords"):
+        return []
+
+    # 先看每個關鍵字在候選範圍裡有多常見：
+    # 用來丟掉一篇都沒命中的詞，也用來決定各詞的權重。
+    counts = keyword_document_counts(db, intent)
+    intent = drop_dead_keywords(intent, counts)
+    total = apply_hard_filters(db.query(func.count(Article.id)), intent).scalar() or 0
+
     keyword_filters = []
-    for keyword in intent.get("keywords", []):
+    for keyword in intent["keywords"]:
         keyword_like = f"%{keyword}%"
         keyword_filters.append(Article.title.ilike(keyword_like))
         keyword_filters.append(Article.content.ilike(keyword_like))
 
     if not keyword_filters:
         return []
-
-    query = apply_hard_filters(db.query(Article).filter(or_(*keyword_filters)), intent)
 
     # 先比命中程度，再比熱度。
     # 只照 push_count 排的話，一篇熱門文章只要內文某處剛好出現一個關鍵字，
@@ -243,7 +331,12 @@ def retrieve_by_keyword(
     #
     # 熱度仍然保留在第二順位：這是輿情系統，
     # 一則 200 推的抱怨本來就比一則 2 推的抱怨更值得看見。
-    match_score = _match_score(intent)
+    match_score = _match_score(intent, counts, total)
+
+    query = apply_hard_filters(
+        db.query(Article, match_score.label("match_score")).filter(or_(*keyword_filters)),
+        intent,
+    )
 
     if intent.get("question_type") == "trend":
         query = query.order_by(desc(match_score), desc(Article.published_at))
@@ -254,7 +347,29 @@ def retrieve_by_keyword(
             desc(Article.published_at),
         )
 
-    return query.limit(limit).all()
+    rows = query.limit(limit).all()
+
+    return _above_score_floor(rows)
+
+
+def _above_score_floor(rows) -> list[Article]:
+    """只留下分數達到「最高分 ÷ KEYWORD_SCORE_FLOOR_RATIO」的文章。
+
+    勉強沾到邊的文章留著只有壞處：它們照樣被塞進 prompt，
+    佔掉別篇的位置，還可能被模型當成佐證。
+    取相對門檻而非固定分數，因為關鍵字數量與稀有度會讓分數量級差很多。
+    """
+    if not rows:
+        return []
+
+    best = rows[0][1]
+
+    if not best:
+        return [row[0] for row in rows]
+
+    floor = best / KEYWORD_SCORE_FLOOR_RATIO
+
+    return [article for article, score in rows if score >= floor]
 
 
 def retrieve_by_vector(
