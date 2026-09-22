@@ -16,7 +16,7 @@ from app.services.article_service import (
     save_comments,
 )
 from app.services.audit_service import record_audit
-from app.services.auth_service import get_current_user
+from app.services.auth_service import require_admin
 from app.services.crawl_log_service import create_crawl_log, finish_crawl_log
 from app.services.dashboard_service import (
     DCARD_BOARDS,
@@ -363,7 +363,7 @@ def crawl_ptt_board(
         description="PTT page number. If empty, crawler starts from latest index.html",
     ),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
 ):
     selected_boards = normalize_boards(boards) if boards else [board]
     selected_boards = [name for name in selected_boards if name in TARGET_BOARDS]
@@ -421,7 +421,7 @@ def crawl_dcard_board(
     ),
     pages: int = Query(default=1, ge=1, le=10, description="約每頁 30 篇，pages 越大爬越多"),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
 ):
     # 部署到無頭環境時可在系統設定關閉 Dcard 爬取。
     if not get_setting(db, "dcard_crawl_enabled"):
@@ -483,7 +483,7 @@ def crawl_mobile01_board(
     ),
     pages: int = Query(default=1, ge=1, le=10, description="要爬幾頁列表"),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
 ):
     # 部署到無頭環境時可在系統設定關閉 Mobile01 爬取。
     if not get_setting(db, "mobile01_crawl_enabled"):
@@ -546,7 +546,7 @@ def crawl_threads_keyword(
     ),
     pages: int = Query(default=1, ge=1, le=10, description="約每頁 25 則貼文"),
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_admin),
 ):
     # 部署到無頭環境時可在系統設定關閉 Threads 爬取。
     if not get_setting(db, "threads_crawl_enabled"):
@@ -593,7 +593,7 @@ def crawl_threads_keyword(
 # 注意：若真的有背景執行緒還在跑，Python 無法強制中斷它，但重置後
 # 仍可開新任務；卡住的舊任務會自行結束或出錯。
 @router.post("/reset")
-def reset_crawl(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+def reset_crawl(db: Session = Depends(get_db), current_user=Depends(require_admin)):
     # 鎖存在資料庫，所以這裡的釋放對所有 worker 都有效
     #（舊版只清得掉自己這個 process 的旗標）。
     _finish_crawl(db)
