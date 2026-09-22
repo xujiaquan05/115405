@@ -125,3 +125,59 @@ class TestBackfillComments:
         # 重複執行不可重複新增。
         assert backfill_comments_from_content(db) == {"articles": 0, "comments": 0}
         assert db.query(Comment).count() == 2
+
+
+class TestCommentsBackfillOntoExistingArticles:
+    """已存在的文章再次爬到時也要能補上留言。
+
+    PTT 以前不收推文，資料庫裡 9,272 篇 PTT 文章一則留言都沒有。
+    若只在「新文章」時才寫留言，這些文章因為 unique_id 已存在而被判為
+    skipped，於是永遠補不到——修好爬蟲也救不回舊資料。
+    """
+
+    def test_comments_are_written_for_an_article_that_already_exists(self, db):
+        article, is_new = create_article(
+            db=db,
+            unique_id="u1",
+            platform_name="ptt",
+            board_name="facelift",
+            author_username="someone",
+            title="音波拉皮心得",
+            content="正文",
+            url="https://www.ptt.cc/x",
+            push_count=3,
+        )
+        assert is_new is True
+        assert save_comments(db, article, []) == 0
+
+        # 第二次爬到同一篇，這次帶了推文。
+        again, is_new_again = create_article(
+            db=db,
+            unique_id="u1",
+            platform_name="ptt",
+            board_name="facelift",
+            author_username="someone",
+            title="音波拉皮心得",
+            content="正文",
+            url="https://www.ptt.cc/x",
+            push_count=3,
+        )
+
+        assert is_new_again is False
+        assert save_comments(db, again, ["推 有效", "噓 沒用"]) == 2
+
+    def test_a_second_pass_does_not_duplicate_them(self, db):
+        article, _ = create_article(
+            db=db,
+            unique_id="u2",
+            platform_name="ptt",
+            board_name="facelift",
+            author_username="someone",
+            title="標題",
+            content="正文",
+            url="https://www.ptt.cc/y",
+            push_count=0,
+        )
+        save_comments(db, article, ["推 好"])
+
+        assert save_comments(db, article, ["推 好", "噓 壞"]) == 0

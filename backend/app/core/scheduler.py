@@ -127,7 +127,11 @@ def _crawl_all_boards(db, pages: int) -> int:
                 )
                 if is_new:
                     new_total += 1
-                    save_comments(db, article, item.get("comments") or [])
+
+                # 不分新舊都寫留言：舊文章是在 PTT 還不收推文的時期入庫的，
+                # 只在 is_new 時寫的話它們永遠補不到。
+                # save_comments 會跳過已經有留言的文章。
+                save_comments(db, article, item.get("comments") or [])
 
             # 收尾這個看板的交易，下一個看板從乾淨的狀態開始。
             close_transaction(db)

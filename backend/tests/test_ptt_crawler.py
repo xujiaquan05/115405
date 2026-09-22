@@ -153,4 +153,77 @@ class TestParseArticleDetail:
 
         detail = crawler.parse_article_detail("http://fake-url")
 
-        assert detail == {"content": "", "published_at": None}
+        assert detail == {"content": "", "published_at": None, "comments": []}
+
+
+# 依實際 PTT 文章頁結構撰寫的樣本（meta 四行 + 正文 + 三則推文 + 簽名檔）。
+DETAIL_HTML = """
+<div id="main-content">
+  <div class="article-metaline"><span class="article-meta-tag">作者</span><span class="article-meta-value">someone (阿明)</span></div>
+  <div class="article-metaline-right"><span class="article-meta-tag">看板</span><span class="article-meta-value">facelift</span></div>
+  <div class="article-metaline"><span class="article-meta-tag">標題</span><span class="article-meta-value">[心得] 音波拉皮三個月</span></div>
+  <div class="article-metaline"><span class="article-meta-tag">時間</span><span class="article-meta-value">Mon Jan  1 12:00:00 2024</span></div>
+  做完三個月了，線條有回來一些。
+--
+  <span class="f2">※ 發信站: 批踢踢實業坊</span>
+  <div class="push"><span class="hl push-tag">推 </span><span class="f3 hl push-userid">aaa</span><span class="f3 push-content">: 我也做過，效果不錯</span><span class="push-ipdatetime"> 01/01 12:01</span></div>
+  <div class="push"><span class="hl push-tag">噓 </span><span class="f3 hl push-userid">bbb</span><span class="f3 push-content">: 我覺得根本沒用，浪費錢</span><span class="push-ipdatetime"> 01/01 12:02</span></div>
+  <div class="push"><span class="hl push-tag">→ </span><span class="f3 hl push-userid">ccc</span><span class="f3 push-content">: 請問是哪一家診所</span><span class="push-ipdatetime"> 01/01 12:03</span></div>
+  <div class="push"><span class="hl push-tag">推 </span><span class="f3 hl push-userid">ddd</span><span class="f3 push-content">:   </span><span class="push-ipdatetime"> 01/01 12:04</span></div>
+</div>
+"""
+
+
+class TestParsePushes:
+    """PTT 推文是這個站台最有價值的輿情來源，先前整段被丟掉。
+
+    實測：資料庫裡 9,272 篇 PTT 文章有 0 則留言，
+    而 Dcard 332 篇就有 1,107 則。原因是 parse_article_detail
+    直接 decompose 掉 div.push，只留下列表頁的推文「數字」。
+    """
+
+    def _main_content(self):
+        from bs4 import BeautifulSoup
+
+        return BeautifulSoup(DETAIL_HTML, "html.parser").select_one("#main-content")
+
+    def test_collects_pushes_with_their_tag(self, crawler):
+        pushes = crawler.parse_pushes(self._main_content())
+
+        # 推 / 噓 本身就是最直接的情緒表態，不能丟。
+        assert pushes[0] == "推 我也做過，效果不錯"
+        assert pushes[1] == "噓 我覺得根本沒用，浪費錢"
+        assert pushes[2] == "→ 請問是哪一家診所"
+
+    def test_skips_empty_pushes(self, crawler):
+        # 只有標籤沒有內容的推文（PTT 上常見）不該變成一則空留言。
+        assert len(crawler.parse_pushes(self._main_content())) == 3
+
+    def test_does_not_keep_the_userid(self, crawler):
+        # 使用者代號對輿情分析沒有幫助，而且是個人資料。
+        pushes = crawler.parse_pushes(self._main_content())
+
+        assert all("aaa" not in push and "bbb" not in push for push in pushes)
+
+    def test_respects_the_cap(self):
+        limited = PTTCrawler(max_pushes=2)
+
+        assert len(limited.parse_pushes(self._main_content())) == 2
+
+    def test_can_be_turned_off(self):
+        assert PTTCrawler(fetch_pushes=False).parse_pushes(self._main_content()) == []
+
+
+class TestMergeContentAndComments:
+    def test_uses_the_same_marker_as_the_other_platforms(self, crawler):
+        merged = crawler.merge_content_and_comments("主文", ["推 好", "噓 不好"])
+
+        # 下游的情緒評分、關鍵字分析與向量切段都是靠這個標記切主文與留言，
+        # 格式跟 Dcard / Mobile01 / Threads 不一致的話就得分平台處理。
+        assert merged == "主文\n【留言】\n- 推 好\n- 噓 不好"
+
+    def test_an_article_without_pushes_is_unchanged(self, crawler):
+        assert crawler.merge_content_and_comments("只有主文", []) == "只有主文"
+
+    def test_handles_missing_content(self, crawler):
+        assert crawler.merge_content_and_comments(None, []) == ""

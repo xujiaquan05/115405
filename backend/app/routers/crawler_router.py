@@ -219,10 +219,14 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
 
             if is_new:
                 new_count += 1
-                # 留言另存一張表，供「留言情緒」與「最負面留言」分析。
-                save_comments(db, article, item.get("comments") or [])
             else:
                 skipped_count += 1
+
+            # 留言另存一張表，供「留言情緒」與「最負面留言」分析。
+            # 不分新舊都寫：PTT 以前不收推文，資料庫裡九千多篇舊文一則留言都沒有。
+            # 只在 is_new 時寫的話，那些文章因為已存在而永遠補不到留言。
+            # save_comments 自己會跳過已經有留言的文章，重複呼叫不會灌爆。
+            save_comments(db, article, item.get("comments") or [])
 
         finish_crawl_log(
             db=db,

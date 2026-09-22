@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from app.core.shutdown import random_sleep_or_abort, sleep_or_abort
+from app.services.article_service import COMMENT_SECTION_MARKER
 
 
 class PTTCrawler:
@@ -44,7 +45,22 @@ class PTTCrawler:
         "[樂透]",
     ]
 
-    def __init__(self):
+    # 推文標籤：推 = 正面、噓 = 負面、→ = 中性補充。
+    # 這三個字本身就是最直接的情緒訊號，所以保留在留言文字裡一起送去評分。
+    # Comment 資料表沒有獨立欄位可放標籤，而且只有 PTT 有這個概念，
+    # 為它加一個欄位再開一次 migration 不划算。
+    PUSH_TAGS = ("推", "噓", "→")
+
+    # 一篇最多收幾則推文。
+    # 熱門文章動輒上百則，全收會讓單篇內文膨脹好幾倍，
+    # 也把向量切段的額度吃掉。取前面幾十則已足夠看出風向。
+    MAX_PUSHES = 30
+
+    def __init__(self, fetch_pushes: bool = True, max_pushes: int = MAX_PUSHES):
+        # 推文是這個看板最有價值的輿情來源，預設收。
+        self.fetch_pushes = fetch_pushes
+        self.max_pushes = max_pushes
+
         # 建立 HTTP session，讓多個 request 共用 cookie 和 header。
         self.session = requests.Session()
 
@@ -231,7 +247,8 @@ class PTTCrawler:
         if not html:
             return {
                 "content": "",
-                "published_at": None
+                "published_at": None,
+                "comments": [],
             }
 
         soup = BeautifulSoup(html, "html.parser")
@@ -240,7 +257,8 @@ class PTTCrawler:
         if not main_content:
             return {
                 "content": "",
-                "published_at": None
+                "published_at": None,
+                "comments": [],
             }
 
         # 先嘗試從 meta-value 取得發文時間。
@@ -259,7 +277,10 @@ class PTTCrawler:
         for tag in main_content.select("div.article-metaline-right"):
             tag.decompose()
 
-        # 移除推文區塊。
+        # 先把推文取出來，再從正文裡移除。
+        # 順序不能顛倒：decompose() 之後這些節點就不在樹上了。
+        comments = self.parse_pushes(main_content)
+
         for tag in main_content.select("div.push"):
             tag.decompose()
 
@@ -279,8 +300,68 @@ class PTTCrawler:
 
         return {
             "content": content,
-            "published_at": published_at
+            "published_at": published_at,
+            "comments": comments,
         }
+
+    def parse_pushes(self, main_content) -> list[str]:
+        """從文章頁取出推文（留言），一則一個字串。
+
+        PTT 的推文長這樣：
+            <div class="push">
+              <span class="push-tag">推 </span>
+              <span class="push-userid">someone</span>
+              <span class="push-content">: 這家診所很推</span>
+              <span class="push-ipdatetime"> 01/01 12:00</span>
+            </div>
+
+        回傳的字串保留標籤，例如「推 這家診所很推」：
+        推 / 噓 是發文者以外的人最直接的表態，丟掉就等於丟掉情緒訊號。
+        使用者代號不收——對輿情分析沒有幫助，還是個人資料。
+        """
+        if not self.fetch_pushes:
+            return []
+
+        pushes = []
+
+        for node in main_content.select("div.push"):
+            tag_node = node.select_one("span.push-tag")
+            content_node = node.select_one("span.push-content")
+
+            if content_node is None:
+                continue
+
+            # push-content 的文字開頭固定是「: 」，去掉才是留言本體。
+            text = content_node.get_text(strip=True).lstrip(":").strip()
+
+            if not text:
+                continue
+
+            tag = tag_node.get_text(strip=True) if tag_node else ""
+            pushes.append(f"{tag} {text}".strip() if tag in self.PUSH_TAGS else text)
+
+            if len(pushes) >= self.max_pushes:
+                break
+
+        return pushes
+
+    @staticmethod
+    def merge_content_and_comments(content: str | None, comments: list[str]) -> str:
+        """把正文與推文併成一段供分析的文字。
+
+        格式與其他平台的爬蟲一致（同樣的「【留言】」標記），
+        下游的情緒評分、關鍵字分析與向量切段才不必分平台處理。
+        """
+        parts = []
+
+        if content:
+            parts.append(content.strip())
+
+        if comments:
+            parts.append(COMMENT_SECTION_MARKER)
+            parts.extend(f"- {comment}" for comment in comments)
+
+        return "\n".join(parts).strip()
 
     def _parse_ptt_time(self, time_text: str):
         """
@@ -328,8 +409,11 @@ class PTTCrawler:
             for article in articles:
                 detail = self.parse_article_detail(article["url"])
 
-                article["content"] = detail["content"]
+                comments = detail.get("comments") or []
+
+                article["content"] = self.merge_content_and_comments(detail["content"], comments)
                 article["published_at"] = detail["published_at"]
+                article["comments"] = comments
 
                 all_articles.append(article)
 
