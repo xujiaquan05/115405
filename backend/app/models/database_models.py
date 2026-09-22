@@ -136,7 +136,11 @@ class User(Base):
     is_active = Column(Integer, nullable=False, default=1)
 
     # 訂閱方案代碼（free / pro / business），對應 plans 表。
-    plan_code = Column(String(20), nullable=False, default="free")
+    # 外鍵指向 plans.code，刪除規則為 RESTRICT：
+    # 還有帳號在用的方案不該被刪掉。
+    plan_code = Column(
+        String(20), ForeignKey("plans.code", ondelete="RESTRICT"), nullable=False, default="free"
+    )
 
     # 連續登入失敗次數；成功登入或鎖定到期後歸零。
     failed_login_count = Column(Integer, nullable=False, default=0)
@@ -168,7 +172,10 @@ class AuditLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    actor_id = Column(Integer)
+    # 刪除規則刻意是 SET NULL 而非 CASCADE：
+    # 稽核的用途就是事後追查，帳號被刪掉時最需要留下紀錄。
+    # 下方的 actor_username 另存一份使用者名稱，連結斷了仍看得出當初是誰。
+    actor_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"))
     actor_username = Column(String(100), nullable=False)
 
     # 動作代碼：create_user / update_user / delete_user / reset_password ...
