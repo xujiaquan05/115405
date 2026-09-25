@@ -13,6 +13,7 @@ from app.core.database import Base, get_db
 from app.core.rate_limit import clear_rate_limits
 from app.main import app
 from app.models.database_models import User
+from app.services import auth_service
 from app.services.auth_service import hash_password, needs_rehash
 from app.services.password_policy import score_password, validate_password
 
@@ -339,3 +340,79 @@ class TestSecurityAuditLog:
 
         assert len(logs) == 1
         assert logs[0].actor_username == "alice"
+
+
+@pytest.fixture
+def db_session():
+    """單純的資料庫 session，不經過 HTTP 層。"""
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(bind=engine)
+    session = sessionmaker(bind=engine)()
+    yield session
+    session.close()
+
+
+class TestLoginTakesTheSameWorkWhateverTheOutcome:
+    """帳號不存在時也要跑完密碼雜湊，否則回應時間會洩漏帳號是否存在。
+
+    實測：不做白工時，帳號存在要跑 600,000 次 PBKDF2（約 226 毫秒），
+    帳號不存在則立刻回傳。這個差距遠大於網路抖動，
+    攻擊者送幾次請求就能列舉出有效帳號——錯誤訊息寫得再一致也擋不住。
+
+    這裡不量時間（會變成不穩定的測試），改為直接確認雜湊運算有被呼叫。
+    """
+
+    def _count_hash_calls(self, db, monkeypatch, username):
+        calls = []
+        original = auth_service.verify_password
+
+        def counting_verify(password, password_hash):
+            calls.append(password_hash)
+            return original(password, password_hash)
+
+        monkeypatch.setattr(auth_service, "verify_password", counting_verify)
+        auth_service.authenticate_user(db, username, "whatever-password")
+
+        return calls
+
+    def test_a_missing_account_still_runs_the_hash(self, db_session, monkeypatch):
+        calls = self._count_hash_calls(db_session, monkeypatch, "no-such-user")
+
+        assert len(calls) == 1
+        assert calls[0] == auth_service._DUMMY_PASSWORD_HASH
+
+    def test_an_existing_account_runs_the_hash_too(self, db_session, monkeypatch):
+        db_session.add(User(
+            username="someone",
+            password_hash=auth_service.hash_password("Correct-Horse-9"),
+            role="user",
+            is_active=1,
+        ))
+        db_session.commit()
+
+        calls = self._count_hash_calls(db_session, monkeypatch, "someone")
+
+        assert len(calls) == 1
+
+    def test_a_disabled_account_runs_the_hash_too(self, db_session, monkeypatch):
+        db_session.add(User(
+            username="disabled",
+            password_hash=auth_service.hash_password("Correct-Horse-9"),
+            role="user",
+            is_active=0,
+        ))
+        db_session.commit()
+
+        calls = self._count_hash_calls(db_session, monkeypatch, "disabled")
+
+        assert len(calls) == 1
+
+    def test_the_dummy_hash_uses_the_current_iteration_count(self):
+        # 迭代次數若比真實帳號低，白工就比較快，時間差又回來了。
+        _algorithm, iterations, _salt, _digest = auth_service._DUMMY_PASSWORD_HASH.split("$")
+
+        assert int(iterations) == auth_service.PBKDF2_ITERATIONS
+
+    def test_the_dummy_hash_never_matches_any_password(self):
+        assert not auth_service.verify_password("", auth_service._DUMMY_PASSWORD_HASH)
+        assert not auth_service.verify_password("admin123", auth_service._DUMMY_PASSWORD_HASH)

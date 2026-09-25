@@ -133,6 +133,19 @@ def verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
+# 帳號不存在時用來「做白工」的雜湊字串。
+#
+# 為什麼需要它？
+# 不做白工的話，帳號不存在會立刻回傳，帳號存在則要跑完 600,000 次 PBKDF2。
+# 實測這兩條路徑差了約 226 毫秒——遠大於網路抖動，攻擊者送幾次請求
+# 就能從回應時間判斷帳號是否存在，錯誤訊息寫得再一致也沒用。
+#
+# 這裡刻意不呼叫 hash_password 產生：那會在模組載入時白跑一次 PBKDF2，
+# 讓每次啟動多花 0.2 秒。verify_password 只是解析字串後照著迭代次數計算再比對，
+# 比對的目標值是什麼並不影響耗時，所以直接組一個格式正確、內容必定不符的字串即可。
+_DUMMY_PASSWORD_HASH = f"pbkdf2_sha256${PBKDF2_ITERATIONS}${secrets.token_hex(16)}${'0' * 64}"
+
+
 def needs_rehash(password_hash: str) -> bool:
     """判斷雜湊是否用較舊（較弱）的迭代次數產生。
 
@@ -222,6 +235,7 @@ def authenticate_user(db: Session, username: str, password: str) -> LoginResult:
 
     帳號不存在、已停用或密碼錯誤一律回傳 invalid，不透露是哪一項，
     避免攻擊者用錯誤訊息判斷帳號是否存在。
+    帳號不存在時也會照樣跑一次密碼雜湊運算，否則回應時間會洩漏同一件事。
 
     唯一的例外是「密碼正確但帳號被鎖定」才回報 locked：
     對方既然已經知道密碼，告知鎖定並不會多洩漏什麼，
@@ -231,6 +245,9 @@ def authenticate_user(db: Session, username: str, password: str) -> LoginResult:
     user = db.query(User).filter(User.username == username).first()
 
     if user is None or not user.is_active:
+        # 照樣跑一次 PBKDF2 再回傳，讓這條路徑與「密碼錯誤」耗時相同。
+        # 少了這一步，回應時間本身就會告訴攻擊者帳號存不存在。
+        verify_password(password, user.password_hash if user else _DUMMY_PASSWORD_HASH)
         return LoginResult(status="invalid")
 
     password_ok = verify_password(password, user.password_hash)
