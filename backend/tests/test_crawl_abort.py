@@ -36,8 +36,12 @@ class TestSleepOrAbort:
     def test_sleeps_normally_when_no_stop_requested(self):
         started = time.monotonic()
         shutdown.sleep_or_abort(0.05)
+        elapsed = time.monotonic() - started
 
-        assert time.monotonic() - started >= 0.05
+        # 容差：Windows 的計時器解析度約 15.6ms，Event.wait 可能略早返回，
+        # 拿 0.05 當嚴格下限會偶發失敗（實測在完整測試套件中出現過）。
+        # 這裡要驗的是「沒有被要求停止時不會提早中斷」，不是精準計時。
+        assert elapsed >= 0.03
 
     def test_raises_immediately_when_stop_already_requested(self):
         shutdown.request_stop()

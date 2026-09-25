@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.time_utils import taiwan_now
 from app.models.database_models import AnalysisHistory, Article
 from app.services.audit_service import record_audit
-from app.services.auth_service import get_current_user, get_optional_user
+from app.services.auth_service import get_current_user, get_optional_user, require_admin
 from app.services.dashboard_service import (
     get_overview_metrics,
     get_sentiment_distribution,
@@ -150,7 +150,9 @@ def _sentiment_status(db: Session) -> dict:
     }
 
 
-@router.get("/sentiment/status")
+# 與 /api/crawler/status 一致限管理員：這是系統內部處理進度，
+# 前端只有「爬取管理」頁面在用。
+@router.get("/sentiment/status", dependencies=[Depends(require_admin)])
 def sentiment_status(db: Session = Depends(get_db)):
     """
     說明：

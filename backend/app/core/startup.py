@@ -72,10 +72,11 @@ def _apply_schema_migrations():
         connection.execute(text(
             "ALTER TABLE alerts ADD COLUMN IF NOT EXISTS user_id INTEGER"
         ))
-        connection.execute(text(
-            "ALTER TABLE analysis_results ADD COLUMN IF NOT EXISTS user_id INTEGER"
-        ))
-        for table in ("watch_keywords", "alerts", "analysis_results"):
+        # analysis_results.user_id 已於遷移 e4f70c2a9d18 刪除：
+        # 個人分析歷史搬到 analysis_history 之後它就沒人讀寫了。
+        # 這裡曾經一併建立該欄位，於是每次啟動都把遷移剛刪掉的東西加回來——
+        # 遷移看似成功，重啟一次就復原。移除後兩邊才只剩一個真相來源。
+        for table in ("watch_keywords", "alerts"):
             connection.execute(text(
                 f"CREATE INDEX IF NOT EXISTS ix_{table}_user_id ON {table} (user_id)"
             ))

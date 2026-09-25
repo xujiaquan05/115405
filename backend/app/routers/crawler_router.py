@@ -90,7 +90,10 @@ def _format_elapsed_minutes(value):
     return f"{hours} 小時 {rest_minutes} 分鐘前"
 
 
-@router.get("/status")
+# 只有管理員看得到：回應裡的 error_message 是原始例外字串，
+# 可能夾帶檔案路徑或內部結構，不該對未登入者公開。
+# 前端也只有「爬取管理」這個管理員頁面在用。
+@router.get("/status", dependencies=[Depends(require_admin)])
 def get_crawler_status(
     limit: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
