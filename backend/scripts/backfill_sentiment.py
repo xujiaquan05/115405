@@ -1,35 +1,44 @@
-"""一次性工具：為資料庫裡還沒有情緒評分的舊文章補上評分。
+"""一次性工具：為資料庫裡還沒有情緒評分的舊文章與留言補上評分。
 
 為什麼需要？
-sentiment_service 只在每次爬取後評分，而且一次最多 200 篇，
-所以早期累積的文章始終是 sentiment NULL。儀表板遇到 NULL 會退回用
-push_count 推估，把大量文章歸成「中性」——圖表看起來像情緒分佈，
-實際上有相當比例只是推文數。把舊文章補評分才能讓圖表名實相符。
+sentiment_service 只在每次爬取後評分，而且一次最多 200 篇（留言同樣 200 則），
+所以一次爬進大量資料時評分會嚴重落後。實測修好 PTT 推文擷取後，
+單次爬取就新增 3,119 則留言，而一天只跑一輪排程 —— 照這個速度要二十天才追得上。
+
+儀表板遇到未評分的文章會退回用 push_count 推估，把大量文章歸成「中性」；
+未評分的留言則完全不列入留言情緒分析。把舊資料補齊，數字才名實相符。
 
 用法（在 backend 目錄下）：
     venv\\Scripts\\python.exe scripts\\backfill_sentiment.py --dry-run
     venv\\Scripts\\python.exe scripts\\backfill_sentiment.py
+    venv\\Scripts\\python.exe scripts\\backfill_sentiment.py --target comments
     venv\\Scripts\\python.exe scripts\\backfill_sentiment.py --limit 500
 
 注意：
 - 會實際呼叫 Gemini API 並消耗額度，執行前請先用 --dry-run 確認數量。
-- 每批 20 篇送一次 API，批次之間預設間隔 4 秒，避免觸發每分鐘請求上限。
+- 每批 20 筆送一次 API，批次之間預設間隔 4 秒，避免觸發每分鐘請求上限。
 - 每批評分完就 commit，中途用 Ctrl+C 停掉也不會丟失已完成的部分，
-  下次再執行會從剩下的文章接著跑。
+  下次再執行會從剩下的接著跑。
 """
 
 import argparse
 import logging
 import sys
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 
 # 讓這個腳本不論從哪裡執行都能 import 到 app 套件。
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import SessionLocal  # noqa: E402
-from app.models.database_models import Article  # noqa: E402
-from app.services.sentiment_service import BATCH_SIZE, classify_pending_sentiments  # noqa: E402
+from app.models.database_models import Article, Comment  # noqa: E402
+from app.services.sentiment_service import (  # noqa: E402
+    BATCH_SIZE,
+    classify_pending_comments,
+    classify_pending_sentiments,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-8s | %(message)s")
 logger = logging.getLogger("backfill_sentiment")
@@ -43,18 +52,61 @@ RETRY_WAIT_SECONDS = 60
 MAX_STALLED_ROUNDS = 3
 
 
-def count_pending(db) -> int:
+@dataclass(frozen=True)
+class Target:
+    """一種要補評分的對象。
+
+    文章與留言的補跑流程完全一樣——分批、偵測卡住、可中斷續跑——
+    差別只在「數哪張表」與「呼叫哪個評分函式」。
+    把這兩件事抽成參數，補跑的邏輯就只需要維護一份。
+    """
+
+    key: str
+    label: str
+    unit: str
+    count: Callable
+    classify: Callable
+
+
+def _count_pending_articles(db) -> int:
     return db.query(Article).filter(Article.sentiment.is_(None)).count()
 
 
-def backfill(limit: int | None, pause: float) -> int:
-    """逐批補評分，回傳成功評分的文章數。"""
+def _count_pending_comments(db) -> int:
+    return db.query(Comment).filter(Comment.sentiment.is_(None)).count()
+
+
+ARTICLES = Target(
+    key="articles",
+    label="文章",
+    unit="篇",
+    count=_count_pending_articles,
+    classify=lambda db: classify_pending_sentiments(
+        db, max_articles=BATCH_SIZE, batch_size=BATCH_SIZE
+    ),
+)
+
+COMMENTS = Target(
+    key="comments",
+    label="留言",
+    unit="則",
+    count=_count_pending_comments,
+    classify=lambda db: classify_pending_comments(
+        db, max_comments=BATCH_SIZE, batch_size=BATCH_SIZE
+    ),
+)
+
+TARGETS = {ARTICLES.key: [ARTICLES], COMMENTS.key: [COMMENTS], "all": [ARTICLES, COMMENTS]}
+
+
+def backfill(target: Target, limit: int | None, pause: float) -> int:
+    """逐批補評分，回傳成功評分的筆數。"""
 
     db = SessionLocal()
 
     try:
-        pending = count_pending(db)
-        logger.info("尚未評分的文章：%d 篇（約 %d 批）", pending, -(-pending // BATCH_SIZE))
+        pending = target.count(db)
+        logger.info("尚未評分的%s：%d %s", target.label, pending, target.unit)
 
         scored_total = 0
         stalled_rounds = 0
@@ -64,25 +116,23 @@ def backfill(limit: int | None, pause: float) -> int:
                 logger.info("已達 --limit %d，停止。", limit)
                 break
 
-            if count_pending(db) == 0:
-                logger.info("所有文章都已評分。")
-                break
+            before = target.count(db)
 
-            before = count_pending(db)
+            if before == 0:
+                logger.info("所有%s都已評分。", target.label)
+                break
 
             try:
                 # 一次只送一批，節奏才握在自己手上
-                # （classify_pending_sentiments 內部會連續送完 max_articles，
+                # （classify_* 內部會連續送完上限數量，
                 #   一口氣 10 批容易撞到每分鐘請求上限）。
-                scored = classify_pending_sentiments(
-                    db, max_articles=BATCH_SIZE, batch_size=BATCH_SIZE
-                )
+                scored = target.classify(db)
             except Exception:
                 logger.exception("這一批失敗，等 %d 秒後再試", RETRY_WAIT_SECONDS)
                 time.sleep(RETRY_WAIT_SECONDS)
                 continue
 
-            remaining = count_pending(db)
+            remaining = target.count(db)
 
             if remaining >= before:
                 stalled_rounds += 1
@@ -119,28 +169,43 @@ def backfill(limit: int | None, pause: float) -> int:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="為舊文章補上 Gemini 情緒評分")
-    parser.add_argument("--limit", type=int, default=None, help="最多評分幾篇（預設：全部）")
+    parser = argparse.ArgumentParser(description="為舊文章與留言補上 Gemini 情緒評分")
+    parser.add_argument(
+        "--target",
+        choices=sorted(TARGETS),
+        default="all",
+        help="要補評分的對象（預設 all：文章與留言都補）",
+    )
+    parser.add_argument("--limit", type=int, default=None, help="每種對象最多評分幾筆（預設：全部）")
     parser.add_argument("--pause", type=float, default=4.0, help="每批之間間隔幾秒（預設 4）")
     parser.add_argument("--dry-run", action="store_true", help="只顯示數量，不呼叫 Gemini")
     args = parser.parse_args()
 
+    targets = TARGETS[args.target]
+
     if args.dry_run:
         db = SessionLocal()
         try:
-            pending = count_pending(db)
-            logger.info(
-                "尚未評分：%d 篇，需要約 %d 次 API 呼叫（不會實際呼叫）",
-                pending,
-                -(-pending // BATCH_SIZE),
-            )
+            for target in targets:
+                pending = target.count(db)
+                logger.info(
+                    "尚未評分的%s：%d %s，需要約 %d 次 API 呼叫（不會實際呼叫）",
+                    target.label,
+                    pending,
+                    target.unit,
+                    -(-pending // BATCH_SIZE),
+                )
         finally:
             db.close()
         return
 
     started = time.monotonic()
-    scored = backfill(args.limit, args.pause)
-    logger.info("完成：共評分 %d 篇，耗時 %.1f 分鐘", scored, (time.monotonic() - started) / 60)
+    total = 0
+
+    for target in targets:
+        total += backfill(target, args.limit, args.pause)
+
+    logger.info("完成：共評分 %d 筆，耗時 %.1f 分鐘", total, (time.monotonic() - started) / 60)
 
 
 if __name__ == "__main__":
