@@ -42,3 +42,6 @@ docs/manual-work/**/*.png
 
 # Claude Code 的個人設定（權限白名單因人而異）
 .claude/settings.local.json
+
+# 後端自動啟動時的執行日誌
+backend/logs/
