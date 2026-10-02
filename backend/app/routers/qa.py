@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.rate_limit import RateLimiter
 from app.services import plan_service
-from app.services.auth_service import get_optional_user
+from app.services.auth_service import get_current_user
 from app.services.rag_service import answer_question
 
 router = APIRouter(
@@ -42,7 +42,7 @@ class QuestionRequest(BaseModel):
 def ask_question(
     payload: QuestionRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(get_optional_user),
+    current_user=Depends(get_current_user),
 ):
     # 額度先檢查再呼叫 LLM，避免用掉 API 額度後才擋下來。
     plan_service.ensure_qa_quota(db, current_user)

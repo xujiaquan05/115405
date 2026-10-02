@@ -24,3 +24,21 @@ frontend/dist/
 Thumbs.db
 # Alembic ban ghi tam khi autogenerate thu nghiem
 backend/alembic/versions/__pycache__/
+
+# Disposable PostgreSQL clusters, browser traces and system-test logs
+backend/.test-artifacts/
+
+# Word 編輯時產生的鎖定檔
+~$*
+
+# 產生手冊時的中間產物：
+# 2,047 張截圖與 14 份審閱 PDF 合計約 498MB，由 docs/manual-work 的腳本重新產生。
+# Git 無法移除已經寫入歷史的二進位檔，因此只保留腳本與設定，不收產物。
+docs/manual-work/*.png
+docs/manual-work/*.pdf
+docs/manual-work/*.docx
+docs/manual-work/*.log
+docs/manual-work/**/*.png
+
+# Claude Code 的個人設定（權限白名單因人而異）
+.claude/settings.local.json

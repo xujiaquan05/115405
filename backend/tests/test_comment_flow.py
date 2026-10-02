@@ -180,4 +180,6 @@ class TestCommentsBackfillOntoExistingArticles:
         )
         save_comments(db, article, ["推 好"])
 
+        assert save_comments(db, article, ["推 好", "噓 壞"]) == 1
         assert save_comments(db, article, ["推 好", "噓 壞"]) == 0
+        assert db.query(Comment).count() == 2

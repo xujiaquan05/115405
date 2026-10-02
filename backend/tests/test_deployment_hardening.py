@@ -78,7 +78,9 @@ class TestDockerfile:
 
 class TestHealthEndpoint:
     def test_reports_ok_when_database_reachable(self, client):
-        body = client.get("/health").json()
+        response = client.get("/health")
+        assert response.status_code == 200
+        body = response.json()
 
         assert body["api"] == "ok"
         assert body["database"] == "ok"
@@ -99,7 +101,9 @@ class TestHealthEndpoint:
             yield BrokenSession()
 
         app.dependency_overrides[get_db] = broken_db
-        body = client.get("/health").json()
+        response = client.get("/health")
+        assert response.status_code == 503
+        body = response.json()
 
         assert body["database"] == "error"
         serialized = str(body)

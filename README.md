@@ -520,7 +520,7 @@ Deploy flow:
    - medical-beauty-opinion web service
    - medical-beauty-db PostgreSQL database
 6. When Render asks for GOOGLE_API_KEY, paste your Gemini API key.
-   （ADMIN_PASSWORD 也要填，否則會建立密碼為 admin123 的預設管理員。）
+   （ADMIN_PASSWORD 必須填入符合密碼規則的密碼，否則正式環境首次啟動會失敗。）
 7. Wait for the first deploy to finish.
 8. Open the Render service URL.
 ```
@@ -555,6 +555,28 @@ AI Q&A:      https://medical-beauty-opinion.onrender.com/qa
 
 ## 執行後端測試
 
+### 升級既有環境（2026-09 安全性修正）
+
+在重新啟動後端前，先於 `backend` 目錄執行：
+
+```bash
+python -m alembic upgrade head
+```
+
+新增的 `articles.last_crawled_at` 記錄最近一次成功抓取時間；舊資料保留空值，
+下次爬到時補上。Docker 部署原本就會在啟動前執行 migration。
+
+- AI 問答與 Excel 匯出現在必須登入，並依帳號方案檢查權限；訪客仍可瀏覽公開儀表板。
+- 正式環境首次建立管理員時，`ADMIN_PASSWORD` 必填且須符合密碼規則。
+  既有帳號不會被環境變數覆寫；已使用預設密碼的帳號仍須自行修改。
+- `/health` 在資料庫不可用時回傳 HTTP 503，正常時為 200。
+- IP 限流只使用 Uvicorn 驗證後的連線身分，不再直接相信 `X-Forwarded-For`。
+  若服務部署在反向代理後，請透過 Uvicorn 的 `FORWARDED_ALLOW_IPS` 環境變數或
+  `--forwarded-allow-ips` 參數，指定實際可信任代理的 IP / 網段。
+  不要為了方便設定成 `*`；未設定正確時，同一代理後的使用者可能共用額度。
+- 重爬會更新文章及互動數，並補入新留言。目前來源提供的是留言文字，沒有穩定留言 ID，
+  因此以「內容與出現次數」去重；部分抓取不會刪除舊留言，無法可靠辨認來源上的編輯或刪除。
+
 安裝測試套件（只需要一次）：
 
 ```bash
@@ -569,6 +591,8 @@ python -m pytest tests/ -v
 ```
 
 測試會自動使用 SQLite in-memory，不會碰到真正的資料庫。
+
+PostgreSQL 整合測試與 Chromium 端到端測試另見 [系統測試操作說明](docs/system-testing.md)，包含獨立測試資料庫、執行指令、CI 與失敗診斷。
 
 ## 執行前端測試
 

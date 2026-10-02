@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal, close_transaction, get_db
+from app.core.shutdown import CrawlAborted
 from app.crawlers.registry import get_crawler
 from app.models.database_models import Article, Board, CrawlLog, Platform
 from app.services import lock_service
@@ -196,6 +197,9 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
             progress_callback=websocket_manager.broadcast_sync,
         )
 
+        if lock_service.lease_owner(db, lock_service.CRAWL_LOCK) and not lock_service.renew(db, lock_service.CRAWL_LOCK):
+            raise CrawlAborted("Crawl lease expired or was reset; discarding this batch")
+
         new_count = 0
         skipped_count = 0
         filtered_count = 0
@@ -228,7 +232,7 @@ def _crawl_one_board(db, platform_name: str, board: str, pages: int, start_page:
             # 留言另存一張表，供「留言情緒」與「最負面留言」分析。
             # 不分新舊都寫：PTT 以前不收推文，資料庫裡九千多篇舊文一則留言都沒有。
             # 只在 is_new 時寫的話，那些文章因為已存在而永遠補不到留言。
-            # save_comments 自己會跳過已經有留言的文章，重複呼叫不會灌爆。
+            # save_comments 會比對既有留言，只新增本次多出的內容。
             save_comments(db, article, item.get("comments") or [])
 
         finish_crawl_log(
@@ -311,14 +315,18 @@ def _finish_crawl(db: Session):
     lock_service.release(db, lock_service.CRAWL_LOCK)
 
 
-def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page: int | None):
+def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page: int | None, owner: str):
     # 說明：
     # background task 在 response 送出後才執行，
     # 必須自己開關獨立的 session，不能用 request 的 session。
     db = SessionLocal()
+    db.info.setdefault("lock_owners", {})[lock_service.CRAWL_LOCK] = owner
 
     try:
         for board_name in boards:
+            if not lock_service.renew(db, lock_service.CRAWL_LOCK):
+                logger.warning("Crawl lease lost; stopping background job")
+                return
             _crawl_one_board(
                 db=db,
                 platform_name=platform_name,
@@ -331,6 +339,8 @@ def _run_crawl_job(platform_name: str, boards: list[str], pages: int, start_page
         # 爬取結束後，用 Gemini 為新文章評情緒
         # （還沒評分的舊文章也會被逐步 backfill）。
         # 這個函式會自行吞掉 LLM 錯誤，不會影響爬取工作。
+        if not lock_service.renew(db, lock_service.CRAWL_LOCK):
+            return
         scored_count = classify_pending_sentiments(db)
 
         # 新文章要有向量，RAG 的語意檢索才找得到它們。
@@ -390,7 +400,8 @@ def crawl_ptt_board(
     )
     db.commit()
 
-    background_tasks.add_task(_run_crawl_job, "ptt", selected_boards, pages, start_page)
+    background_tasks.add_task(_run_crawl_job, "ptt", selected_boards, pages, start_page,
+                              lock_service.lease_owner(db, lock_service.CRAWL_LOCK))
 
     return {
         "success": True,
@@ -453,7 +464,8 @@ def crawl_dcard_board(
     )
     db.commit()
 
-    background_tasks.add_task(_run_crawl_job, "dcard", selected_boards, pages, None)
+    background_tasks.add_task(_run_crawl_job, "dcard", selected_boards, pages, None,
+                              lock_service.lease_owner(db, lock_service.CRAWL_LOCK))
 
     return {
         "success": True,
@@ -516,7 +528,8 @@ def crawl_mobile01_board(
     )
     db.commit()
 
-    background_tasks.add_task(_run_crawl_job, "mobile01", selected_boards, pages, None)
+    background_tasks.add_task(_run_crawl_job, "mobile01", selected_boards, pages, None,
+                              lock_service.lease_owner(db, lock_service.CRAWL_LOCK))
 
     return {
         "success": True,
@@ -578,7 +591,8 @@ def crawl_threads_keyword(
     )
     db.commit()
 
-    background_tasks.add_task(_run_crawl_job, "threads", selected_boards, pages, None)
+    background_tasks.add_task(_run_crawl_job, "threads", selected_boards, pages, None,
+                              lock_service.lease_owner(db, lock_service.CRAWL_LOCK))
 
     return {
         "success": True,
@@ -603,7 +617,7 @@ def crawl_threads_keyword(
 def reset_crawl(db: Session = Depends(get_db), current_user=Depends(require_admin)):
     # 鎖存在資料庫，所以這裡的釋放對所有 worker 都有效
     #（舊版只清得掉自己這個 process 的旗標）。
-    _finish_crawl(db)
+    lock_service.force_release(db, lock_service.CRAWL_LOCK)
 
     stuck_logs = db.query(CrawlLog).filter(CrawlLog.status == "running").all()
 

@@ -96,3 +96,32 @@ class TestPlatformQualifiedBoardFilter:
         # 不指定平台時兩篇都算；不指定看板時也是全部。
         assert apply_board_filter(query, ["facelift"]).count() == 2
         assert apply_board_filter(query, None).count() == 2
+
+    def test_excel_export_respects_platform_and_legacy_board_filters(self, db_session):
+        from app.core.time_utils import taiwan_now
+        from app.models.database_models import Article, Board, Platform
+        from app.services.export_service import build_articles_xlsx, get_export_articles
+
+        for name in ("ptt", "dcard"):
+            platform = Platform(name=name)
+            db_session.add(platform)
+            db_session.flush()
+            board = Board(platform_id=platform.id, name="facelift", is_active=1)
+            db_session.add(board)
+            db_session.flush()
+            db_session.add(Article(
+                unique_id=name, platform_id=platform.id, board_id=board.id,
+                title=f"玻尿酸 {name}", url=f"https://example.test/{name}", published_at=taiwan_now(),
+            ))
+        db_session.commit()
+
+        rows = get_export_articles(db_session, "玻尿酸", boards=["ptt:facelift"])
+        assert [row.unique_id for row in rows] == ["ptt"]
+        assert len(get_export_articles(db_session, "玻尿酸", boards=["facelift"])) == 2
+        from io import BytesIO
+        from zipfile import ZipFile
+
+        with ZipFile(BytesIO(build_articles_xlsx(rows))) as workbook:
+            sheet = workbook.read("xl/worksheets/sheet1.xml").decode()
+        assert "ptt" in sheet
+        assert "dcard" not in sheet

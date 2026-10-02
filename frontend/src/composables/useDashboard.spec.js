@@ -60,3 +60,37 @@ describe("useDashboard 平台篩選", () => {
     expect(get).toHaveBeenCalled();
   });
 });
+
+describe("useDashboard 匯出權限提示", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("未登入時提示登入", async () => {
+    get.mockRejectedValueOnce({ response: { status: 401 } });
+    const dashboard = useDashboard();
+    await dashboard.exportArticles();
+    expect(dashboard.state.errorMessage).toBe("請先登入後匯出報表。");
+  });
+
+  it("讀取 blob 中的方案限制訊息", async () => {
+    const data = new Blob([], { type: "application/json" });
+    data.text = async () => JSON.stringify({ detail: "免費版未包含匯出報表功能" });
+    get.mockRejectedValueOnce({ response: { status: 403, data } });
+    const dashboard = useDashboard();
+    await dashboard.exportArticles();
+    expect(dashboard.state.errorMessage).toBe("免費版未包含匯出報表功能");
+  });
+
+  it("非 JSON 錯誤內容仍顯示可讀提示", async () => {
+    const data = new Blob([]);
+    data.text = async () => "service unavailable";
+    get.mockRejectedValueOnce({ response: { status: 503, data } });
+    const dashboard = useDashboard();
+    await dashboard.exportArticles();
+    expect(dashboard.state.errorMessage).toBe("Excel 匯出失敗，請稍後再試。");
+  });
+});

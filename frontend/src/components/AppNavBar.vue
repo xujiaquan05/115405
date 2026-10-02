@@ -21,8 +21,8 @@ function refreshAlertBadge() {
 onMounted(refreshAlertBadge);
 watch(isAuthenticated, refreshAlertBadge);
 
-function handleLogout() {
-  logout();
+async function handleLogout() {
+  await logout();
   router.push("/login");
 }
 

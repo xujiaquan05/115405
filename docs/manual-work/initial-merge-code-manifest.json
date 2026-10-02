@@ -1,0 +1,32 @@
+[
+  {
+    "path": "backend/app/routers/qa.py",
+    "start": 27,
+    "end": 38,
+    "sha256": "2b79c3b8e745f7ddb697251af97dbb4b4a033907eee02a92f48d6665f7b56732"
+  },
+  {
+    "path": "backend/app/routers/qa.py",
+    "start": 41,
+    "end": 66,
+    "sha256": "d2fcb60da2d68da136a1e0d02e86f2115461acf749c6a7cd276ab2e47db43cfc"
+  },
+  {
+    "path": "backend/app/routers/analysis.py",
+    "start": 298,
+    "end": 308,
+    "sha256": "9218300fbb964d4b221937da485a23e71e6934227245ceb43c4d54ab100ddca9"
+  },
+  {
+    "path": "frontend/src/views/HistoryView.vue",
+    "start": 300,
+    "end": 315,
+    "sha256": "658ccde33af9cc6a9360f5cef2e39b5494a424cd035bafd0aaf91375812468a5"
+  },
+  {
+    "path": "backend/app/services/rag_service.py",
+    "start": 423,
+    "end": 433,
+    "sha256": "430b0ae20bd4d883f8e607fb954e39414bbdae495f4ff91689867321b0e73cc4"
+  }
+]

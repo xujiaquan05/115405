@@ -298,6 +298,13 @@ function buildPolyline(key, invert = false) {
 }
 
 async function fetchHistory() {
+  if (!isAuthenticated.value) {
+    state.records = [];
+    selectedIds.value = [];
+    state.errorMessage = "請先登入以查看自己的分析歷史。訪客模式不會儲存個人紀錄。";
+    return;
+  }
+
   state.loading = true;
   state.errorMessage = "";
 
@@ -310,7 +317,9 @@ async function fetchHistory() {
     selectedIds.value = state.records.slice(0, 2).map((record) => record.id);
   } catch (error) {
     console.error(error);
-    state.errorMessage = "歷史紀錄載入失敗，請確認 backend 是否已重新啟動。";
+    state.errorMessage = error.response?.status === 401
+      ? "登入已失效，請重新登入以查看分析歷史。"
+      : "歷史紀錄載入失敗，請稍後再試。";
   } finally {
     state.loading = false;
   }

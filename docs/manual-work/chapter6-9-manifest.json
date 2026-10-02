@@ -1,0 +1,210 @@
+{
+  "diagrams": [
+    {
+      "before": "6-1-2 系統循序圖",
+      "image": "method_trace",
+      "title": "使用個案至程式與測試的追溯關係"
+    },
+    {
+      "before": "6-1-3-2 查詢事件 searchDashboard",
+      "image": "contract_login",
+      "title": "login事件的成功與拒絕合約"
+    },
+    {
+      "before": "6-1-3-3 問答事件 askQuestion",
+      "image": "contract_query",
+      "title": "searchDashboard事件與快取結果"
+    },
+    {
+      "before": "6-1-3-4 爬取事件 startCrawl",
+      "image": "contract_qa",
+      "title": "askQuestion事件與用量後置條件"
+    },
+    {
+      "before": "6-1-3-5 個人資料事件",
+      "image": "contract_crawl",
+      "title": "startCrawl事件的工作接受邊界"
+    },
+    {
+      "before": "6-1-4 登入與工作階段詳細流程",
+      "image": "contract_personal",
+      "title": "個人歷史監測匯出及改密碼事件"
+    },
+    {
+      "before": "6-1-5 查詢 分析 歷史與匯出的完整流程",
+      "image": "session_check",
+      "title": "受保護請求的工作階段驗證"
+    },
+    {
+      "before": "6-1-6 問答與混合檢索的詳細流程",
+      "image": "query_detail",
+      "title": "儀表板篩選快取與文章聚合循序"
+    },
+    {
+      "before": "6-1-6 問答與混合檢索的詳細流程",
+      "image": "history_detail",
+      "title": "分析保存與個人歷史讀取循序"
+    },
+    {
+      "before": "6-1-6 問答與混合檢索的詳細流程",
+      "image": "export_detail",
+      "title": "Excel權限與有效查詢範圍循序"
+    },
+    {
+      "before": "6-1-6 問答與混合檢索的詳細流程",
+      "image": "delete_password",
+      "title": "刪除個人歷史與變更密碼循序"
+    },
+    {
+      "before": "6-1-8 監測與預警流程及現況限制",
+      "image": "daily_detail",
+      "title": "每日排程的租約範圍與後處理"
+    },
+    {
+      "before": "6-2 設計類別圖與責任分配",
+      "image": "watch_detail",
+      "title": "本人監測詞建立與方案檢查"
+    },
+    {
+      "before": "6-2 設計類別圖與責任分配",
+      "image": "alert_detail",
+      "title": "風險評估與帳號別預警去重"
+    },
+    {
+      "before": "第7章 實作模型",
+      "image": "responsibility",
+      "title": "設計責任如何落實到邊界控制服務與實體"
+    }
+  ],
+  "new_excerpts": [
+    {
+      "section_before": "9-1-2 儀表板、文章與個人歷史元件",
+      "title": "程式9-1-1 身分與密碼異動檢查",
+      "path": "backend/app/services/auth_service.py",
+      "start": 327,
+      "end": 337,
+      "sha256": "d784722499e30bd8ccf4ab00fc50737767106b88982ab29d8f3f29b35f020a22"
+    },
+    {
+      "section_before": "9-1-3 AI問答與檢索元件",
+      "title": "程式9-1-2A 儀表板條件與快取命中",
+      "path": "backend/app/routers/dashboard.py",
+      "start": 69,
+      "end": 81,
+      "sha256": "af5b0b7854caca00f067a1e35c341290b1c0b1cbcc03f061e3e4b5ef273f3a58"
+    },
+    {
+      "section_before": "9-1-3 AI問答與檢索元件",
+      "title": "程式9-1-2B 已登入者保存分析快照",
+      "path": "backend/app/routers/analysis.py",
+      "start": 80,
+      "end": 89,
+      "sha256": "b9329878af76a8854873c33ce09cfa3016990810a691cbb4c5de82ebc989bc79"
+    },
+    {
+      "section_before": "9-1-4 爬取、文章更新與租約元件",
+      "title": "程式9-1-3 回答快取與Dashboard脈絡分支",
+      "path": "backend/app/services/rag_service.py",
+      "start": 683,
+      "end": 690,
+      "sha256": "01139f8608ba593afcbafbfeffe2ccd39cff38d5cbb6fd54e99f7078236c1041"
+    },
+    {
+      "section_before": "9-1-5 匯出、方案、監測與管理元件",
+      "title": "程式9-1-4A 過期租約的原子接手",
+      "path": "backend/app/services/lock_service.py",
+      "start": 71,
+      "end": 78,
+      "sha256": "8c27d8adb084fdab09a2a023a3ea65ccd514dcbee7a13bc55ce48c3283e50a56"
+    },
+    {
+      "section_before": "9-1-5 匯出、方案、監測與管理元件",
+      "title": "程式9-1-4B 釋放時核對租約擁有者",
+      "path": "backend/app/services/lock_service.py",
+      "start": 107,
+      "end": 117,
+      "sha256": "dac1311a25399307c4465dac512dea0e0e381467f5c8c82f5fe502f687459e71"
+    },
+    {
+      "section_before": "9-1-6 問答請求資料與驗證節錄",
+      "title": "程式9-1-5A 匯出權限與方案天數",
+      "path": "backend/app/routers/export.py",
+      "start": 31,
+      "end": 44,
+      "sha256": "4d591e8a5cb23b627474d4c07255edc02719a2873b11ae407d01fc184da6d81d"
+    },
+    {
+      "section_before": "9-1-6 問答請求資料與驗證節錄",
+      "title": "程式9-1-5B 監測詞歸屬與額度",
+      "path": "backend/app/routers/monitor.py",
+      "start": 73,
+      "end": 80,
+      "sha256": "f10460e3636d70f0a8a29325679ed3c231f09137635d9afe3200e1c65f27e69c"
+    },
+    {
+      "section_before": "9-1-6 問答請求資料與驗證節錄",
+      "title": "程式9-1-5C 管理員角色防線",
+      "path": "backend/app/services/auth_service.py",
+      "start": 373,
+      "end": 382,
+      "sha256": "31a239178ae75863531ffb55db76a2e8b7c99c5920b2b37520a2b8400382297d"
+    },
+    {
+      "section_before": "9-2-2 資料庫、遷移與啟停元件",
+      "title": "程式9-2-1 共用API連線",
+      "path": "frontend/src/services/api.js",
+      "start": 8,
+      "end": 16,
+      "sha256": "dddc951b9af275ff40570b93fda3d54964d95427b55450eb4772353869b41cfa"
+    },
+    {
+      "section_before": "9-2-3 補建腳本、測試與建置元件",
+      "title": "程式9-2-2A 請求Session生命週期",
+      "path": "backend/app/core/database.py",
+      "start": 61,
+      "end": 66,
+      "sha256": "c69455f5d86b5b4da65a68b13abec1c25cb9f3e615910fdf36b256785e68187f"
+    },
+    {
+      "section_before": "9-2-3 補建腳本、測試與建置元件",
+      "title": "程式9-2-2B 遷移新增最近爬取時間",
+      "path": "backend/alembic/versions/f1a92b3c4d56_add_article_last_crawled_at.py",
+      "start": 16,
+      "end": 20,
+      "sha256": "3ba66e05a69bdc0a9728353d85546b228aba8d75f833bd57480ba6433aed31af"
+    },
+    {
+      "section_before": "9-2-4 共同錯誤合約與修改程序",
+      "title": "程式9-2-3A 批次向量補建與重試",
+      "path": "backend/scripts/backfill_embeddings.py",
+      "start": 98,
+      "end": 107,
+      "sha256": "7d5972c06dd32ef28848b0625558968c2c5fd9e8f9541d6e4057ccac3374d54b"
+    },
+    {
+      "section_before": "9-2-4 共同錯誤合約與修改程序",
+      "title": "程式9-2-3B PostgreSQL競爭測試核心",
+      "path": "backend/system_tests/test_postgres.py",
+      "start": 93,
+      "end": 101,
+      "sha256": "5bc252c56f5312b230656e0c26d0056ec4d7bec89585d7c75c6abe61a45b4695"
+    },
+    {
+      "section_before": "第10章 測試模型",
+      "title": "程式9-2-4A 共用401回應處理",
+      "path": "frontend/src/services/api.js",
+      "start": 23,
+      "end": 37,
+      "sha256": "7fac97bbaf0a8fcfa60b8e859eb8882de9e3f510e109ca86fec87e44cf3b3a72"
+    },
+    {
+      "section_before": "第10章 測試模型",
+      "title": "程式9-2-4B 資源不存在的HTTP合約",
+      "path": "backend/app/routers/articles.py",
+      "start": 23,
+      "end": 26,
+      "sha256": "6d83c50f51307c3301d0f330a93ec0fc413417c6478f0a833c1979a8e2fc570d"
+    }
+  ],
+  "chapter6_figures": 22
+}

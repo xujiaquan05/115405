@@ -170,10 +170,10 @@ def health_check(db: Session = Depends(get_db)):
         logger.exception("Health check failed to reach the database")
         database_status = "error"
 
-    return {
-        "api": "ok",
-        "database": database_status,
-    }
+    return JSONResponse(
+        status_code=200 if database_status == "ok" else 503,
+        content={"api": "ok", "database": database_status},
+    )
 
 
 FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
@@ -202,7 +202,12 @@ def serve_spa(full_path: str):
     if full_path.startswith(("api/", "ws/", "docs", "openapi.json", "redoc")):
         raise HTTPException(status_code=404, detail="Not found")
 
-    requested_file = FRONTEND_DIST / full_path
+    # Resolve before serving: encoded traversal, absolute paths and symlinks
+    # must never expose files outside the public build directory.
+    public_root = FRONTEND_DIST.resolve()
+    requested_file = (public_root / full_path).resolve()
+    if not requested_file.is_relative_to(public_root):
+        raise HTTPException(status_code=404, detail="Not found")
     if requested_file.exists() and requested_file.is_file():
         return FileResponse(requested_file)
 

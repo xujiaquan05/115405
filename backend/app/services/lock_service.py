@@ -12,8 +12,8 @@ Redis 是這類需求的標準答案，但會多一個要維運的服務。
 """
 
 import logging
-import os
 from datetime import timedelta
+from uuid import uuid4
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -30,8 +30,17 @@ CRAWL_LOCK = "crawler"
 DEFAULT_TTL_MINUTES = 60
 
 
+class LockLost(RuntimeError):
+    """The job no longer owns its lease and must stop writing results."""
+
+
 def _owner() -> str:
-    return f"pid-{os.getpid()}"
+    return uuid4().hex
+
+
+def lease_owner(db: Session, name: str) -> str | None:
+    """Return this session's acquisition token, for handing off to a worker."""
+    return db.info.get("lock_owners", {}).get(name)
 
 
 def try_acquire(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) -> bool:
@@ -43,10 +52,12 @@ def try_acquire(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) 
     """
     now = taiwan_now()
     expires_at = now + timedelta(minutes=ttl_minutes)
+    owner = _owner()
 
     try:
-        db.add(SystemLock(name=name, acquired_at=now, expires_at=expires_at, owner=_owner()))
+        db.add(SystemLock(name=name, acquired_at=now, expires_at=expires_at, owner=owner))
         db.commit()
+        db.info.setdefault("lock_owners", {})[name] = owner
         return True
     except IntegrityError:
         db.rollback()
@@ -56,26 +67,18 @@ def try_acquire(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) 
 
     # 已經有人持有：只有在鎖過期時才接手，
     # 避免持鎖的 worker 被強制關閉後永遠卡住。
-    existing = db.query(SystemLock).filter(SystemLock.name == name).first()
-
-    if existing is None:
-        return False
-
-    if existing.expires_at > now:
-        return False
-
-    logger.warning(
-        "Taking over expired lock %s held by %s since %s",
-        name, existing.owner, existing.acquired_at,
-    )
-    existing.acquired_at = now
-    existing.expires_at = expires_at
-    existing.owner = _owner()
+    # Conditional UPDATE makes expiry takeover atomic across workers.
+    acquired = db.query(SystemLock).filter(
+        SystemLock.name == name, SystemLock.expires_at <= now,
+    ).update({"acquired_at": now, "expires_at": expires_at, "owner": owner},
+             synchronize_session=False)
     db.commit()
-    return True
+    if acquired:
+        db.info.setdefault("lock_owners", {})[name] = owner
+    return bool(acquired)
 
 
-def renew(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) -> bool:
+def renew(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES, *, owner: str | None = None) -> bool:
     """把自己持有的鎖延長 TTL，回傳是否成功。
 
     為什麼需要？
@@ -90,20 +93,33 @@ def renew(db: Session, name: str, ttl_minutes: int = DEFAULT_TTL_MINUTES) -> boo
     不是自己持有的鎖不會被延長——那表示鎖已經被別人接手，
     這時候應該讓自己停下來，而不是把別人的鎖搶回來。
     """
-    lock = db.query(SystemLock).filter(SystemLock.name == name).first()
-
-    if lock is None or lock.owner != _owner():
+    owner = owner or lease_owner(db, name)
+    if owner is None:
         return False
-
-    lock.expires_at = taiwan_now() + timedelta(minutes=ttl_minutes)
+    now = taiwan_now()
+    renewed = db.query(SystemLock).filter(
+        SystemLock.name == name, SystemLock.owner == owner, SystemLock.expires_at > now,
+    ).update({"expires_at": now + timedelta(minutes=ttl_minutes)}, synchronize_session=False)
     db.commit()
+    return bool(renewed)
 
-    return True
 
-
-def release(db: Session, name: str) -> None:
+def release(db: Session, name: str, *, owner: str | None = None) -> None:
     """釋放鎖。已經不存在時視為成功，重複呼叫不會出錯。"""
-    db.query(SystemLock).filter(SystemLock.name == name).delete()
+    owner = owner or lease_owner(db, name)
+    if owner is None:
+        return
+    db.query(SystemLock).filter(SystemLock.name == name, SystemLock.owner == owner).delete(
+        synchronize_session=False,
+    )
+    db.commit()
+    if lease_owner(db, name) == owner:
+        db.info["lock_owners"].pop(name, None)
+
+
+def force_release(db: Session, name: str) -> None:
+    """Administrative reset only; ordinary jobs must use owner-checked release."""
+    db.query(SystemLock).filter(SystemLock.name == name).delete(synchronize_session=False)
     db.commit()
 
 

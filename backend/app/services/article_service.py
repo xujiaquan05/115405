@@ -1,5 +1,7 @@
+from collections import Counter
+
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Article, Author, Board, Comment, Platform
+from app.models.database_models import Article, ArticleChunk, Author, Board, Comment, Platform
 
 
 def get_or_create_platform(db, name: str):
@@ -86,6 +88,26 @@ def create_article(
     )
 
     if existing_article:
+        # Empty bodies can indicate a partial/failed fetch; preserve known text.
+        next_title = title or existing_article.title
+        next_content = content or existing_article.content
+        if (next_title, next_content) != (existing_article.title, existing_article.content):
+            old_body = (existing_article.content or "").split(COMMENT_SECTION_MARKER, 1)[0]
+            new_body = (next_content or "").split(COMMENT_SECTION_MARKER, 1)[0]
+            if next_title != existing_article.title or old_body != new_body:
+                existing_article.sentiment = None
+            # Search vectors must be regenerated for the new text/replies.
+            db.query(ArticleChunk).filter(ArticleChunk.article_id == existing_article.id).delete(
+                synchronize_session=False,
+            )
+        existing_article.title = next_title
+        existing_article.content = next_content
+        existing_article.push_count = push_count
+        existing_article.url = url or existing_article.url
+        if published_at is not None:
+            existing_article.published_at = published_at
+        existing_article.last_crawled_at = taiwan_now()
+        db.commit()
         return existing_article, False
 
     platform = get_or_create_platform(db, platform_name)
@@ -109,7 +131,8 @@ def create_article(
         content=content,
         url=url,
         push_count=push_count,
-        published_at=published_at
+        published_at=published_at,
+        last_crawled_at=taiwan_now(),
     )
 
     db.add(article)
@@ -124,25 +147,30 @@ def save_comments(db, article, comments: list[str]) -> int:
     把爬到的留言存成 Comment（逐則一列），供「留言情緒」與
     「最負面留言」等細粒度分析使用。
 
-    只在文章還沒有留言時寫入，避免重複爬取時同一篇文章的留言被灌爆。
+    比對內容與出現次數，只新增尚未收錄的留言；部分抓取不刪除既有留言。
     回傳實際新增的筆數。
     """
 
     if not comments or article is None:
         return 0
 
-    if db.query(Comment).filter(Comment.article_id == article.id).first() is not None:
-        return 0
+    existing = db.query(Comment).filter(Comment.article_id == article.id).all()
+    remaining = Counter(row.content.strip() for row in existing)
+    floor = max((row.floor or 0 for row in existing), default=0)
 
     added = 0
 
-    for index, text in enumerate(comments, start=1):
+    for text in comments:
         clean = (text or "").strip()
 
         if not clean:
             continue
 
-        db.add(Comment(article_id=article.id, floor=index, content=clean))
+        if remaining[clean]:
+            remaining[clean] -= 1
+            continue
+        floor += 1
+        db.add(Comment(article_id=article.id, floor=floor, content=clean))
         added += 1
 
     if added:
@@ -189,7 +217,7 @@ def backfill_comments_from_content(db, limit: int | None = None) -> dict:
     comments 表是後來才加入的，在那之前爬到的文章只把留言併在 content 裡。
     重新爬取救不回來（文章已存在會被視為重複而跳過），所以直接從內文還原。
 
-    save_comments 只在文章尚無留言時寫入，因此本函式可重複執行不會重複新增。
+    save_comments 會比對既有留言，因此本函式可重複執行不會重複新增。
     """
 
     query = (

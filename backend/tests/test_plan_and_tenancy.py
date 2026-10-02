@@ -101,6 +101,27 @@ class TestTenantIsolation:
 
 
 class TestPlanQuota:
+    def test_logging_out_cannot_unlock_paid_features(self, client, monkeypatch):
+        c, _ = client
+        calls = []
+        monkeypatch.setattr("app.routers.qa.answer_question", lambda **kw: calls.append(kw) or {"answer": "test"})
+        alice = header(c, "alice")
+        assert c.post("/api/qa/ask", json={"question": "test question"}, headers=alice).status_code == 403
+        assert c.get("/api/export/articles.xlsx", headers=alice).status_code == 403
+        c.post("/api/auth/logout")
+        assert c.post("/api/qa/ask", json={"question": "test question"}).status_code == 401
+        assert c.get("/api/export/articles.xlsx").status_code == 401
+        assert calls == []
+
+    def test_paid_user_can_ask_and_export(self, client, monkeypatch):
+        c, _ = client
+        monkeypatch.setattr("app.routers.qa.answer_question", lambda **kw: {"answer": "test"})
+        bob = header(c, "bob")
+        assert c.post("/api/qa/ask", json={"question": "test question"}, headers=bob).status_code == 200
+        assert c.get("/api/export/articles.xlsx", headers=bob).status_code == 200
+        plan = c.get("/api/monitor/keywords", headers=bob).json()["data"]["plan"]
+        assert plan["usage"]["qa_questions"] == 1
+
     def test_free_plan_limited_to_one_keyword(self, client):
         c, _ = client
         alice = header(c, "alice")

@@ -662,15 +662,14 @@ def _qa_cache_key(
 
     相同問題、相同 Dashboard 條件、相同對話脈絡才會命中快取。
     """
-    keyword = (dashboard_context or {}).get("keyword")
-    days = (dashboard_context or {}).get("days")
-    history_text = "|".join(
-        str(item.get("content") or "")
-        for item in (history or [])[-6:]
-        if isinstance(item, dict)
+    # Include the actual evidence and role boundaries, not just filter labels.
+    # Canonical JSON also avoids collisions caused by delimiter concatenation.
+    raw = json.dumps(
+        {"question": question, "dashboard_context": dashboard_context,
+         "history": (history or [])[-6:]},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
     )
-    raw = f"qa:{question}|kw={keyword}|days={days}|hist={history_text}"
-    return "qa:" + hashlib.md5(raw.encode("utf-8")).hexdigest()
+    return "qa:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def answer_question(

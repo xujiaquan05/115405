@@ -229,7 +229,18 @@ export function useDashboard() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error(error);
-      state.errorMessage = "Excel export failed. Please try again later.";
+      let detail = error.response?.data?.detail;
+      // Axios returns error responses as blobs too for this download request.
+      if (error.response?.data instanceof Blob && error.response.data.text) {
+        try {
+          detail = JSON.parse(await error.response.data.text()).detail;
+        } catch { /* Use the status-specific message below. */ }
+      }
+      state.errorMessage = detail || (error.response?.status === 401
+        ? "請先登入後匯出報表。"
+        : error.response?.status === 403
+          ? "目前方案未包含匯出功能，請升級方案。"
+          : "Excel 匯出失敗，請稍後再試。");
     }
   }
 

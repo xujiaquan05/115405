@@ -43,13 +43,9 @@ class RateLimiter:
         self.scope = scope
 
     def _client_key(self, request: Request) -> str:
-        # 在 Render 上請求會經過 proxy，真實 IP 在 X-Forwarded-For 的第一個元素。
-        forwarded = request.headers.get("x-forwarded-for", "")
-
-        if forwarded:
-            client = forwarded.split(",")[0].strip()
-        else:
-            client = request.client.host if request.client else "unknown"
+        # Uvicorn resolves proxy headers only for FORWARDED_ALLOW_IPS.
+        # Never trust raw client-supplied forwarding headers here.
+        client = request.client.host if request.client else "unknown"
 
         return f"{self.scope}:{client}"[:200]
 

@@ -29,6 +29,7 @@ const {
   searchDashboard,
   fetchDashboard,
   changeSort,
+  exportArticles,
 } = useDashboard();
 
 const router = useRouter();
@@ -126,6 +127,9 @@ watch(
     <div class="dashboard-page">
       <div id="dashboard-overview" class="dashboard-section" data-dashboard-section>
         <div class="dashboard-report-bar">
+          <button class="dashboard-report-button" type="button" @click="exportArticles">
+            匯出 Excel
+          </button>
           <button class="dashboard-report-button" type="button" @click="goReport">
             匯出報告
           </button>

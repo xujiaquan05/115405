@@ -9,8 +9,8 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Article, Board
-from app.services.dashboard_service import build_keyword_filter
+from app.models.database_models import Article
+from app.services.dashboard_service import apply_board_filter, build_keyword_filter
 
 
 def get_export_articles(
@@ -31,8 +31,7 @@ def get_export_articles(
         .filter(Article.published_at <= end_date)
     )
 
-    if boards:
-        query = query.filter(Article.board.has(Board.name.in_(boards)))
+    query = apply_board_filter(query, boards)
 
     if sort_by == "latest":
         query = query.order_by(desc(Article.published_at))

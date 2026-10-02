@@ -21,6 +21,10 @@ ignore = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "postgres: integration tests against a disposable real PostgreSQL database",
+    "e2e: Chromium tests against the built frontend and real API/PostgreSQL",
+]
 # 註：降低雜湊強度是由 tests/conftest.py 在匯入應用程式前設定環境變數完成。
 # 這裡不用 pytest 的 env 選項——那需要額外安裝 pytest-env，
 # 沒安裝時 pytest 只會發出「Unknown config option」警告而不會生效。

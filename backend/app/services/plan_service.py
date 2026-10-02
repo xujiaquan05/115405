@@ -125,7 +125,9 @@ def _get_counter(db: Session, user, period: str) -> UsageCounter:
 
 def ensure_qa_quota(db: Session, user) -> None:
     """AI 問答前檢查當月次數。"""
-    if user is None or is_admin(user):
+    if user is None:
+        raise HTTPException(status_code=401, detail="請先登入後使用 AI 問答。")
+    if is_admin(user):
         return
 
     limits = get_limits(db, user)
@@ -160,7 +162,9 @@ def record_qa_usage(db: Session, user) -> None:
 
 
 def ensure_export_allowed(db: Session, user) -> None:
-    if user is None or is_admin(user):
+    if user is None:
+        raise HTTPException(status_code=401, detail="請先登入後匯出報表。")
+    if is_admin(user):
         return
 
     limits = get_limits(db, user)

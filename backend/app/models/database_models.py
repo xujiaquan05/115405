@@ -72,6 +72,7 @@ class Article(Base):
     sentiment = Column(String(20), index=True)
 
     published_at = Column(DateTime)
+    last_crawled_at = Column(DateTime)
     created_at = Column(DateTime, server_default=func.now())
 
     platform = relationship("Platform", back_populates="articles")

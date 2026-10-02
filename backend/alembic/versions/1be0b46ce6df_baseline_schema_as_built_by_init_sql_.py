@@ -6,6 +6,7 @@ Create Date: 2026-09-08 16:48:58.425279
 
 """
 from typing import Sequence, Union
+from pathlib import Path
 
 from alembic import op
 import sqlalchemy as sa
@@ -19,16 +20,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """基準版本，刻意留空。
+    """Bootstrap fresh databases before later revisions reference their tables.
 
-    這個專案在導入 Alembic 之前，資料表是由 database/init.sql 建立，
-    後續欄位則由 startup.py 的 ALTER TABLE ... IF NOT EXISTS 補上。
-    現有資料庫已經是這個狀態，所以基準版本不做任何事，
-    只用 `alembic stamp head` 標記「資料庫已在此版本」。
-
-    從此之後的結構變更請一律建立新的 revision，
-    才有版本歷史、才能 downgrade、也才能在 PR 中被審查。
+    Previously this was empty and only worked for databases already initialized
+    by startup. A frozen snapshot avoids coupling historical migrations to live
+    ORM models. IF NOT EXISTS preserves pre-Alembic installations and their data.
+    Databases already stamped at this revision do not rerun the baseline.
     """
+    snapshot = Path(__file__).resolve().parents[1] / "baseline_schema.sql"
+    for statement in snapshot.read_text(encoding="utf-8").split(";"):
+        if statement.strip():
+            op.execute(sa.text(statement))
 
 
 def downgrade() -> None:

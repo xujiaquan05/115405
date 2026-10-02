@@ -1,0 +1,123 @@
+{
+  "source": "https://mebod.clouda.dpdns.org/",
+  "captured_at": "2026-09-29",
+  "requested_viewport": [
+    1440,
+    900
+  ],
+  "screenshots": [
+    {
+      "file": "admin-users.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "article-detail.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "articles.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "compare.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "crawl.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "dashboard.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "history.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "insights.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "landing.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "monitor.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "profile.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "qa.png",
+      "pixels": [
+        1440,
+        900
+      ]
+    },
+    {
+      "file": "report.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "search-advanced.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "sentiment.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    },
+    {
+      "file": "system-settings.png",
+      "pixels": [
+        1425,
+        891
+      ]
+    }
+  ],
+  "note": "Actual authenticated deployment screens; no password fields were filled, no account/settings mutations or crawl jobs were submitted. Browser screenshots may exclude scrollbar and render at 1425x891."
+}

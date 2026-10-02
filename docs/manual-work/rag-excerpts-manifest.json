@@ -1,0 +1,44 @@
+[
+  {
+    "title": "程式9-1-11A RAG主路徑",
+    "path": "backend/app/services/rag_service.py",
+    "start": 707,
+    "end": 720,
+    "sha256": "8897837928ee67d38c5bbd5a41bf0df71f7277373fd62ab01ac00a1770b9e99d"
+  },
+  {
+    "title": "程式9-1-11B 混合檢索與降級",
+    "path": "backend/app/services/rag_service.py",
+    "start": 452,
+    "end": 462,
+    "sha256": "76c898948de2da6a29698727a4484ef48fef51638dd881b8adc1c3bf3f738e4a"
+  },
+  {
+    "title": "程式9-1-11C 語意候選與排序還原",
+    "path": "backend/app/services/rag_service.py",
+    "start": 385,
+    "end": 402,
+    "sha256": "b8abd11a01ceb0c2bf247b9ba490957275bf75490875bde7ecb51be9d0b1906c"
+  },
+  {
+    "title": "程式9-1-11D 餘弦相似度與文章去重",
+    "path": "backend/app/services/embedding_service.py",
+    "start": 299,
+    "end": 322,
+    "sha256": "9013387781f825865fee7e65bde4fbb8de1389d176e04fdce342bff49159775f"
+  },
+  {
+    "title": "程式9-1-11E 建立有長度限制的文章脈絡",
+    "path": "backend/app/services/rag_service.py",
+    "start": 541,
+    "end": 546,
+    "sha256": "d938ceebe0a65bed62507ad16ddb3858c3b55b0bb07dee91dc8a6d48ff81d8e7"
+  },
+  {
+    "title": "程式9-1-11F 生成與降級回覆",
+    "path": "backend/app/services/rag_service.py",
+    "start": 571,
+    "end": 576,
+    "sha256": "7714000e2a5b23e9c205126c4e923e870c18a7c0b78c00dc8f4230cd323f9363"
+  }
+]

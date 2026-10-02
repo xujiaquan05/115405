@@ -421,7 +421,7 @@ async function runAnswer(question, history, { noCache = false } = {}) {
     console.error(error);
     state.errorMessage = error.response?.status === 429
       ? "提問太頻繁，請稍等一分鐘再試。"
-      : "AI 問答發生錯誤，請確認後端、資料庫或 Gemini API 設定。";
+      : error.response?.data?.detail || "AI 問答暫時無法使用，請稍後再試。";
   } finally {
     state.loading = false;
     await scrollToBottom();

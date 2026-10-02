@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.services import plan_service
-from app.services.auth_service import get_optional_user
+from app.services.auth_service import get_current_user
 from app.services.dashboard_service import normalize_filter_boards
 from app.services.export_service import build_articles_xlsx, get_export_articles
 
@@ -25,7 +25,7 @@ def export_articles(
     sort_by: str = Query(default="push_count"),
     boards: list[str] | None = Query(default=None),
     db: Session = Depends(get_db),
-    current_user=Depends(get_optional_user),
+    current_user=Depends(get_current_user),
 ):
     # 匯出屬於付費功能，先檢查方案是否包含。
     plan_service.ensure_export_allowed(db, current_user)

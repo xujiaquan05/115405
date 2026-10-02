@@ -1,0 +1,1305 @@
+[
+  {
+    "table": "analysis_results",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "keyword",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "analysis_type",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "days",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "30",
+        "fk": []
+      },
+      {
+        "name": "result_json",
+        "type": "JSON",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "expired_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "authors",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "pk": false,
+        "unique": true,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "display_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "plans",
+    "columns": [
+      {
+        "name": "code",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "display_name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "max_watch_keywords",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "1",
+        "fk": []
+      },
+      {
+        "name": "max_history_days",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "7",
+        "fk": []
+      },
+      {
+        "name": "allow_all_platforms",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "monthly_qa_quota",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "allow_export",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "sort_order",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "platforms",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": true,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "display_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "base_url",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "rate_limit_hits",
+    "columns": [
+      {
+        "name": "key",
+        "type": "VARCHAR(200)",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "window_start",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "count",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "settings",
+    "columns": [
+      {
+        "name": "key",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "value",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "system_locks",
+    "columns": [
+      {
+        "name": "name",
+        "type": "VARCHAR(64)",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "acquired_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "expires_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "owner",
+        "type": "VARCHAR(64)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "boards",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "platforms.id",
+            "delete": "NO ACTION"
+          }
+        ]
+      },
+      {
+        "name": "name",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "display_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "url",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "is_active",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "1",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "users",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "username",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "pk": false,
+        "unique": true,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "password_hash",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "display_name",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "role",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "user",
+        "fk": []
+      },
+      {
+        "name": "avatar_emoji",
+        "type": "VARCHAR(16)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "avatar_color",
+        "type": "VARCHAR(16)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "is_active",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "1",
+        "fk": []
+      },
+      {
+        "name": "plan_code",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "free",
+        "fk": [
+          {
+            "target": "plans.code",
+            "delete": "RESTRICT"
+          }
+        ]
+      },
+      {
+        "name": "failed_login_count",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "locked_until",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "password_changed_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "last_login_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "alerts",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "users.id",
+            "delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "name": "keyword",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "level",
+        "type": "VARCHAR(20)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "title",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "detail",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "negative_ratio",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "sentiment_score",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "article_count",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "is_read",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "analysis_history",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "users.id",
+            "delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "name": "keyword",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "analysis_type",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "days",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "30",
+        "fk": []
+      },
+      {
+        "name": "result_json",
+        "type": "JSON",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "articles",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "unique_id",
+        "type": "VARCHAR(64)",
+        "nullable": false,
+        "pk": false,
+        "unique": true,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "platforms.id",
+            "delete": "NO ACTION"
+          }
+        ]
+      },
+      {
+        "name": "board_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "boards.id",
+            "delete": "NO ACTION"
+          }
+        ]
+      },
+      {
+        "name": "author_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "authors.id",
+            "delete": "NO ACTION"
+          }
+        ]
+      },
+      {
+        "name": "title",
+        "type": "TEXT",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "content",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "url",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "push_count",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "sentiment",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "published_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "last_crawled_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "audit_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "actor_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "users.id",
+            "delete": "SET NULL"
+          }
+        ]
+      },
+      {
+        "name": "actor_username",
+        "type": "VARCHAR(100)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "action",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "target_username",
+        "type": "VARCHAR(100)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "detail",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "crawl_logs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "platform_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "platforms.id",
+            "delete": "NO ACTION"
+          }
+        ]
+      },
+      {
+        "name": "board_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "boards.id",
+            "delete": "NO ACTION"
+          }
+        ]
+      },
+      {
+        "name": "status",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "new_count",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "skipped_count",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "filtered_count",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "error_message",
+        "type": "TEXT",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "started_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      },
+      {
+        "name": "finished_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "usage_counters",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "users.id",
+            "delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "name": "period",
+        "type": "VARCHAR(7)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "qa_count",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "0",
+        "fk": []
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "watch_keywords",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "users.id",
+            "delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "name": "keyword",
+        "type": "VARCHAR(255)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "days",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "7",
+        "fk": []
+      },
+      {
+        "name": "enabled",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "1",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "article_chunks",
+    "columns": [
+      {
+        "name": "article_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "articles.id",
+            "delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "name": "chunk_index",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "content",
+        "type": "TEXT",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "model",
+        "type": "VARCHAR(50)",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "dimensions",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "vector",
+        "type": "BYTEA",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  },
+  {
+    "table": "comments",
+    "columns": [
+      {
+        "name": "id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": true,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "article_id",
+        "type": "INTEGER",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": [
+          {
+            "target": "articles.id",
+            "delete": "CASCADE"
+          }
+        ]
+      },
+      {
+        "name": "floor",
+        "type": "INTEGER",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "content",
+        "type": "TEXT",
+        "nullable": false,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "sentiment",
+        "type": "VARCHAR(20)",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "",
+        "fk": []
+      },
+      {
+        "name": "created_at",
+        "type": "TIMESTAMP WITHOUT TIME ZONE",
+        "nullable": true,
+        "pk": false,
+        "unique": false,
+        "default": "now()",
+        "fk": []
+      }
+    ]
+  }
+]

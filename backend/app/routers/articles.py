@@ -39,6 +39,7 @@ def get_article(article_id: int, db: Session = Depends(get_db)):
             "published_at": article.published_at.strftime("%Y-%m-%d %H:%M:%S")
             if article.published_at else None,
             "platform": article.platform.name if article.platform else None,
+            "last_crawled_at": article.last_crawled_at.isoformat() if article.last_crawled_at else None,
             "comments": _serialize_comments(article, db),
         },
     }

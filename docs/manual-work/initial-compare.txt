@@ -1,0 +1,317 @@
+國 |   | 立 |   | 臺 |   | 北 |   | 商 |   | 業 |   | 大 |   | 學
+資 |   | 訊 |   | 管 |   | 理 |   | 系
+１１５ |   | 資 |   | 訊 |   | 系 |   | 統 |   | 專 |   | 案 |   | 設 |   | 計
+系 |   | 統 |   | 手 |   | 冊
+（專題 |  Logo | ）
+組　　　別：第 |  115405  | 組
+題　　　目：醫美時尚輿情分析系統
+指導老師：陳信宏 |   | 老師
+組　　　長： | 11246044  | 陳威帆
+組　　　員： | 11246044  | 陳威帆　　 | 11246039  | 許家全
+中 |   | 華 |   | 民 |   | 國 |   | 1 | 15 | 年 |   | 6 |   | 月 |   | 2 |   | 日
+目　錄
+第 |  1  | 章　前言 | 5 | 1-1 | 　背景介紹 | 5 | 1-2 | 　動機 | 5 | 1-3 | 　系統目的與目標 | 5 | 1-4 | 　預期成果 | 6 | 第 |  2  | 章　營運計畫 | 8 | 2-1 | 　可行性分析 | 8 | 2-2 | 　商業模式 |  — Business model | 8 | 2-3 | 　市場分析 |  — STP | 9 | 2-4 | 　競爭力分析 |  SWOT-TOWS  | 或五力分析 | 9 | 第 |  3  | 章　系統規格 | 11 | 3-1 | 　系統架構 | 11 | 3-2 | 　系統軟、硬體需求與技術平台 | 12 | 3-3 | 　使用標準與工具 | 13 | 第 |  4  | 章　專案時程與組織分工 | 15 | 4-1 | 　專案時程 | 15 | 4-2 | 　專案組織與分工 | 15 | 4-3 | 　上傳 |  GitHub  | 紀錄 | 17 | 第 |  5  | 章　需求模型 | 19 | 5-1 | 　使用者需求 | 19 | 5-2 | 　使用個案圖（ | Use case diagram | ） | 20 | 5-3 | 　使用個案描述 | 21 | 5-4 | 　分析類別圖（ | Analysis class diagram | ） | 22 | 第 |  6  | 章　設計模型 | 24 | 6-1 | 　循序圖（ | Sequential diagram | ）或通訊圖（ | Communication diagram | ） | 24 | 6-2 | 　設計類別圖（ | Design class diagram | ） | 24 | 第 |  7  | 章　實作模型 | 26 | 7-1 | 　佈署圖（ | Deployment diagram | ） | 26 | 7-2 | 　套件圖（ | Package diagram | ） | 26 | 7-3 | 　元件圖（ | Component diagram | ） | 27 | 7-4 | 　狀態機（ | State machine | ） | 27 | 第 |  8  | 章　資料庫設計 | 29 | 8-1 | 　資料庫關聯表 | 29 | 8-2 | 　表格及其 |  Meta data | 31 | 第 |  14  | 章　參考資料 | 33
+圖目錄
+圖 |  2-4-1 SWOT  | 分析圖 | 10 | 圖 |  3-1-1  | 系統整體架構圖 | 11 | 圖 |  4-1-1  | 專案時程甘特圖 | 15 | 圖 |  4-3-1  | 上傳 |  GitHub  | 紀錄 | 18 | 圖 |  5-2-1  | 系統使用個案圖 | 21 | 圖 |  5-3-1 AI  | 問答活動圖 | 22 | 圖 |  5-4-1  | 分析類別圖 | 23 | 圖 |  6-1-1  | 觸發爬蟲循序圖 | 24 | 圖 |  6-2-1  | 設計類別圖 | 25 | 圖 |  7-1-1  | 系統佈署圖 | 26 | 圖 |  7-2-1  | 套件圖 | 27 | 圖 |  7-3-1  | 元件圖 | 27 | 圖 |  7-4-1 CrawlJob  | 狀態機 | 28 | 圖 |  8-1-1  | 資料庫 |  ER  | 圖 | 31
+表目錄
+表 |  1-3-1  | 相關系統比較 | 6 | 表 |  3-2-1  | 測試環境與軟硬體需求表 | 12 | 表 |  3-3-1  | 使用標準與工具表 | 13 | 表 |  4-2-1  | 專案組織與分工表 | 16 | 表 |  4-2-2  | 專題成果工作內容與貢獻度表 | 17 | 表 |  8-1-1  | 資料庫關聯表 | 30
+第 |  1  | 章　前言
+1-1 | 　背景介紹
+近年來醫學美容（簡稱「醫美」）產業在台灣蓬勃發展，從微整形、雷射光療到注射填充類療程，逐漸成為一般大眾日常消費的一部分。隨著社群媒體與網路論壇的普及，消費者在選擇診所、療程與品牌時，越來越仰賴網路上的真實使用心得與口碑討論，而非僅參考傳統廣告與醫師推薦。
+PTT  | 美容版、 | Dcard  | 美容版以及各大美妝論壇，每日累積大量與醫美相關的使用心得、療程比較、診所評價與療程效果分享。對於診所經營者、品牌行銷團隊、藥廠以及通路商而言，這些公開貼文是極具價值的市場訊號；但人工逐篇閱讀曠日費時，且難以即時掌握輿情走向與情緒變化。
+有鑑於此，本專題以「醫美時尚輿情分析系統」（ | Medical Beauty Opinion Dashboard | ）為題，建構一套自動化的網路文章蒐集、儲存與分析平台，能即時抓取 |  PTT  | 美容相關看板（如 |  facelift | 、 | MakeUp | 、 | Brand  | 等）之討論文章、彙整成資料庫，並透過儀表板、生成式 |  AI  | 問答介面與歷史趨勢比較功能，協助使用者快速掌握特定關鍵字（療程、品牌、診所）在社群中的聲量、好惡情緒、熱門子話題與長期變化趨勢。
+1-2 | 　動機
+本組成員在學習資料庫、 | Python  | 程式設計與資料分析等課程的過程中，注意到一般使用者要查詢「最近某療程有沒有負評」或「某診所大家評價如何」時，仍需手動逐篇翻閱論壇文章，效率低、難以量化。另一方面，醫美產業競爭激烈，業者亟需一套能持續監聽輿情的系統，協助行銷團隊即時調整策略。
+此外，隨著大型語言模型（ | LLM | ）與檢索增強生成（ | Retrieval-Augmented Generation, RAG | ）技術成熟，將爬取到的真實文章作為知識來源，搭配生成式 |  AI  | 回答自然語言提問，已成為實務上可行的方案。本組希望藉由本專題實作完整的「資料蒐集 |  →  | 儲存 |  →  | 視覺化 |  → AI  | 問答 |  →  | 匯出報表」全流程系統，將學期所學整合應用於真實的產業場景。
+1-3 | 　系統目的與目標
+本系統旨在打造一套針對醫美時尚產業的網路輿情分析平台，具體目的如下：
+●  | 自動化蒐集 |  PTT  | 美容相關看板（ | facelift | 、 | MakeUp | 、 | Brand  | 等）之文章資料，並儲存至關聯式資料庫。
+●  | 提供關鍵字搜尋與多分頁儀表板（總覽、爬蟲管理、趨勢、情緒、熱門文章、洞察、文字雲），即時呈現文章聲量、情緒分布、熱門子話題、來源版面與時間分布。
+●  | 提供高頻關鍵詞文字雲與 |  LLM  | 洞察分析，自動生成熱門話題、消費者痛點與行銷建議。
+●  | 整合 |  Google Gemini  | 大型語言模型，提供 |  AI  | 問答功能，使用者可以自然語言詢 | 問醫美輿情問題，系統以 |  Key Points | 、重點摘要與 |  Dashboard Sources  | 結構化回覆，並提供延伸追問建議。
+●  | 提供分析歷史紀錄與並排比較功能，可勾選兩筆分析記錄查看文章數、情緒分數、負面比例之變化，並標示新出現話題、消失話題與持續話題。
+●  | 提供 |  Excel  | 報表匯出，方便行銷與行政人員後續整理與報告。
+●  | 系統採前後端分離架構，支援 |  Docker  | 容器化部署，可一鍵發佈至雲端服務（ | Render | ）。
+1-4 | 　預期成果
+本專題完成後預期可達成下列成果：
+●  | 可正常運作之 |  Web  | 系統，含 |  Dashboard | 、 | AI  | 問答、 | History  | 三大頁面。
+●  | Dashboard  | 內含總覽、爬蟲管理、趨勢、情緒、熱門文章、洞察、文字雲共七個子分頁。
+●  | 後端 |  RESTful API  | 與 |  WebSocket  | 即時通道，含至少 |  6  | 個主要端點。
+●  | PostgreSQL  | 資料庫，能持續累積爬取到的文章資料，並支援多維度查詢與歷史比較。
+●  | AI  | 問答可針對特定關鍵字回覆「 | Key Points | 」、「重點摘要」與「 | Dashboard Sources | 」三大區塊，並提供 |  4  | 組延伸追問建議。
+●  | 情緒分析以 |  0–100  | 分制量化，並計算正面比例、負面預警數，可長期追蹤情緒分數與負面比例之變化趨勢。
+●  | 提供雲端部署版本（ | Render | ）供口試與教師檢視，網址： | medical-beauty-opinion.onrender.com | 。
+●  | 完整之系統手冊、操作手冊、使用手冊與 |  GitHub  | 程式碼倉庫，做為未來維護與接續開發之基礎。
+1-5 | 　相關系統比較
+市面上已有 |  OpView | 、 | KEYPO  | 等大型輿情監測平台，但其主要面向大型企業客戶，月費動輒數萬元，對中小型醫美診所而言進入門檻偏高。本系統與兩者之主要差異整理如下表：
+表 |  1-3-1  | 相關系統比較
+比較項目 | OpView  | 大數據輿情系統 | KEYPO  | 大數據關鍵引擎 | 本系統 | 目標客群 | 大型品牌、政府單位 | 中大型品牌、行銷代理 | 中小型醫美診所與品牌 | 資料來源 | 各大論壇、新聞、社群 | 各大論壇、社群、影音 | 聚焦 |  PTT  | 美容相關看板 | AI  | 問答 | 有（高階方案） | 有（ | KEYPO AI | ） | 有（ | Gemini RAG | ） | 歷史並排比較 | 有 | 有 | 有（含話題差異分析） | 月費區間 | NT$  | 數萬元起 | NT$  | 數萬元起 | 低成本（自架／訂閱） | 部署方式 | SaaS | （廠商雲端） | SaaS | （廠商雲端） | Docker + Render | ，可自架
+第 |  2  | 章　營運計畫
+2-1 | 　可行性分析
+本系統之可行性可從技術可行性、市場可行性與營運可行性三個面向評估：
+●  | 技術可行性 | ：所需技術皆為成熟且免費／低成本之開源工具，包含 |  Python | 、 | FastAPI | 、 | PostgreSQL | 、 | Vue 3 | 、 | Vite | 、 | Docker  | 等；爬蟲使用 |  requests  | 與 |  BeautifulSoup  | 即可處理 |  PTT  | 之 |  HTML  | 結構； | AI  | 問答透過 |  Google Gemini API  | 串接，無須自行訓練模型，技術門檻可控。
+●  | 市場可行性 | ：根據台灣醫療美容產業相關報告，國內醫美市場年產值已突破新台幣數百億元，且持續成長。診所與品牌方對於即時輿情監測有明確需求，現有市面工具（如 |  OpView | 、 | KEYPO | ）多為大型企業導向、收費昂貴，對中小型診所而言進入門檻高，存在「輕量化、客製化」輿情工具之市場缺口。
+●  | 營運可行性 | ：採 |  SaaS  | 雲端訂閱模式，初期可由團隊維運於 |  Render  | 上，硬體成本低；後端 |  API  | 可重複利用、模組化，未來新增其他來源（如 |  Dcard | 、 | Threads | 、 | IG | ）僅需擴充爬蟲模組，邊際成本低。
+2-2 | 　商業模式 |  — Business model
+本系統以「輿情監測 |  SaaS | （ | Software as a Service | ）」為核心商業模式，主要服務對象為醫美診所、醫美品牌行銷團隊、醫美通路商與相關代理公司。
+（一）價值主張（ | Value Proposition | ）
+協助業者以低於市售輿情監測工具之價格，取得「自動化蒐集 |  →  | 視覺化儀表板 |  → AI  | 自然語言問答 |  →  | 報表匯出」一站式服務，降低人工監看成本，並能即時掌握品牌與療程之網路聲量。
+（二）收益來源（ | Revenue Streams | ）
+●  | 月費／年費訂閱：依關鍵字數量、爬取頻率與報表額度分級收費。
+●  | 客製化爬蟲服務：協助客戶新增特定論壇／粉專／社群作為資料來源。
+●  | 輿情顧問報告：人工協助撰寫月／季輿情分析報告，附加加值服務。
+（三）成本結構（ | Cost Structure | ）
+●  | 雲端主機費用（ | Render Web Service  | 與 |  PostgreSQL | ）。
+●  | Google Gemini API  | 使用量計費。
+●  | 人力成本：開發、維運與顧問服務人員。
+（四）社會責任（ | CSR | ）面向
+除盈利目的外，本系統亦可作為消費者保護工具：透過匯整公開的真實使用心得，協助消費者在選擇醫美療程與診所時，能參考更全面、未經包裝的口碑資訊，降低被誇大不實廣告誤導之風險。此一面向亦屬商業模式的一環，並非所有商業模式都必須以盈利為唯一目的。
+2-3 | 　市場分析 |  — STP
+（一） | Segmentation  | 市場區隔
+依需求類型可將醫美輿情監測市場劃分為：大型集團醫美診所（多分院、多品牌）、單點精品診所、自有品牌通路商、醫美保養品 |  D2C  | 品牌，以及醫美相關公關／行銷代理公司。
+（二） | Targeting  | 目標市場
+本系統將「中小型醫美診所」與「新興 |  D2C  | 醫美保養品牌」設為主要目標市場。此族群預算有限、難以負擔大型輿情工具動輒月費新台幣 |  6 ~ 10  | 萬元的訂閱費用，但又需要即時、客觀的網路聲量資訊；本系統以較親民的價格切入此一缺口。
+（三） | Positioning  | 市場定位
+市場定位為「平價、 | AI  | 驅動、簡單上手」之醫美輿情分析平台，與 |  OpView | 、 | KEYPO  | 等大型監測平台採差異化策略：不主打多平台覆蓋，而是聚焦醫美時尚相關之 |  PTT | 、 | Dcard  | 等高黏著度社群，以 |  AI  | 問答取代傳統儀表板的繁雜操作。
+2-4 | 　競爭力分析 |  SWOT-TOWS  | 或五力分析
+圖 |  2-4-1 SWOT  | 分析圖 | （序號 | 2 | ）
+第 |  3  | 章　系統規格
+3-1 | 　系統架構
+本系統採前後端分離 |  +  | 容器化部署之三層式架構，由前端展示層、後端服務層與資料儲存層三大區塊組成，並透過 |  Google Gemini API  | 提供 |  AI  | 問答能力。各層之間透過 |  HTTP RESTful API  | 與 |  WebSocket  | 通訊，整體部署於 |  Render  | 雲端平台之 |  Docker  | 容器中。
+圖 |  3-1-1  | 系統整體架構圖 | （序號 | 2 | ）
+（一）展示層 |  Presentation Layer
+以 |  Vue 3 + Vite  | 建構之單頁應用程式（ | SPA | ），提供 |  Dashboard | 、 | AI Q&A | 、 | History  | 三大頁面；透過 |  RESTful API  | 與後端互動，並透過 |  WebSocket  | 接收爬蟲執行進度之即時更新。
+（二）服務層 |  Service Layer
+以 |  Python FastAPI  | 框架建構，提供 |  RESTful API  | 與 |  WebSocket  | 端點，包含資料儀表板查詢、 | PTT  | 爬蟲觸發、 | AI  | 問答、 | Excel  | 匯出等核心服務；後端啟動時會自動建立資料表並 |  seed  | 預設 |  PTT  | 看板。
+（三）資料層 |  Data Layer
+以 |  PostgreSQL  | 為主要資料庫，儲存爬取下來的文章、看板資訊與問答歷史等資料，並以 |  SQL  | 腳本（ | init.sql | ）做為初始化。
+（四）外部服務 |  External Service
+透過 |  GOOGLE_API_KEY  | 串接 |  Google Gemini API | ，用於 |  AI  | 問答功能之回應生成；同時以 |  RAG | （ | Retrieval-Augmented Generation | ）方式，將資料庫中相關文章片段作為上下文輸入。
+3-2 | 　系統軟、硬體需求與技術平台
+表 |  3-2-1  | 測試環境與軟硬體需求表
+項目 | 規格／需求 | 用途／說明 | 作業系統（伺服器） | Linux | （ | Render  | 容器環境） | 正式部署環境 | 作業系統（開發） | Windows 10/11 | 、 | macOS 12+ | 、 | Ubuntu 22.04+ | 本機開發與測試 | Python | 3.11  | 以上 | 執行 |  FastAPI | 、爬蟲、 | Gemini SDK | Node.js | 18  | 以上 | 前端 |  Vue + Vite  | 編譯與開發 | 資料庫 | PostgreSQL 14  | 以上 | 儲存文章、問答與分析快照 | 容器 | Docker 24+ | 容器化打包與部署 | CPU | 雙核心以上（伺服器建議 |  4  | 核） | API  | 平行處理與爬蟲 | 記憶體 | 最少 |  2 GB | ；伺服器建議 |  4 GB  | 以上 | FastAPI worker  | 與 |  PostgreSQL  | 並存 | 儲存空間 | 最少 |  10 GB | （持續累積文章資料） | 資料庫與映像檔 | 使用者端瀏覽器 | Chrome | ／ | Edge | ／ | Safari  | 最新版 | 瀏覽 |  Dashboard | 、 | AI  | 問答、 | History | 使用者端解析度 | 建議 |  1280×720  | 以上 | 儀表板圖表與表格顯示 | 網路 | 穩定寬頻； | AI  | 問答與爬蟲時必要 | 呼叫 |  Gemini API  | 與抓取 |  PTT
+（一）開發／伺服器端軟體需求
+●  | 作業系統： | Windows 10/11 | 、 | macOS  | 或 |  Linux | （ | Render  | 部署環境為 |  Linux | ）。
+●  | 程式語言： | Python 3.11  | 以上、 | Node.js 18  | 以上。
+●  | 後端框架： | FastAPI | 、 | Uvicorn | （ | ASGI  | 伺服器）。
+●  | 前端框架： | Vue 3 | 、 | Vite | 。
+●  | 資料庫： | PostgreSQL 14  | 以上。
+●  | 容器化： | Docker | 、 | Render Blueprint | （ | render.yaml | ）。
+●  | AI  | 服務： | Google Gemini API | 。
+（二）使用端硬體需求
+●  | 一般具備瀏覽器之桌上型電腦、筆記型電腦或行動裝置即可使用，建議使用 |  Chrome | 、 | Edge | 、 | Safari  | 等現代瀏覽器最新版。
+●  | 螢幕解析度建議 |  1280×720  | 以上，以獲得最佳儀表板顯示效果。
+●  | 使用 |  AI  | 問答與爬蟲功能時，需具備穩定網路連線。
+（三）技術平台與部署
+●  | 開發環境：本機 |  Python  | 虛擬環境（ | venv | ） | + npm | 。
+●  | 版本控制： | Git + GitHub | （ | repository | ： | xujiaquan05/114 | ）。
+●  | 部署平台： | Render | （ | Web Service + PostgreSQL Database | ），依 |  render.yaml  | 進行 |  Blueprint  | 部署。
+●  | 生產網址： | medical-beauty-opinion.onrender.com | 。
+3-3 | 　使用標準與工具
+本系統開發過程中使用之主要軟體工程標準、規範與工具如下：
+表 |  3-3-1  | 使用標準與工具表
+類別 | 名稱／版本 | 用途 | 方法論 | Unified Process (UP) | 專題開發階段切分（ | Inception/Elaboration/Construction/Transition | ） | 建模標準 | UML 2.x | 使用案例圖、活動圖、循序圖、類別圖、狀態機 | API  | 規範 | RESTful + OpenAPI 3.0 | FastAPI  | 自動產生 |  /docs Swagger  | 文件 | CASE  | 工具 | draw.io | 、 | StarUML | 、 | Microsoft Project | UML  | 圖、甘特圖繪製 | IDE | ／編輯器 | Visual Studio Code | Python | 、 | Vue | 、 | Markdown  | 開發 | 版本控制 | Git + GitHub | Repo | ： | xujiaquan05/114 | ； | commit  | 標註中文姓名與學號 | API  | 測試 | Postman | REST  | 端點手動測試 | DB  | 管理 | DBeaver / pgAdmin 4 | PostgreSQL  | 連線、查詢、 | Schema  | 維護 | 容器工具 | Docker Desktop | 本機建置與測試映像檔 | 部署平台 | Render Blueprint | （ | render.yaml | ） | Web Service + PostgreSQL  | 一鍵部署 | AI  | 服務 | Google Gemini API | 自然語言問答 |  + LLM  | 洞察分析 | 輔助工具 | ChatGPT | 、 | Claude | 程式碼撰寫、文件整理、除錯諮詢
+（一）軟體工程標準與方法論
+●  | UML | （ | Unified Modeling Language | ）：系統分析與設計階段之圖示標準，用於使用案例圖、活動圖、循序圖、類別圖等。
+●  | UP | （ | Unified Process | ）：迭代式軟體開發流程，本專題參考其 |  Inception | 、 | Elaboration | 、 | Construction | 、 | Transition  | 四階段，將學期切分為對應里程碑。
+●  | RESTful API  | 設計原則：以資源為中心，使用 |  HTTP GET/POST  | 動詞，回傳 |  JSON  | 格式。
+●  | OpenAPI / Swagger | ： | FastAPI  | 內建自動產生 |  OpenAPI  | 規格，並於 |  /docs  | 提供互動式 |  API  | 文件。
+（二） | CASE Tools  | 與輔助工具
+●  | Microsoft Project / draw.io / StarUML | ：用於專案時程規劃與 |  UML  | 圖繪製。
+●  | Visual Studio Code | ：主要 |  IDE | ，搭配 |  Python | 、 | Vue  | 相關擴充套件。
+●  | Postman | ： | API  | 開發階段之手動測試工具。
+●  | DBeaver / pgAdmin | ： | PostgreSQL  | 資料庫管理工具。
+●  | Git | ／ | GitHub Desktop | ：版本控制與協同開發。
+●  | Docker Desktop | ：容器映像檔建置與本機測試。
+●  | ChatGPT | ／ | Claude | ：程式碼撰寫、文件整理與除錯輔助工具（詳見「第 |  14  | 章 |   | 參考資料」之 |  AI  | 工具使用說明）。
+第 |  4  | 章　專案時程與組織分工
+本章說明本專題一年（兩學期）之規劃與控管，並明列各組員之分工項目與 |  GitHub  | 紀錄。
+4-1 | 　專案時程
+本專題依 |  Unified Process  | 階段切分為四個時期，並對應系所專題的初評與複評節點。建議以甘特圖（ | Gantt Chart | ）或 |  PERT | ／ | CPM  | 圖呈現實際排程。
+圖 |  4-1-1  | 專案時程甘特圖
+（一）第一學期
+●  | Inception | ：題目發想、可行性分析、文獻探討（第 |  1 ~ 4  | 週）。
+●  | Elaboration | ：需求分析、系統架構規劃、 | UML  | 模型建立、資料庫設計（第 |  5 ~ 12  | 週）。
+●  | Construction | （前段）：建置基礎後端 |  API | 、 | PostgreSQL Schema | 、 | PTT  | 爬蟲核心模組（第 |  13 ~ 18  | 週）。
+●  | 第一學期末：完成初評，繳交初版系統手冊與 |  Demo | 。
+（二）第二學期
+●  | Construction | （後段）：完成 |  Vue  | 前端 |  Dashboard | 、 | AI Q&A | 、 | History  | 頁面，串接 |  WebSocket  | 即時通道（第 |  1 ~ 8  | 週）。
+●  | Transition | ：整合測試、 | Docker  | 化、部署至 |  Render | 、修正初評意見（第 |  9 ~ 14  | 週）。
+●  | 第二學期末：完成複評，繳交最終系統手冊、簡報與部署版本。
+4-2 | 　專案組織與分工
+本組為雙人團隊（ | 11246039  | 許家全、 | 11246044  | 陳威帆），分工依據後端開發、前端開發、美術設計、文件撰寫與報告等構面進行劃分，各項目之主要負責人如表 |  4-2-1  | 所示；各成員之工作內容與整體貢獻度則彙整於表 |  4-2-2 | 。每位組員之 |  GitHub  | 帳號與中文姓名、學號之對應另列於下節。
+表 |  4-2-1  | 專案組織與分工表
+●  | 主要負責人　　 | ○  | 次要負責人（本組為雙人團隊，各項目由一位主要負責人處理，故僅標示 |  ● | ）
+類別 | 項目／組員 | 11246039  | 許家全 | 11246044  | 陳威帆 | 後端開發 | 資料庫建置（ | PostgreSQL Schema | ） | ● | FastAPI  | 伺服器架設 | ● | PTT  | 爬蟲服務 | ● | AI  | 問答服務（ | Gemini RAG | ） | ● | ○ | Excel  | 匯出服務 | ● | 前端開發 | Dashboard  | 頁面 | ● | ○ | AI Q&A  | 頁面 | ● |     | ○ | History  | 頁面 | ● | WebSocket  | 即時通道 | ● | 美術設計 | UI | ／ | UX | ● | ○ | Web/APP  | 介面設計 | ● | ○ | 色彩設計 | Logo  | 設計 | 素材設計 | ● | TEST A | 文件撰寫 | 統整 | ● | 第 |  1  | 章 |   | 前言 | ● | 第 |  2  | 章 |   | 營運計畫 | ○ | ● | 第 |  3  | 章 |   | 系統規格 | ○ | ● | 第 |  4  | 章 |   | 專案時程與組織分工 | ○ | ● | 第 |  5  | 章 |   | 需求模型 | ● | 第 |  6  | 章 |   | 設計模型 | ○ | ● | 第 |  7  | 章 |   | 實作模型 | ○ | ● | 第 |  8  | 章 |   | 資料庫設計 | ○ | ● | 第 |   | 14 |   | 章 |   | 參考資料 | ○ | ● | 報告 | 簡報製作 | ○ | ●
+表 |  4-2-2  | 專題成果工作內容與貢獻度表
+序號 | 姓名 | 工作內容（各限 |  100  | 字以內） | 貢獻度 | 1 | 許家全 | 主程式架構開發、使用者介面製作、前後端開發、 | AI  | 串接、問答系統架設 | 60 | ％ | 2 | 陳威帆 | 資料蒐集、模型訓練、文件製作、報告製作 | 40 | ％ | 總計 | 100 | ％
+4-3 | 　上傳 |  GitHub  | 紀錄
+本專題之程式碼皆統一管理於 |  GitHub  | 倉庫，並由組 | 員 | （ | 許家全 | ，學號 |  112460 | 39 | ）建立並維護：
+Repository | ： | https://github.com/xujiaquan05/114
+倉庫結構符合本系統手冊第 |  3  | 章規劃，分為 |  backend | ／ | frontend | ／ | database  | 三大資料夾，並包含 |  Dockerfile  | 與 |  render.yaml  | 等部署設定檔。每位組員於 |  commit  | 時於 |  commit message  | 註明其中文姓名與學號，以利後續審查比對。
+常用 |  Git  | 操作指令如下：
+git pull origin main          #  | 取得最新版本
+git add .
+git commit -m "Update project - 112460 | 39 |   | 許家全 | "
+git push origin main          #  | 推送至 |  GitHub
+下圖為本專題 |  GitHub  | 倉庫（ | xujiaquan05/114 | ）之 |  commit  | 歷程統計，顯示 |  2026  | 年 |  5  | 月以來各週之提交次數，所有提交皆於 |  commit message  | 註明組員之中文姓名與學號：
+圖 |  4-3-1  | 112460 | 39 |   | 許家全 |   | 上傳 |  GitHub  | 紀錄
+第 |  5  | 章　需求模型
+本章以 |  UML  | 為主要表達工具，描述系統的功能需求與非功能需求。
+5-1 | 　使用者需求
+（一）功能需求 |  Functional Requirements
+●  | FR-01  | 多關鍵字搜尋：使用者可以 |  tag  | 形式輸入多個關鍵字（如醫美、保養、粉底、痘痘、穿搭、美甲），並設定時間範圍（近 |  7  | 天／近 |  30  | 天等）。
+●  | FR-02  | 熱門關鍵字推薦與最近使用記憶：系統提供「全部熱門關鍵字」清單與「最近使用」快速選擇。
+●  | FR-03  | 觸發爬蟲：使用者可從爬蟲管理分頁觸發後端從 |  PTT  | 抓取最新文章。
+●  | FR-04  | 即時進度回報：爬蟲執行時，前端可透過 |  WebSocket  | 即時顯示資料狀態（最後更新時間、來源、狀態）。
+●  | FR-05  | 儀表板總覽：呈現相關文章數、平均推文數、正面比例、負面預警數四大 |  KPI | ，並顯示成長率。
+●  | FR-06  | 討論趨勢圖：以多色折線圖呈現各關鍵字之每日文章數量變化。
+●  | FR-07  | 情緒分析：以橫條圖呈現正面／中性／負面比例，並計算 |  0–100  | 分之情緒分數。
+●  | FR-08  | 熱門子話題：以排行方式列出 |  Top 6  | 熱門子話題與則數。
+●  | FR-09  | 熱門文章列表：以表格列出排名、標題、來源版／作者、回文數、日期、摘要，支援推文數／最新／相關度三種排序，點擊標題可開啟 |  PTT  | 原文。
+●  | FR-10 LLM  | 洞察分析：自動以大型語言模型生成「熱門話題」、「消費者痛點」、「行銷建議」三大區塊文字，並支援深度分析。
+●  | FR-11  | 文字雲：以高頻關鍵詞之大小與顏色視覺化呈現討論焦點。
+●  | FR-12 AI  | 問答：使用者於 |  AI  | 問答頁以自然語言提問，系統回覆 |  Key Points | 、重點摘要與 |  Dashboard Sources | ，並提供 |  4  | 組延伸追問建議（負面風險、行銷角度、消費者在意點、內容機會）。
+●  | FR-13  | 對話歷史側邊欄： | AI  | 問答頁左側提供「新對話」、「搜尋對話」與「對話歷史」清單。
+●  | FR-14  | 分析歷史紀錄： | History  | 頁面以列表呈現每次分析之日期、關鍵字、文章數、情緒分數、負面比例與摘要。
+●  | FR-15  | 並排比較：使用者可勾選兩筆歷史紀錄進行並排比較，系統顯示文章數、情緒分數、負面比例之變化方向。
+●  | FR-16  | 話題差異分析：並排比較時自動標示新出現話題、消失話題、持續話題三大類，提示新的行銷機會。
+●  | FR-17  | 趨勢圖：以多次分析紀錄追蹤情緒分數與負面比例之長期變化。
+●  | FR-18 Excel  | 匯出：使用者可將當前查詢結果以 |  .xlsx  | 格式下載。
+●  | FR-19  | 健康狀態檢查：系統提供 |  /health  | 端點，回傳 |  API  | 與資料庫連線狀態。
+（二）非功能需求 |  Non-Functional Requirements
+●  | NFR-01  | 反應時間：一般 |  API  | 查詢應於 |  2  | 秒內回應； | AI  | 問答受 |  LLM  | 影響，須於 |  15  | 秒內回應。
+●  | NFR-02  | 可用性：系統部署於 |  Render | ，目標每月可用時間 |  ≥ 99% | 。
+●  | NFR-03  | 安全性：所有環境變數（資料庫密碼、 | API Key | ）以 |  .env  | 管理，不上傳 |  GitHub | 。
+●  | NFR-04  | 可維護性：採前後端分離 |  +  | 模組化設計，新增資料來源僅需擴充 |  crawler  | 模組。
+●  | NFR-05  | 可攜性：透過 |  Docker  | 與 |  render.yaml | ，可一鍵部署於任一支援 |  Docker  | 之雲端平台。
+5-2 | 　使用個案圖（ | Use case diagram | ）
+本系統主要角色（ | Actor | ）包含「一般使用者」、「行銷分析人員」與「系統管理員」三類。一般使用者可進行關鍵字查詢、 | AI  | 問答與下載報表；行銷分析人員額外可觸發爬蟲與檢視歷史；系統管理員負責後端維運。
+圖 |  5-2-1  | 系統使用個案圖
+5-3 | 　使用個案描述
+以下以「 | AI  | 問答」為例，列出使用個案之詳細描述，其餘 |  use case  | 之活動圖（ | Activity diagram | ）建議比照辦理。
+●  | Use Case  | 名稱： | AI Q&A  | 醫美輿情問答
+●  | 參與者：一般使用者、 | Google Gemini API | 、 | PostgreSQL  | 資料庫
+●  | 前置條件：資料庫中已有經由爬蟲蒐集到的文章資料。
+●  | 主要流程：（ | 1 | ）使用者於 |  /qa  | 頁面輸入問題；（ | 2 | ）前端送出 |  POST /api/qa/ask | ；（ | 3 | ）後端依問題擷取資料庫中相關文章；（ | 4 | ）將相關文章片段與問題組成 |  prompt  | 後送至 |  Gemini API | ；（ | 5 | ） | Gemini  | 回傳結構化內容；（ | 6 | ）後端整理為 |  JSON  | 後回覆前端；（ | 7 | ）前端顯示重點、行銷建議與可點擊來源。（序號 | 3 | ）
+●  | 替代流程：若資料庫中查無相關文章，系統回傳「目前資料庫尚無相關討論」 | 訊息，並建議使用者先觸發爬蟲。
+●  | 後置條件：問答內容寫入歷史紀錄表，可於 |  /history  | 頁查詢。
+圖 |  5-3-1 AI  | 問答活動圖 | （序號 | 2 | ）
+5-4 | 　分析類別圖（ | Analysis class diagram | ）
+分析階段識別出之核心類別（ | boundary | ／ | control | ／ | entity | ）如下：
+●  | Boundary | ： | DashboardView | 、 | QAView | 、 | HistoryView | （對應 |  Vue  | 之三大頁面）。
+●  | Control | ： | CrawlerController | 、 | QAController | 、 | ExportController | 、 | DashboardController | 。
+●  | Entity | ： | Article | 、 | Board | 、 | QASession | 、 | CrawlJob | 。
+圖 |  5-4-1  | 分析類別圖 | （序號 | 2 | ）
+第 |  6  | 章　設計模型
+6-1 | 　循序圖（ | Sequential diagram | ）或通訊圖（ | Communication diagram | ）
+以「使用者觸發爬蟲」流程為例，循序圖中之物件互動如下：
+●  | 使用者 |  → DashboardView | ：點擊「 | Crawl | 」按鈕，傳入關鍵字。
+●  | DashboardView → CrawlerController | ： | POST /api/crawler/ptt | 。
+●  | CrawlerController → PTTCrawlerService | ：呼叫 |  fetch_articles(keyword) | 。
+●  | PTTCrawlerService →  | 外部 |  PTT  | 網站： | HTTP GET  | 取得頁面 |  HTML | 。（序號 | 1 | ）
+●  | PTTCrawlerService → ArticleRepository | ：批次寫入 |  articles  | 資料表。
+●  | CrawlerController → WebSocket /ws/dashboard | ：即時推播進度訊息給前端。
+●  | DashboardView ← WebSocket | ：更新進度條與最新文章列表。
+圖 |  6-1-1  | 觸發爬蟲循序圖
+6-2 | 　設計類別圖（ | Design class diagram | ）
+實作層之主要設計類別如下，依本系統之模組劃分：
+（一）後端 |  Backend
+●  | app.main | ： | FastAPI App  | 入口，掛載 |  router  | 與 |  middleware | 。
+●  | app.routers | ：包含 |  dashboard | 、 | crawler | 、 | qa | 、 | export | 、 | health  | 等路由模組。
+●  | app.services | ： | CrawlerService | 、 | QAService | 、 | DashboardService | 、 | ExportService | 。
+●  | app.models | ： | Article | 、 | Board | 、 | QASession  | 等 |  ORM  | 模型（ | SQLAlchemy | ）。
+●  | app.schemas | ：以 |  Pydantic  | 定義之 |  API request | ／ | response  | 結構。
+●  | app.db | ：資料庫連線設定，讀取環境變數 |  DATABASE_URL | 。
+（二）前端 |  Frontend
+●  | components/Dashboard.vue | 、 | QA.vue | 、 | History.vue | ：三大頁面元件。
+●  | composables/useWebSocket.js | ：封裝 |  WebSocket  | 連線與重連邏輯。
+●  | api/client.js | ：以 |  axios  | 包裝後端 |  API  | 呼叫。
+圖 |  6-2-1  | 設計類別圖 | （序號 | 2 | ）
+第 |  7  | 章　實作模型
+7-1 | 　佈署圖（ | Deployment diagram | ）
+本系統部署架構如下：
+●  | 使用者裝置（瀏覽器）：透過 |  HTTPS  | 連線至 |  Render  | 提供之網址。
+●  | Render Web Service | （ | Docker  | 容器）：執行 |  FastAPI  | 後端與打包後之 |  Vue  | 靜態檔，對外暴露 |  80 | ／ | 443 port | 。
+●  | Render PostgreSQL Database | ：透過內部網路與 |  Web Service  | 連線，儲存所有資料。
+●  | Google Gemini API | ：透過 |  HTTPS  | 對外呼叫，回傳 |  LLM  | 回應。（序號 | 3 | ）
+●  | PTT  | 站台：作為爬蟲目標，由後端定時／手動觸發抓取。
+圖 |  7-1-1  | 系統佈署圖 | （序號 | 2 | ）
+7-2 | 　套件圖（ | Package diagram | ）
+以套件層級檢視原始碼結構：
+114/
+├── backend/
+│   ├── app/        # FastAPI  | 程式主體
+│   ├── requirements.txt
+│   └── .env        #  | 環境變數（不上 |  GitHub | ）
+├── frontend/
+│   ├── src/        # Vue  | 元件與頁面
+│   ├── package.json
+│   └── vite.config.js
+├── database/
+│   └── init.sql    #  | 資料表初始化
+├── Dockerfile      #  | 容器映像檔定義
+├── render.yaml     # Render Blueprint
+└── README.md
+圖 |  7-2-1  | 套件圖
+7-3 | 　元件圖（ | Component diagram | ）
+系統元件之高階關係：
+●  | Vue SPA  | 元件： | DashboardComponent | 、 | QAComponent | 、 | HistoryComponent | 、 | WebSocketClient | 。
+●  | FastAPI  | 服務元件： | APIGateway | 、 | CrawlerComponent | 、 | QAComponent | 、 | ExportComponent | 、 | WebSocketServer | 。
+●  | 資料儲存元件： | PostgreSQL Articles  | 表、 | Boards  | 表、 | QASessions  | 表。
+●  | 外部元件： | Gemini LLM | 、 | PTT Web | 。
+圖 |  7-3-1  | 元件圖
+7-4 | 　狀態機（ | State machine | ）
+以「 | CrawlJob  | 爬蟲任務」為例，其狀態遷移如下：
+●  | Pending | （已建立，尚未開始） | → Running | （執行中）。
+●  | Running → Succeeded | （全部頁面成功抓取並寫入）。
+●  | Running → Failed | （網路錯誤或解析失敗，記錄錯誤訊息）。
+●  | Running → Cancelled | （使用者中途取消，極少使用）。
+圖 |  7-4-1 CrawlJob  | 狀態機
+第 |  8  | 章　資料庫設計
+8-1 | 　資料庫關聯表
+本系統使用 |  PostgreSQL  | 作為資料儲存後端，主要關聯表規劃如下（實際欄位以 |  database/init.sql  | 為準）：（序號 | 1 | ）
+（一） | platforms  | 平台表
+●  | 欄位： | id | （ | PK | ）、 | name | （ | VARCHAR(50) | ， | UNIQUE NOT NULL | ）、 | display_name | （ | VARCHAR(100) | ）、 | base_url | （ | TEXT | ）、 | created_at | （ | TIMESTAMP | ）。
+●  | Constraints | ： | name UNIQUE NOT NULL | （平台代號不可重複，例如 |  ptt | ）。
+（二） | boards  | 看板表
+●  | 欄位： | id | （ | PK | ）、 | platform_id | （ | FK → platforms.id | ， | INTEGER NOT NULL | ）、 | name | （ | VARCHAR(100) NOT NULL | ）、 | display_name | （ | VARCHAR(100) | ）、 | url | （ | TEXT | ）、 | created_at | （ | TIMESTAMP | ）。
+●  | Constraints | ： | UNIQUE(platform_id, name) | （同一平台下看板名稱不重複）； | platform_id  | 須參考至 |  platforms.id | 。
+（三） | authors  | 作者表
+●  | 欄位： | id | （ | PK | ）、 | username | （ | VARCHAR(100) | ， | UNIQUE NOT NULL | ）、 | display_name | （ | VARCHAR(100) | ）、 | created_at | （ | TIMESTAMP | ）。
+●  | Constraints | ： | username UNIQUE NOT NULL | （作者帳號唯一）。
+（四） | articles  | 文章表
+●  | 欄位： | id | （ | PK | ）、 | unique_id | （ | VARCHAR(64) | ， | UNIQUE NOT NULL | ）、 | platform_id | （ | FK → platforms.id | ， | NOT NULL | ）、 | board_id | （ | FK → boards.id | ）、 | author_id | （ | FK → authors.id | ）、 | title | （ | TEXT NOT NULL | ）、 | content | （ | TEXT | ）、 | url | （ | TEXT | ）、 | push_count | （ | INTEGER DEFAULT 0 | ）、 | published_at | （ | TIMESTAMP | ）、 | created_at | （ | TIMESTAMP | ）。
+●  | Constraints | ： | unique_id UNIQUE NOT NULL | （避免重複爬取同一篇）； | title NOT NULL | ； | push_count DEFAULT 0 | ； | platform_id | ／ | board_id | ／ | author_id  | 分別參考 |  platforms | ／ | boards | ／ | authors | 。
+（五） | crawl_logs  | 爬蟲紀錄表
+●  | 欄位： | id | （ | PK | ）、 | platform_id | （ | FK → platforms.id | ）、 | board_id | （ | FK → boards.id | ）、 | status | （ | VARCHAR(50) NOT NULL | ）、 | new_count | （ | INTEGER DEFAULT 0 | ）、 | skipped_count | （ | INTEGER DEFAULT 0 | ）、 | error_message | （ | TEXT | ）、 | started_at | （ | TIMESTAMP | ）、 | finished_at | （ | TIMESTAMP | ）。
+●  | Constraints | ： | status NOT NULL | ； | new_count | ／ | skipped_count DEFAULT 0 | ； | platform_id | ／ | board_id  | 參考對應主表。
+（六） | analysis_results  | 分析結果表
+●  | 欄位： | id | （ | PK | ）、 | keyword | （ | VARCHAR(255) NOT NULL | ）、 | analysis_type | （ | VARCHAR(50) NOT NULL | ）、 | result_json | （ | JSONB NOT NULL | ）、 | expired_at | （ | TIMESTAMP NOT NULL | ）、 | created_at | （ | TIMESTAMP | ）。
+●  | Constraints | ： | keyword | ／ | analysis_type | ／ | result_json | ／ | expired_at  | 皆 |  NOT NULL | ； | UNIQUE(keyword, analysis_type) | （同一關鍵字與分析類型只保留一筆快取結果）。
+表 |  8-1-1  | 資料庫關聯表（參考關係與限制）
+父表（主鍵） | 子表（外鍵欄位） | 對應關係 | 參考關係與限制條件（ | Constraints | ） | platforms (id) | boards (platform_id) | 1 : N | FOREIGN KEY (platform_id) REFERENCES platforms(id) | ； | platform_id NOT NULL | platforms (id) | articles (platform_id) | 1 : N | FOREIGN KEY (platform_id) REFERENCES platforms(id) | ； | platform_id NOT NULL | platforms (id) | crawl_logs (platform_id) | 1 : N | FOREIGN KEY (platform_id) REFERENCES platforms(id) | boards (id) | articles (board_id) | 1 : N | FOREIGN KEY (board_id) REFERENCES boards(id) | boards (id) | crawl_logs (board_id) | 1 : N | FOREIGN KEY (board_id) REFERENCES boards(id) | authors (id) | articles (author_id) | 1 : N | FOREIGN KEY (author_id) REFERENCES authors(id) | — | platforms (name) | — | UNIQUE NOT NULL | （平台代號唯一） | — | boards (platform_id, name) | — | UNIQUE (platform_id, name) | — | authors (username) | — | UNIQUE NOT NULL | （作者帳號唯一） | — | articles (unique_id) | — | UNIQUE NOT NULL | （避免重複爬取同一篇文章） | — | analysis_results (keyword, analysis_type) | — | UNIQUE (keyword, analysis_type) | ； | result_json | ／ | expired_at NOT NULL
+圖 |  8-1-1  | 資料庫 |  ER  | 圖 | （序號 | 2 | ）
+8-2 | 　表格及其 |  Meta data
+各資料表之 |  metadata  | 概述如下，詳細欄位型別請參考專案中 |  database/init.sql  | 檔案：
+●  | platforms | ：小型維度表，僅數筆（如 |  ptt | 、 | dcard | ），啟動時由 |  seed  | 預填，幾乎不再變動。
+●  | boards | ：常駐基本資料表，啟動時由 |  seed  | 程式碼預填各平台美容相關看板；以 |  (platform_id, name)  | 唯一鍵避免重複。
+●  | authors | ：隨爬蟲新增，以 |  username  | 唯一鍵去重，記錄文章作者基本資料。
+●  | articles | ：典型尺寸 |  N | （隨爬蟲量成長），預估每月新增數千筆，須對 |  platform_id | ／ | board_id | ／ | published_at  | 建索引以加速查詢； | unique_id  | 唯一鍵避免重複爬取。
+●  | crawl_logs | ：每次爬蟲任務寫入一筆，記錄 |  new_count | ／ | skipped_count  | 與 |  status | ，供監控與除錯使用。
+●  | analysis_results | ：以 |  (keyword, analysis_type)  | 唯一鍵作為 |  LLM  | 分析結果之快取， | result_json  | 存 |  JSONB | ，並以 |  expired_at  | 控制快取效期。
+第 |  14  | 章　參考資料
+●  | FastAPI  | 官方文件： | https://fastapi.tiangolo.com/
+●  | Vue 3  | 官方文件： | https://vuejs.org/
+●  | Vite  | 官方文件： | https://vitejs.dev/
+●  | PostgreSQL  | 官方文件： | https://www.postgresql.org/docs/
+●  | Google Gemini API  | 文件： | https://ai.google.dev/
+●  | Render  | 部署指南： | https://render.com/docs
+●  | Docker  | 官方文件： | https://docs.docker.com/
+●  | 本專題 |  GitHub Repository | ： | https://github.com/xujiaquan05/114
+●  | 本系統線上部署版本： | https://medical-beauty-opinion.onrender.com
+使用人工智慧或生成式人工智慧做為輔助作品產出工具之說明
+☑ |   | 使用人工智慧科技做為輔助作品產出之工具（如下表所示）
+□  | 未使用人工智慧科技做為輔助作品產出之工具（以下免填）
+序號 | 使用工具名稱 | 使用範圍及說明 | 頁碼 | 1 | ChatGPT | 協助撰寫 |  PTT  | 爬蟲之 |  HTML  | 解析程式骨架、 | debug PostgreSQL  | 連線錯誤訊息。 | 24 | 、 | 29 | 2 | Claude | 協助整理系統手冊文字、 | UML  | 章節描述、操作手冊步驟說明。 | 10 | 、 | 11 | 、 | 22 | 、 | 23 | 、 | 25 | 、 | 26 | 、 | 31 | 3 | Google Gemini | 作為系統之 |  AI Q&A  | 後端模型，於 |  /api/qa/ask  | 端點實際被呼叫。 | 21 | 、 | 26
+＊ |   | 請於專題內文中同步標示序號以利索引。

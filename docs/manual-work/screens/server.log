@@ -1,0 +1,79 @@
+INFO:     Started server process [14572]
+INFO:     Waiting for application startup.
+2026-09-27 17:56:28,599 INFO     apscheduler.scheduler | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-09-27 17:56:28,603 INFO     apscheduler.scheduler | Added job "run_daily_job" to job store "default"
+2026-09-27 17:56:28,603 INFO     apscheduler.scheduler | Scheduler started
+2026-09-27 17:56:28,603 INFO     app.core.scheduler | Scheduler started: daily job at 03:00 (Asia/Taipei)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:51247 (Press CTRL+C to quit)
+INFO:     127.0.0.1:51256 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58250 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58250 - "GET /assets/index-EEhvG_dm.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /assets/index-CIkWL0Es.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58250 - "GET /login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58250 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60237 - "WebSocket /ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58250 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/dashboard/boards HTTP/1.1" 200 OK
+Building prefix dict from the default dictionary ...
+2026-09-27 17:56:31,302 DEBUG    jieba | Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\giato\AppData\Local\Temp\jieba.cache
+2026-09-27 17:56:31,304 DEBUG    jieba | Loading model from cache C:\Users\giato\AppData\Local\Temp\jieba.cache
+Loading model cost 0.803 seconds.
+2026-09-27 17:56:32,105 DEBUG    jieba | Loading model cost 0.803 seconds.
+Prefix dict has been built successfully.
+2026-09-27 17:56:32,105 DEBUG    jieba | Prefix dict has been built successfully.
+INFO:     127.0.0.1:61890 - "GET /api/dashboard/full?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&days=30&sort_by=push_count HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/dashboard/full?keyword=%E7%8E%BB%E5%B0%BF%E9%85%B8&days=30&sort_by=push_count HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/analysis/keyword?keyword=%E7%8E%BB%E5%B0%BF%E9%85%B8&analysis_type=overview&days=30&force_refresh=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/analysis/keyword?keyword=%E7%8E%BB%E5%B0%BF%E9%85%B8&analysis_type=overview&days=30&force_refresh=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/articles/1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /qa HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:61890 - "GET /api/dashboard/full?keyword=%E7%8E%BB%E5%B0%BF%E9%85%B8&days=30&sort_by=push_count HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/analysis/keyword?keyword=%E7%8E%BB%E5%B0%BF%E9%85%B8&analysis_type=overview&days=30&force_refresh=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "POST /api/qa/ask HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /history HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/analysis/history?limit=80 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /monitor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/monitor/alerts?limit=50 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/monitor/keywords HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /profile HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/auth/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63802 - "WebSocket /ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52941 - "GET /api/dashboard/full?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&days=30&sort_by=push_count HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/dashboard/boards HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/analysis/keyword?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&analysis_type=overview&days=30&force_refresh=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/dashboard/full?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/analysis/keyword?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&analysis_type=overview&days=30 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "POST /api/auth/logout HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/dashboard/full?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&days=30&sort_by=push_count HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/dashboard/boards HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/analysis/keyword?keyword=%E9%86%AB%E7%BE%8E+%E4%BF%9D%E9%A4%8A+%E7%B2%89%E5%BA%95+%E7%97%98%E7%97%98+%E7%A9%BF%E6%90%AD&analysis_type=overview&days=30&force_refresh=false HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /admin/users HTTP/1.1" 200 OK
+INFO:     connection closed
+INFO:     127.0.0.1:61890 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/admin/audit-logs?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/admin/users HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /admin/system HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/admin/settings HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /api/admin/system-overview HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52941 - "GET /crawl HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59746 - "WebSocket /ws/dashboard" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52941 - "GET /api/monitor/alerts?limit=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49979 - "GET /api/analysis/sentiment/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61890 - "GET /api/crawler/status?limit=100 HTTP/1.1" 200 OK
+INFO:     connection closed

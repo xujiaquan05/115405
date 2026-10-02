@@ -94,7 +94,7 @@ def _crawl_all_boards(db, pages: int) -> int:
         # 續約失敗代表鎖已經被別人接手，這時候繼續爬就會變成兩批同時跑。
         if not lock_service.renew(db, lock_service.CRAWL_LOCK):
             logger.warning("Lost the crawl lock before board %s, stopping", board_name)
-            break
+            raise lock_service.LockLost("Crawl lease lost")
 
         try:
             platform = get_or_create_platform(db, platform_name)
@@ -107,6 +107,9 @@ def _crawl_all_boards(db, pages: int) -> int:
 
             crawler = get_crawler(platform_name)
             articles = crawler.crawl_board(board=board_name, pages=pages)
+
+            if not lock_service.renew(db, lock_service.CRAWL_LOCK):
+                raise lock_service.LockLost("Crawl lease lost; discarding this batch")
 
             for item in articles:
                 # 先過濾不相關 / 版務公告文，通過後才寫入 DB（與手動爬取一致）。
@@ -130,11 +133,14 @@ def _crawl_all_boards(db, pages: int) -> int:
 
                 # 不分新舊都寫留言：舊文章是在 PTT 還不收推文的時期入庫的，
                 # 只在 is_new 時寫的話它們永遠補不到。
-                # save_comments 會跳過已經有留言的文章。
+                # save_comments 會比對既有留言，只新增本次多出的內容。
                 save_comments(db, article, item.get("comments") or [])
 
             # 收尾這個看板的交易，下一個看板從乾淨的狀態開始。
             close_transaction(db)
+        except lock_service.LockLost:
+            db.rollback()
+            raise
         except CrawlAborted:
             # 不是錯誤，是系統關閉時主動收手；已寫入的文章保留。
             logger.info("Crawl aborted while crawling board %s", board_name)

@@ -4,6 +4,7 @@ import logging
 import os
 from urllib.parse import quote
 
+from fastapi import HTTPException
 from sqlalchemy import text
 
 from app.core.database import Base, SessionLocal, engine
@@ -17,6 +18,7 @@ from app.services.dashboard_service import (
     TARGET_BOARDS,
     THREADS_BOARDS,
 )
+from app.services.password_policy import validate_password
 
 logger = logging.getLogger(__name__)
 
@@ -167,11 +169,19 @@ def _seed_admin_user(db):
     # 說明：
     # users 資料表是空的時候，自動建立預設 admin 帳號。
     # 密碼從環境變數 ADMIN_PASSWORD 讀取；
-    # 沒設定時使用 admin123 並發出警告，部署後務必更換。
+    # 正式環境必須提供有效密碼；只有 development 可退回 admin123。
     if db.query(User).first() is not None:
         return
 
     admin_password = os.getenv("ADMIN_PASSWORD")
+
+    if os.getenv("APP_ENV", "development").lower() != "development":
+        try:
+            validate_password(admin_password or "", "admin")
+        except HTTPException as error:
+            raise RuntimeError(
+                "Set a valid ADMIN_PASSWORD before initializing a production database."
+            ) from error
 
     if not admin_password:
         admin_password = DEFAULT_ADMIN_PASSWORD

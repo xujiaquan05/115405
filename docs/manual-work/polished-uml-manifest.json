@@ -1,0 +1,57 @@
+[
+  {
+    "caption": "圖5-9 分析層邊界控制與實體",
+    "asset": "analysis_layers",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖5-10 使用個案對應的分析類別與協作",
+    "asset": "analysis_collaboration",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖6-1 使用個案至程式與測試的追溯關係",
+    "asset": "trace",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖6-20 文章領域的實際ORM類別與關聯",
+    "asset": "orm",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖6-21 爬蟲類別的實際一般化關係",
+    "asset": "crawler",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖6-22 設計責任如何落實到邊界控制服務與實體",
+    "asset": "responsibility",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖7-1 系統部署節點與通訊路徑",
+    "asset": "deployment",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖7-2 程式套件的依賴關係",
+    "asset": "packages",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖7-3 應用元件及提供的介面",
+    "asset": "components",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖7-4 租約取得續租與過期接手的狀態機",
+    "asset": "lock_state",
+    "width_cm": 18
+  },
+  {
+    "caption": "圖7-5 文章異動與衍生資料重建的狀態機",
+    "asset": "article_state",
+    "width_cm": 18
+  }
+]

@@ -67,15 +67,14 @@ class TestRateLimiter:
         # 另一個 IP 不該被前一個用掉的額度影響。
         limiter(make_request(ip="2.2.2.2"), db)
 
-    def test_forwarded_for_takes_priority(self, db):
-        """Render 會經過 proxy，真實 IP 在 X-Forwarded-For 的第一個元素；
-        若只看 request.client.host，所有使用者會共用同一份額度。"""
+    def test_raw_forwarded_for_cannot_reset_the_limit(self, db):
+        """Only the client identity resolved by the server is trusted."""
         limiter = RateLimiter(max_requests=1, window_seconds=60)
 
         limiter(make_request(ip="10.0.0.1", forwarded="203.0.113.9, 10.0.0.1"), db)
 
         with pytest.raises(HTTPException):
-            limiter(make_request(ip="10.0.0.2", forwarded="203.0.113.9, 10.0.0.2"), db)
+            limiter(make_request(ip="10.0.0.1", forwarded="203.0.113.10"), db)
 
     def test_window_expiry_allows_again(self, db):
         limiter = RateLimiter(max_requests=1, window_seconds=60)
@@ -113,3 +112,21 @@ class TestClearRateLimits:
         clear_rate_limits(db)
 
         limiter(make_request(), db)  # 清掉後可以重新開始
+
+
+@pytest.mark.parametrize("peer,expected", [("10.0.0.1", "203.0.113.9"), ("198.51.100.8", "198.51.100.8")])
+def test_proxy_identity_is_resolved_only_for_trusted_peers(peer, expected):
+    from fastapi import FastAPI, Request
+    from fastapi.testclient import TestClient
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+    app = FastAPI()
+    limiter = RateLimiter(1, 60)
+
+    @app.get("/")
+    def identify(request: Request):
+        return {"key": limiter._client_key(request)}
+
+    client = TestClient(ProxyHeadersMiddleware(app, trusted_hosts=["10.0.0.1"]), client=(peer, 1234))
+    result = client.get("/", headers={"X-Forwarded-For": "spoofed, 203.0.113.9"})
+    assert result.json()["key"] == f"default:{expected}"
