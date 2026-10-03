@@ -31,6 +31,45 @@ def test_legacy_init_sql_can_upgrade_without_losing_data(empty_postgres_url):
         engine.dispose()
 
 
+def test_legacy_init_sql_upgrade_matches_the_models_on_boards(empty_postgres_url):
+    # init.sql gave boards.platform_id ON DELETE CASCADE and the baseline added
+    # is_active with a plain ADD COLUMN, so a database born before Alembic ends up
+    # looser than the models. A database built from the baseline alone never shows
+    # this, which is why the drift survived until a7d31c6f0e92.
+    engine = create_engine(empty_postgres_url)
+    try:
+        with engine.begin() as db:
+            db.exec_driver_sql((BACKEND.parent / "database/init.sql").read_text(encoding="utf-8"))
+        with engine.connect() as db:
+            assert db.execute(text(
+                "SELECT confdeltype FROM pg_constraint WHERE conname='boards_platform_id_fkey'"
+            )).scalar_one() == "c", "init.sql should start out with CASCADE"
+
+        migrate(empty_postgres_url)
+
+        with engine.connect() as db:
+            assert db.execute(text(
+                "SELECT confdeltype FROM pg_constraint WHERE conname='boards_platform_id_fkey'"
+            )).scalar_one() == "a", "upgrade should leave NO ACTION, as the model declares"
+            assert db.execute(text(
+                "SELECT is_nullable FROM information_schema.columns "
+                "WHERE table_name='boards' AND column_name='is_active'"
+            )).scalar_one() == "NO"
+
+        migrate(empty_postgres_url, "f1a92b3c4d56", "downgrade")
+
+        with engine.connect() as db:
+            assert db.execute(text(
+                "SELECT confdeltype FROM pg_constraint WHERE conname='boards_platform_id_fkey'"
+            )).scalar_one() == "c", "downgrade should put CASCADE back"
+            assert db.execute(text(
+                "SELECT is_nullable FROM information_schema.columns "
+                "WHERE table_name='boards' AND column_name='is_active'"
+            )).scalar_one() == "YES"
+    finally:
+        engine.dispose()
+
+
 def test_empty_database_migrates_to_head_and_bootstraps_twice(postgres_url):
     # Real production ordering: Alembic first, startup second. No create_all in fixtures.
     result = subprocess.run(
