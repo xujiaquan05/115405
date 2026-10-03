@@ -27,6 +27,13 @@ $LogFile = Join-Path $LogDir ("server-{0}.log" -f (Get-Date -Format "yyyy-MM-dd"
 
 "[{0}] 啟動後端（PID {1}）" -f (Get-Date -Format "HH:mm:ss"), $PID | Out-File -FilePath $LogFile -Append -Encoding utf8
 
+# uvicorn 把執行日誌寫到 stderr。在 Windows PowerShell 5.1 裡，對原生程式使用
+# 2>&1 會把每一行 stderr 包成 NativeCommandError；配上上面的
+# $ErrorActionPreference = "Stop"，伺服器才剛印出第一行啟動訊息，腳本就會當成
+# 錯誤中止，工作排程器只看到結束代碼 1，日誌裡也只留下「啟動後端」那一行。
+# 這段改成 Continue，讓 stderr 單純當文字收進日誌。
+$ErrorActionPreference = "Continue"
+
 # 不加 --reload：那是開發用的，檔案一存檔就重啟，
 # 正在進行的爬取會被中止，對外服務也會短暫斷線。
 & $Python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 2>&1 |
