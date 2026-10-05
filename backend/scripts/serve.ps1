@@ -34,8 +34,15 @@ $LogFile = Join-Path $LogDir ("server-{0}.log" -f (Get-Date -Format "yyyy-MM-dd"
 # 這段改成 Continue，讓 stderr 單純當文字收進日誌。
 $ErrorActionPreference = "Continue"
 
+# --proxy-headers 搭配 --forwarded-allow-ips：本機前面是 cloudflared，
+# 所有連線在 uvicorn 眼中都來自 127.0.0.1。沒有這兩個參數，登入的
+# 「每個 IP 每分鐘 5 次」會退化成全世界共用一個額度：真實使用者互相擋，
+# 攻擊者卻只要換 IP 就繞過。只信任 127.0.0.1 轉送來的標頭，
+# 不接受外部自行帶進來的 X-Forwarded-For。
+#
 # 不加 --reload：那是開發用的，檔案一存檔就重啟，
 # 正在進行的爬取會被中止，對外服務也會短暫斷線。
-& $Python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 2>&1 |
+& $Python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 `
+    --proxy-headers --forwarded-allow-ips 127.0.0.1 2>&1 |
     ForEach-Object { "[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"), $_ } |
     Out-File -FilePath $LogFile -Append -Encoding utf8

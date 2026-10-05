@@ -132,3 +132,70 @@ class TestUnhandledErrors:
         assert len(body["incident_id"]) == 8
         assert body["incident_id"] in body["detail"]
         assert "secret internal detail" not in str(body)
+
+
+class TestLoginCookieSecureFlag:
+    """登入 cookie 的 Secure 旗標必須跟著部署環境走。
+
+    開發機走 http://127.0.0.1，加了 Secure 會讓 cookie 被丟棄而登不進去；
+    但公開網址走 https，少了 Secure 等於允許瀏覽器把 JWT 送上明文連線。
+    """
+
+    @pytest.mark.parametrize("app_env, expected", [
+        ("development", False),
+        ("Development", False),   # 大小寫不該改變判斷
+        ("production", True),
+        ("staging", True),
+        ("", True),               # 設了空字串不等於開發環境
+        (None, False),            # 完全沒設時維持開發預設
+    ])
+    def test_secure_follows_app_env(self, app_env, expected):
+        from app.services.auth_service import cookie_secure_for
+
+        assert cookie_secure_for(app_env) is expected
+
+    def test_login_sets_the_flags_the_module_decided(self, client):
+        from app.models.database_models import User
+        from app.services import auth_service
+
+        db = next(app.dependency_overrides[get_db]())
+        db.add(User(
+            username="cookie-check",
+            password_hash=auth_service.hash_password("Str0ng-Pass-99"),
+            role="user",
+            is_active=1,
+        ))
+        db.commit()
+
+        response = client.post("/api/auth/login", json={
+            "username": "cookie-check", "password": "Str0ng-Pass-99",
+        })
+        assert response.status_code == 200
+
+        header = response.headers["set-cookie"].lower()
+        assert "httponly" in header
+        assert "samesite=strict" in header
+        assert ("secure" in header) is auth_service.COOKIE_SECURE
+
+
+class TestServeScriptTrustsOnlyTheLocalProxy:
+    """cloudflared 在前面時，uvicorn 看到的來源一律是 127.0.0.1。
+
+    少了 --proxy-headers，登入的「每個 IP 每分鐘 5 次」會退化成
+    全世界共用一個額度；而少了 --forwarded-allow-ips，又會變成
+    任何人都能自己帶 X-Forwarded-For 來偽造來源。兩個要一起出現。
+    """
+
+    def test_serve_script_passes_both_flags(self):
+        script = (REPO_ROOT / "backend/scripts/serve.ps1").read_text(encoding="utf-8")
+
+        assert "--proxy-headers" in script
+        assert "--forwarded-allow-ips 127.0.0.1" in script
+
+    def test_serve_script_does_not_trust_every_host(self):
+        script = (REPO_ROOT / "backend/scripts/serve.ps1").read_text(encoding="utf-8")
+
+        # '*' 等於相信任何人送來的 X-Forwarded-For，比不開還危險。
+        assert "--forwarded-allow-ips *" not in script
+        assert '--forwarded-allow-ips "*"' not in script
+

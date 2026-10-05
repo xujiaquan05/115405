@@ -12,3 +12,10 @@
 import os
 
 os.environ.setdefault("PBKDF2_ITERATIONS", "1000")
+
+# TestClient 透過 http://testserver 呼叫，是明文連線，不會保存 Secure cookie。
+# 若讓這裡跟著開發者 .env 的 APP_ENV 走，誰把自己機器改成 production，
+# 整套 cookie 相關測試就會在他電腦上紅掉——那是環境差異，不是程式壞了。
+# 測試固定用 development；Secure 旗標本身另有 test_deployment_hardening 驗證規則。
+# load_dotenv 預設不覆蓋既有環境變數，所以這行先設就贏。
+os.environ.setdefault("APP_ENV", "development")

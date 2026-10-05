@@ -72,7 +72,23 @@ COOKIE_SAMESITE = "strict"
 # Secure cookie 只有 https 才會被瀏覽器接受。
 # 開發時走 http://localhost，設了會讓 cookie 直接被丟棄而登不進去，
 # 因此依 APP_ENV 判斷；正式部署務必讓 APP_ENV 不是 development。
-COOKIE_SECURE = os.getenv("APP_ENV", "development").lower() != "development"
+#
+# 抽成函式是為了讓規則本身可以被測試：
+# 直接測 COOKIE_SECURE 只能測到「這台機器現在的設定」，
+# 測不到「哪些環境該加 Secure」這條規則有沒有被改壞。
+def cookie_secure_for(app_env: str | None) -> bool:
+    """只有 development 不加 Secure，其餘環境（含未知值）一律加上。
+
+    沒設定變數才退回 development；設成空字串算「未知環境」而不是開發環境，
+    這種情況寧可多加一道 Secure，也不要默默放寬。
+    """
+    if app_env is None:
+        app_env = "development"
+
+    return app_env.strip().lower() != "development"
+
+
+COOKIE_SECURE = cookie_secure_for(os.getenv("APP_ENV"))
 
 
 def _read_token(request: Request | None, credentials: HTTPAuthorizationCredentials | None) -> str | None:
