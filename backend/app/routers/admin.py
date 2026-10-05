@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.scheduler import reschedule_daily_job
 from app.core.time_utils import taiwan_now, utc_now
-from app.models.database_models import Alert, Article, Board, CrawlLog, User, WatchKeyword
+from app.models.database_models import Alert, Article, Board, CrawlLog, Plan, User, WatchKeyword
 from app.services.article_service import get_or_create_board, get_or_create_platform
 from app.services.audit_service import list_recent_audits, record_audit
 from app.services.auth_service import (
@@ -22,6 +22,7 @@ from app.services.auth_service import (
     uses_default_password,
 )
 from app.services.password_policy import MIN_LENGTH, validate_password
+from app.services.plan_service import DEFAULT_PLAN_CODE
 from app.services.settings_service import get_all_settings, get_setting, update_settings
 
 router = APIRouter(
@@ -60,13 +61,51 @@ class CreateUserRequest(BaseModel):
     password: str = Field(..., min_length=MIN_LENGTH, max_length=200)
     display_name: str | None = Field(default=None, max_length=100)
     role: str = Field(default="user")
+    plan_code: str | None = Field(default=None, max_length=20)
 
 
 class UpdateUserRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=100)
     role: str | None = None
     is_active: bool | None = None
+    plan_code: str | None = Field(default=None, max_length=20)
     new_password: str | None = Field(default=None, min_length=MIN_LENGTH, max_length=200)
+
+
+def resolve_plan(db: Session, code: str) -> Plan:
+    """方案代碼必須真的存在於 plans 表，否則額度查詢會落到保底值。"""
+    plan = db.query(Plan).filter(Plan.code == code).first()
+    if plan is None:
+        available = [row.code for row in db.query(Plan).order_by(Plan.code).all()]
+        raise HTTPException(
+            status_code=400,
+            detail=f"找不到方案「{code}」。可用方案：{'、'.join(available)}。",
+        )
+    return plan
+
+
+@router.get("/plans", dependencies=[Depends(require_admin)])
+def list_plans(db: Session = Depends(get_db)):
+    """
+    說明：
+    提供帳號管理畫面的方案選單。額度值 -1 代表不限制。
+    """
+
+    plans = db.query(Plan).order_by(Plan.max_watch_keywords).all()
+
+    return {
+        "success": True,
+        "data": [
+            {
+                "code": plan.code,
+                "display_name": plan.display_name,
+                "max_watch_keywords": plan.max_watch_keywords,
+                "max_history_days": plan.max_history_days,
+                "allow_all_platforms": bool(plan.allow_all_platforms),
+            }
+            for plan in plans
+        ],
+    }
 
 
 @router.get("/users", dependencies=[Depends(require_admin)])
@@ -130,11 +169,18 @@ def create_user(
 
     validate_password(payload.password, username)
 
+    # 沒有指定就交給資料庫預設值（free），不去碰 plans 表：
+    # 呼叫端沒要求方案時，不該因為方案資料尚未建立而建不了帳號。
+    plan_code = DEFAULT_PLAN_CODE
+    if payload.plan_code is not None:
+        plan_code = resolve_plan(db, payload.plan_code.strip()).code
+
     user = User(
         username=username,
         password_hash=hash_password(payload.password),
         display_name=(payload.display_name or "").strip() or username,
         role=payload.role,
+        plan_code=plan_code,
         is_active=1,
     )
 
@@ -190,6 +236,11 @@ def update_user(
             raise HTTPException(status_code=400, detail="不能停用自己的帳號。")
         user.is_active = 1 if payload.is_active else 0
         changes.append("啟用帳號" if payload.is_active else "停用帳號")
+
+    if payload.plan_code is not None and payload.plan_code != user.plan_code:
+        plan = resolve_plan(db, payload.plan_code.strip())
+        user.plan_code = plan.code
+        changes.append(f"方案改為{plan.display_name}")
 
     if payload.display_name is not None:
         user.display_name = payload.display_name.strip() or user.username

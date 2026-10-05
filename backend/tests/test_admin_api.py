@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
 from app.main import app
-from app.models.database_models import User
+from app.models.database_models import Plan, User
 from app.services.auth_service import hash_password
 
 
@@ -46,6 +46,10 @@ def client():
         role="user",
         is_active=1,
     ))
+    session.add(Plan(code="free", display_name="免費版", max_watch_keywords=1,
+                     max_history_days=7, allow_all_platforms=0))
+    session.add(Plan(code="pro", display_name="專業版", max_watch_keywords=5,
+                     max_history_days=90, allow_all_platforms=1))
     session.commit()
     session.close()
 
@@ -252,3 +256,78 @@ class TestDeleteUser:
 
         response = client.delete(f"/api/admin/users/{admin_id}", headers=admin_header(client))
         assert response.status_code == 400
+
+
+class TestPlanAssignment:
+    """手冊的需求表寫「限管理員 指派角色方案」，所以方案必須能從後台改。"""
+
+    def test_plans_are_listed_for_the_dropdown(self, client):
+        response = client.get("/api/admin/plans", headers=admin_header(client))
+        assert response.status_code == 200
+        codes = [plan["code"] for plan in response.json()["data"]]
+        assert codes == ["free", "pro"]  # 依額度由小到大
+
+    def test_plan_list_is_admin_only(self, client):
+        response = client.get("/api/admin/plans",
+                              headers=auth_header(client, "normal", "user123"))
+        assert response.status_code == 403
+
+    def test_admin_can_change_a_users_plan(self, client):
+        users = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        target = next(u for u in users if u["username"] == "normal")
+        assert target["plan_code"] == "free"
+
+        response = client.patch(
+            f"/api/admin/users/{target['id']}",
+            json={"plan_code": "pro"},
+            headers=admin_header(client),
+        )
+        assert response.status_code == 200
+
+        users = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        changed = next(u for u in users if u["username"] == "normal")
+        assert changed["plan_code"] == "pro"
+
+    def test_unknown_plan_is_rejected(self, client):
+        users = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        target = next(u for u in users if u["username"] == "normal")
+
+        response = client.patch(
+            f"/api/admin/users/{target['id']}",
+            json={"plan_code": "enterprise"},
+            headers=admin_header(client),
+        )
+        assert response.status_code == 400
+        # 錯誤訊息要列出可用方案，管理員才知道該填什麼。
+        assert "free" in response.json()["detail"]
+
+    def test_new_account_can_be_given_a_plan(self, client):
+        response = client.post(
+            "/api/admin/users",
+            json={"username": "paid", "password": "Str0ng-Pass-99", "plan_code": "pro"},
+            headers=admin_header(client),
+        )
+        assert response.status_code == 200
+
+        users = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        created = next(u for u in users if u["username"] == "paid")
+        assert created["plan_code"] == "pro"
+
+    def test_account_without_a_plan_still_works(self, client):
+        # 不指定方案時不該去驗證 plans 表，否則舊呼叫端會壞掉。
+        response = client.post(
+            "/api/admin/users",
+            json={"username": "plain", "password": "Str0ng-Pass-99"},
+            headers=admin_header(client),
+        )
+        assert response.status_code == 200
+
+    def test_changing_plan_is_audited(self, client):
+        users = client.get("/api/admin/users", headers=admin_header(client)).json()["data"]["users"]
+        target = next(u for u in users if u["username"] == "normal")
+        client.patch(f"/api/admin/users/{target['id']}",
+                     json={"plan_code": "pro"}, headers=admin_header(client))
+
+        logs = client.get("/api/admin/audit-logs", headers=admin_header(client)).json()["data"]["logs"]
+        details = " ".join(entry.get("detail", "") for entry in logs)
+        assert "專業版" in details

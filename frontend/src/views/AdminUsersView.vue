@@ -10,6 +10,7 @@ const { state: authState } = useAuth();
 const currentUserId = computed(() => authState.user?.id);
 
 const users = ref([]);
+const plans = ref([]);
 const stats = ref({ total: 0, admins: 0, active: 0, logged_this_week: 0 });
 const auditLogs = ref([]);
 const loading = ref(false);
@@ -30,6 +31,7 @@ const createForm = reactive({
   display_name: "",
   password: "",
   role: "user",
+  plan_code: "free",
   submitting: false,
 });
 
@@ -40,6 +42,7 @@ const editModal = reactive({
   username: "",
   display_name: "",
   role: "user",
+  plan_code: "free",
   is_active: true,
   new_password: "",
   submitting: false,
@@ -110,8 +113,18 @@ async function fetchAuditLogs() {
   }
 }
 
+// 方案清單來自後端 plans 表，不寫死在前端，改額度不必重新部署。
+async function fetchPlans() {
+  try {
+    const response = await api.get("/api/admin/plans");
+    plans.value = response.data.data || [];
+  } catch (error) {
+    plans.value = [];
+  }
+}
+
 async function refreshAll() {
-  await Promise.all([fetchUsers(), fetchAuditLogs()]);
+  await Promise.all([fetchUsers(), fetchAuditLogs(), fetchPlans()]);
 }
 
 async function createUser() {
@@ -130,6 +143,7 @@ async function createUser() {
       display_name: createForm.display_name.trim() || null,
       password: createForm.password,
       role: createForm.role,
+      plan_code: createForm.plan_code,
     });
 
     flashSuccess(`已建立帳號「${createForm.username.trim()}」。`);
@@ -137,6 +151,7 @@ async function createUser() {
     createForm.display_name = "";
     createForm.password = "";
     createForm.role = "user";
+    createForm.plan_code = "free";
     await refreshAll();
   } catch (error) {
     console.error(error);
@@ -146,12 +161,18 @@ async function createUser() {
   }
 }
 
+function planLabel(code) {
+  const plan = plans.value.find((item) => item.code === code);
+  return plan ? plan.display_name : code || "免費版";
+}
+
 function openEdit(user) {
   editModal.open = true;
   editModal.userId = user.id;
   editModal.username = user.username;
   editModal.display_name = user.display_name;
   editModal.role = user.role;
+  editModal.plan_code = user.plan_code || "free";
   editModal.is_active = Boolean(user.is_active);
   editModal.new_password = "";
   editModal.isSelf = user.id === currentUserId.value;
@@ -174,6 +195,7 @@ async function submitEdit() {
   const payload = {
     display_name: editModal.display_name,
     role: editModal.role,
+    plan_code: editModal.plan_code,
     is_active: editModal.is_active,
   };
   if (editModal.new_password) payload.new_password = editModal.new_password;
@@ -283,6 +305,14 @@ onMounted(refreshAll);
             <option value="admin">管理員</option>
           </select>
         </label>
+        <label>
+          <span>方案</span>
+          <select v-model="createForm.plan_code">
+            <option v-for="plan in plans" :key="plan.code" :value="plan.code">
+              {{ plan.display_name }}
+            </option>
+          </select>
+        </label>
         <button type="submit" :disabled="createForm.submitting">
           {{ createForm.submitting ? "建立中…" : "建立帳號" }}
         </button>
@@ -325,6 +355,7 @@ onMounted(refreshAll);
             <tr>
               <th>帳號</th>
               <th>角色</th>
+              <th>方案</th>
               <th>狀態</th>
               <th>最後登入</th>
               <th>建立日期</th>
@@ -342,6 +373,9 @@ onMounted(refreshAll);
                 <span :class="['admin-role-badge', user.role === 'admin' ? 'is-admin' : '']">
                   {{ user.role === "admin" ? "管理員" : "一般使用者" }}
                 </span>
+              </td>
+              <td>
+                <span class="admin-sub">{{ planLabel(user.plan_code) }}</span>
               </td>
               <td>
                 <span :class="['admin-status-dot', user.is_active ? 'is-active' : 'is-inactive']">
@@ -409,6 +443,16 @@ onMounted(refreshAll);
               <option value="admin">管理員</option>
             </select>
             <small v-if="editModal.isSelf" class="admin-modal-hint">不能調整自己的角色</small>
+          </label>
+
+          <label>
+            <span>方案</span>
+            <select v-model="editModal.plan_code">
+              <option v-for="plan in plans" :key="plan.code" :value="plan.code">
+                {{ plan.display_name }}
+              </option>
+            </select>
+            <small class="admin-modal-hint">方案只限制一般使用者的額度，管理員不受限。</small>
           </label>
 
           <label class="admin-modal-checkbox">

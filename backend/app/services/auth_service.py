@@ -420,6 +420,7 @@ def serialize_user_admin(user: User) -> dict:
         "username": user.username,
         "display_name": user.display_name or user.username,
         "role": user.role,
+        "plan_code": user.plan_code,
         "is_active": bool(user.is_active),
         "avatar_emoji": user.avatar_emoji,
         "avatar_color": user.avatar_color,
