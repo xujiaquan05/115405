@@ -4,6 +4,7 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import { useAuth } from "../composables/useAuth";
 import api from "../services/api";
+import { MIN_PASSWORD_LENGTH } from "../utils/password";
 
 const { state: authState } = useAuth();
 const currentUserId = computed(() => authState.user?.id);
@@ -116,8 +117,8 @@ async function refreshAll() {
 async function createUser() {
   if (createForm.submitting) return;
 
-  if (!createForm.username.trim() || createForm.password.length < 6) {
-    flashError({}, "請輸入帳號，且密碼至少 6 個字元。");
+  if (!createForm.username.trim() || createForm.password.length < MIN_PASSWORD_LENGTH) {
+    flashError({}, `請輸入帳號，且密碼至少 ${MIN_PASSWORD_LENGTH} 個字元。`);
     return;
   }
 
@@ -163,8 +164,8 @@ function closeEdit() {
 async function submitEdit() {
   if (editModal.submitting) return;
 
-  if (editModal.new_password && editModal.new_password.length < 6) {
-    flashError({}, "新密碼至少需要 6 個字元。");
+  if (editModal.new_password && editModal.new_password.length < MIN_PASSWORD_LENGTH) {
+    flashError({}, `新密碼至少需要 ${MIN_PASSWORD_LENGTH} 個字元。`);
     return;
   }
 
@@ -272,7 +273,7 @@ onMounted(refreshAll);
           <input v-model="createForm.display_name" type="text" autocomplete="off" placeholder="選填" />
         </label>
         <label>
-          <span>密碼（至少 6 字元）</span>
+          <span>密碼（至少 {{ MIN_PASSWORD_LENGTH }} 字元）</span>
           <input v-model="createForm.password" type="password" autocomplete="new-password" />
         </label>
         <label>
@@ -418,7 +419,7 @@ onMounted(refreshAll);
 
           <label>
             <span>重設密碼（留空則不變）</span>
-            <input v-model="editModal.new_password" type="password" autocomplete="new-password" placeholder="至少 6 個字元" />
+            <input v-model="editModal.new_password" type="password" autocomplete="new-password" :placeholder="`至少 ${MIN_PASSWORD_LENGTH} 個字元`" />
           </label>
 
           <div class="admin-modal-footer">

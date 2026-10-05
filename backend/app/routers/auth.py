@@ -21,7 +21,7 @@ from app.services.auth_service import (
     serialize_user,
     verify_password,
 )
-from app.services.password_policy import validate_password
+from app.services.password_policy import MIN_LENGTH, validate_password
 
 router = APIRouter(
     prefix="/api/auth",
@@ -170,7 +170,7 @@ def update_me(
 
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1, max_length=200)
-    new_password: str = Field(..., min_length=6, max_length=200)
+    new_password: str = Field(..., min_length=MIN_LENGTH, max_length=200)
 
 
 @router.post("/change-password")

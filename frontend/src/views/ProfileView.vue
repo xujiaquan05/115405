@@ -3,7 +3,7 @@
 <script setup>
 import {computed, onMounted, reactive } from "vue";
 import { useAuth } from "../composables/useAuth";
-import { passwordStrength } from "../utils/password";
+import { MIN_PASSWORD_LENGTH, passwordStrength } from "../utils/password";
 import api from "../services/api";
 
 const { state: authState, updateUser } = useAuth();
@@ -153,8 +153,8 @@ async function handleChangePassword() {
     form.errorMessage = "請填寫所有欄位。";
     return;
   }
-  if (form.newPassword.length < 6) {
-    form.errorMessage = "新密碼至少需要 6 個字元。";
+  if (form.newPassword.length < MIN_PASSWORD_LENGTH) {
+    form.errorMessage = `新密碼至少需要 ${MIN_PASSWORD_LENGTH} 個字元。`;
     return;
   }
   if (form.newPassword === form.oldPassword) {
@@ -336,7 +336,7 @@ onMounted(async () => {
           </label>
 
           <label>
-            <span>新密碼（至少 8 個字元）</span>
+            <span>新密碼（至少 {{ MIN_PASSWORD_LENGTH }} 個字元）</span>
             <div class="profile-pw-field">
               <input v-model="form.newPassword" :type="reveal.new ? 'text' : 'password'" autocomplete="new-password" />
               <button class="profile-pw-toggle" type="button" :aria-label="reveal.new ? '隱藏密碼' : '顯示密碼'" @click="reveal.new = !reveal.new">

@@ -21,7 +21,7 @@ from app.services.auth_service import (
     serialize_user_admin,
     uses_default_password,
 )
-from app.services.password_policy import validate_password
+from app.services.password_policy import MIN_LENGTH, validate_password
 from app.services.settings_service import get_all_settings, get_setting, update_settings
 
 router = APIRouter(
@@ -57,7 +57,7 @@ def _user_stats(db: Session) -> dict:
 
 class CreateUserRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(..., min_length=6, max_length=200)
+    password: str = Field(..., min_length=MIN_LENGTH, max_length=200)
     display_name: str | None = Field(default=None, max_length=100)
     role: str = Field(default="user")
 
@@ -66,7 +66,7 @@ class UpdateUserRequest(BaseModel):
     display_name: str | None = Field(default=None, max_length=100)
     role: str | None = None
     is_active: bool | None = None
-    new_password: str | None = Field(default=None, min_length=6, max_length=200)
+    new_password: str | None = Field(default=None, min_length=MIN_LENGTH, max_length=200)
 
 
 @router.get("/users", dependencies=[Depends(require_admin)])
