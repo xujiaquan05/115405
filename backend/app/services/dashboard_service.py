@@ -620,19 +620,19 @@ def get_frequent_keywords(
 ) -> list[dict]:
     """
     說明：
-    統計哪些醫美關鍵字出現得最多。
+    找出與主 keyword 相關的文章裡，哪些詞「特別常被談到」。
 
-    簡單做法：
-    - 取得與主 keyword 相關的文章
-    - 計算每個 BEAUTY_KEYWORDS 出現在幾篇文章中
-    - 由高到低排序
+    不是單純數次數：那樣排行榜會被「還是」「就是」「起來」這類虛詞佔滿
+    （實測查玻尿酸時前 20 名有 8 個是虛詞）。改成以詞在這批文章中的
+    出現篇數，乘上它在全庫的 IDF，常見於所有文章的詞會自動被壓下去。
+    細節見 keyword_extractor。
 
-    以 jieba 中文斷詞統計詞頻，能自動浮現新興討論詞，
-    不再侷限於固定的 BEAUTY_KEYWORDS 清單。
+    BEAUTY_KEYWORDS 只用來餵 jieba 詞庫（避免「玻尿酸」被切碎），
+    不作為過濾條件——新出現的討論詞也要能排進來。
     """
 
     # 延遲載入，避免 dashboard_service 與 keyword_extractor 互相 import。
-    from app.services.keyword_extractor import extract_keywords
+    from app.services.keyword_extractor import corpus_document_frequencies, extract_keywords
 
     start_date, end_date = get_date_range(days)
 
@@ -651,7 +651,14 @@ def get_frequent_keywords(
         for article in articles
     ]
 
-    return extract_keywords(texts, top_n=20)
+    corpus_frequency, corpus_size = corpus_document_frequencies(db)
+
+    return extract_keywords(
+        texts,
+        top_n=20,
+        corpus_document_frequency=corpus_frequency,
+        corpus_size=corpus_size,
+    )
 
 
 def get_data_status(
