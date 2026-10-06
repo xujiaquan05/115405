@@ -41,6 +41,10 @@ watch(
 
 
 // 依 push_count 決定 badge 的 class。
+// 注意：push_count 是各平台各自的互動指標，爬蟲填入時口徑就不同
+//（PTT 推文數、Dcard 讚數、Mobile01 回覆數、Threads 取讚/回覆/轉發最大值），
+// 這裡的門檻是照 PTT 的量級訂的，對 Threads 偏寬、對 Mobile01 偏嚴。
+// 真正可跨平台比較的是隔壁的 comment_count（本系統實際抓到的留言數）。
 function getPushClass(pushCount) {
   if (pushCount >= 50) return "push-hot";
   if (pushCount >= 10) return "push-warm";
@@ -75,7 +79,7 @@ function getSource(article) {
           :class="{ active: sortBy === 'push_count' }"
           @click="emit('change-sort', 'push_count')"
         >
-          推文數
+          互動數
         </button>
 
         <button
@@ -111,6 +115,7 @@ function getSource(article) {
             <th>排名</th>
             <th>標題</th>
             <th>來源</th>
+            <th>互動數</th>
             <th>回文數</th>
             <th>日期</th>
             <th>摘要</th>
@@ -149,6 +154,10 @@ function getSource(article) {
               <span class="push-badge" :class="getPushClass(article.push_count)">
                 {{ article.push_count }}
               </span>
+            </td>
+
+            <td class="article-replies-cell">
+              {{ article.comment_count ?? 0 }}
             </td>
 
             <td class="article-date-cell">

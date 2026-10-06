@@ -7,7 +7,7 @@ from sqlalchemy import and_, desc, func, or_
 from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
-from app.models.database_models import Article, Board, Platform
+from app.models.database_models import Article, Board, Comment, Platform
 
 TARGET_BOARDS = [
     "facelift",
@@ -537,11 +537,18 @@ def get_hot_articles(
     取得熱門 / 最相關的文章列表。
 
     sort_by 支援：
-    - push_count: 推文數最多
+    - push_count: 互動數最多
     - latest: 最新文章
     - relevance: 暫時也以 push_count 優先
 
     之後若有 full-text search ranking，relevance 可以再升級。
+
+    回傳的兩個數字意義不同，不要混用：
+    - push_count 是各平台自己的互動指標，爬蟲填入時就已經不同調
+      （PTT 推文數、Dcard 讚數、Mobile01 回覆數、Threads 取讚/回覆/轉發最大值），
+      因此跨平台不可直接比較，排序也只能當作粗略熱度。
+    - comment_count 是本系統實際抓回並存進 comments 表的留言筆數，
+      四個平台口徑一致，可以互相比較。
     """
 
     start_date, end_date = get_date_range(days)
@@ -566,6 +573,15 @@ def get_hot_articles(
 
     articles = query.limit(limit).all()
 
+    # 一次查完所有留言數，不要在迴圈裡逐篇查（N+1）。
+    article_ids = [article.id for article in articles]
+    comment_counts = dict(
+        db.query(Comment.article_id, func.count(Comment.id))
+        .filter(Comment.article_id.in_(article_ids))
+        .group_by(Comment.article_id)
+        .all()
+    ) if article_ids else {}
+
     result = []
 
     for article in articles:
@@ -585,6 +601,7 @@ def get_hot_articles(
             "board": article.board.name if article.board else "",
             "author": article.author.username if article.author else "unknown",
             "push_count": article.push_count,
+            "comment_count": comment_counts.get(article.id, 0),
             "sentiment": article.sentiment,
             "published_at": article.published_at.strftime("%Y-%m-%d %H:%M:%S")
             if article.published_at else None,

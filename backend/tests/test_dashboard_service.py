@@ -125,3 +125,66 @@ class TestPlatformQualifiedBoardFilter:
             sheet = workbook.read("xl/worksheets/sheet1.xml").decode()
         assert "ptt" in sheet
         assert "dcard" not in sheet
+
+
+class TestHotArticleCounts:
+    """熱門文章列表有兩個數字，意義不同，不能混用。
+
+    push_count 是各平台自己的互動指標（PTT 推文數、Dcard 讚數、
+    Mobile01 回覆數、Threads 取讚/回覆/轉發最大值），跨平台不可比；
+    comment_count 是本系統實際抓回的留言筆數，四個平台口徑一致。
+    畫面上曾把 push_count 標成「回文數」，所以這裡把兩者各自釘住。
+    """
+
+    def _article(self, db_session, title, push_count):
+        from datetime import datetime
+
+        from app.models.database_models import Article, Platform
+
+        platform = db_session.query(Platform).filter(Platform.name == "ptt").first()
+        if platform is None:
+            platform = Platform(name="ptt")
+            db_session.add(platform)
+            db_session.flush()
+
+        article = Article(
+            unique_id=f"test-{title}",
+            platform_id=platform.id,
+            title=title,
+            content="內容",
+            push_count=push_count,
+            published_at=datetime(2026, 1, 1),
+        )
+        db_session.add(article)
+        db_session.commit()
+        return article
+
+    def test_comment_count_is_the_number_of_comments_actually_stored(self, db_session):
+        from app.models.database_models import Comment
+        from app.services.dashboard_service import get_hot_articles
+
+        article = self._article(db_session, "音波拉皮心得", push_count=3)
+        for floor in range(4):
+            db_session.add(Comment(article_id=article.id, floor=floor, content=f"留言{floor}"))
+        db_session.commit()
+
+        row = next(
+            a for a in get_hot_articles(db_session, keyword="音波", days=36500)
+            if a["id"] == article.id
+        )
+
+        # push_count 來自平台，comment_count 來自我們自己的 comments 表。
+        assert row["push_count"] == 3
+        assert row["comment_count"] == 4
+
+    def test_an_article_with_no_comments_reports_zero_not_missing(self, db_session):
+        from app.services.dashboard_service import get_hot_articles
+
+        article = self._article(db_session, "電波拉皮詢問", push_count=1)
+
+        row = next(
+            a for a in get_hot_articles(db_session, keyword="電波", days=36500)
+            if a["id"] == article.id
+        )
+
+        assert row["comment_count"] == 0
