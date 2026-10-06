@@ -32,11 +32,13 @@ from sqlalchemy.orm import Session
 
 from app.core.time_utils import taiwan_now
 from app.models.database_models import Article
-from app.services.dashboard_service import BEAUTY_KEYWORDS
+from app.services.beauty_lexicon import BEAUTY_LEXICON
 
 # 說明：
-# 把醫美領域詞加入 jieba 詞庫，避免像「玻尿酸」「皮秒雷射」被切碎。
-for _word in BEAUTY_KEYWORDS:
+# 把領域詞加入 jieba 詞庫，避免像「玻尿酸」「皮秒雷射」被切碎。
+# 同一份清單也用來過濾結果，所以加進詞庫這件事變成必要而不只是優化：
+# 詞沒被完整切出來，就不可能比對到清單。
+for _word in BEAUTY_LEXICON:
     jieba.add_word(_word)
 
 # 中文常見停用詞 + PTT 常見雜訊詞，斷詞後濾掉。
@@ -65,14 +67,14 @@ _corpus_cache: dict = {"built_at": None, "size": 0, "document_frequency": {}}
 
 
 def _is_meaningful(token: str) -> bool:
-    token = token.strip()
-    if len(token) < 2:
-        return False
-    if token in STOPWORDS:
-        return False
-    if not _CJK_RE.search(token):
-        return False
-    return True
+    """只認領域詞。
+
+    熱門話題要給的是「這段期間大家在討論哪些醫美項目」，
+    不是「這批文章用了哪些中文詞」。純統計時排行榜會被
+    「留言」「大學」「昨天」「在意」佔滿——它們確實常出現，
+    但對輿情分析沒有意義。
+    """
+    return token.strip() in BEAUTY_LEXICON
 
 
 def _tokens_in(text: str) -> set[str]:

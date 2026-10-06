@@ -61,7 +61,7 @@ class TestExtractKeywords:
 
 
 class TestWordsCommonEverywhereAreDemoted:
-    def test_a_filler_word_loses_to_a_distinctive_one(self):
+    def test_the_rarer_domain_term_outranks_the_common_one(self):
         # 兩個詞在這批文章裡一樣普及：四篇都有。
         texts = [
             "還是 玻尿酸 保濕",
@@ -69,15 +69,17 @@ class TestWordsCommonEverywhereAreDemoted:
             "還是 玻尿酸 保濕",
             "還是 玻尿酸 保濕",
         ]
-        # 但「還是」在全庫也幾乎每篇都有，「玻尿酸」只有少數篇有。
-        corpus = {"還是": 950, "玻尿酸": 40, "保濕": 300}
+        # 但「玻尿酸」在全庫只有少數篇提到，「保濕」則相當常見。
+        corpus = {"玻尿酸": 40, "保濕": 300}
 
         ranked = extract_keywords(
             texts, top_n=5, corpus_document_frequency=corpus, corpus_size=1000
         )
         order = [row["keyword"] for row in ranked]
 
-        assert order.index("玻尿酸") < order.index("保濕") < order.index("還是")
+        assert order.index("玻尿酸") < order.index("保濕")
+        # 「還是」根本不是領域詞，連進榜的機會都沒有。
+        assert "還是" not in order
 
     def test_without_corpus_stats_it_falls_back_to_document_count(self):
         texts = ["玻尿酸 保濕", "玻尿酸", "玻尿酸"]
@@ -117,3 +119,35 @@ class TestCountIsArticlesNotOccurrences:
 
         assert counts["玻尿酸"] == 2
         assert counts["保濕"] == 2
+
+
+class TestOnlyDomainTermsAppear:
+    """熱門話題要回答「大家在討論哪些醫美項目」，不是「用了哪些中文詞」。
+
+    純統計時排行榜出現過「留言」「大學」「昨天」「在意」，
+    它們確實常出現，但對輿情分析沒有意義。
+    """
+
+    def test_everyday_words_are_dropped_even_when_very_common(self):
+        texts = ["留言 大學 昨天 在意 玻尿酸"] * 5
+
+        keywords = [row["keyword"] for row in extract_keywords(texts, top_n=20)]
+
+        assert keywords == ["玻尿酸"]
+
+    def test_multi_character_terms_survive_segmentation(self):
+        # 詞庫同時餵給 jieba，否則「玻尿酸」會被切成「玻」「尿酸」而比對不到。
+        texts = ["打了玻尿酸跟皮秒雷射", "玻尿酸跟皮秒雷射都做過"]
+
+        keywords = [row["keyword"] for row in extract_keywords(texts, top_n=20)]
+
+        assert "玻尿酸" in keywords
+        assert "皮秒雷射" in keywords
+
+    def test_generic_review_words_are_deliberately_excluded(self):
+        # 「效果」「價格」任何商品都談得到，收進詞庫會穩居第一卻沒有資訊量。
+        from app.services.beauty_lexicon import BEAUTY_LEXICON
+
+        assert "效果" not in BEAUTY_LEXICON
+        assert "價格" not in BEAUTY_LEXICON
+
