@@ -9,7 +9,11 @@ from sqlalchemy.orm import Session
 from app.models.database_models import Article, Comment
 from app.services.article_compressor import clean_text
 from app.services.article_service import COMMENT_SECTION_MARKER
-from app.services.llm_client import LLMServiceUnavailableError, generate_json_response
+from app.services.llm_client import (
+    CLASSIFY_TEMPERATURE,
+    LLMServiceUnavailableError,
+    generate_json_response,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,11 +96,17 @@ def _parse_batch_response(raw_text: str) -> dict[int, str]:
     把 Gemini 回傳的 JSON 解析成 {article_id: sentiment}。
     不認識的 id 或不合法的標籤都會被忽略，
     該篇文章保持 sentiment = NULL，下次再重新評分。
+
+    模型偶爾會在合法 JSON 後面多吐幾個字元，例如
+    `{"results": [...]}\\n}]}`。整串丟給 json.loads 會失敗，
+    結果是這一批 20 篇全部被當成沒評到——實測就遇到一次。
+    改用 raw_decode：從開頭解析出第一個完整的 JSON 值就停，
+    後面多出來的字元不影響前面已經正確的部分。
     """
 
     try:
-        parsed = json.loads(raw_text)
-    except (json.JSONDecodeError, TypeError):
+        parsed, _end = json.JSONDecoder().raw_decode((raw_text or "").lstrip())
+    except (json.JSONDecodeError, TypeError, AttributeError):
         return {}
 
     results = parsed.get("results") if isinstance(parsed, dict) else None
@@ -180,7 +190,9 @@ def _score_batch(batch: list[Article]) -> dict[int, str]:
     一篇有問題的話大約多花 8 次呼叫就能找出來，比 20 篇逐一重送省得多。
     """
     try:
-        sentiments = _parse_batch_response(generate_json_response(_build_batch_prompt(batch)))
+        sentiments = _parse_batch_response(
+            generate_json_response(_build_batch_prompt(batch), CLASSIFY_TEMPERATURE)
+        )
     except LLMServiceUnavailableError:
         # 額度用完或服務忙碌，往外拋讓整個回合停下來，不要再拆下去重試。
         raise
@@ -254,7 +266,9 @@ def classify_pending_comments(
         batch = pending[start:start + batch_size]
 
         try:
-            raw_response = generate_json_response(_build_comment_prompt(batch))
+            raw_response = generate_json_response(
+                _build_comment_prompt(batch), CLASSIFY_TEMPERATURE
+            )
             results = _parse_batch_response(raw_response)
         except Exception:
             logger.exception("Comment sentiment batch failed; leaving them unrated")

@@ -43,9 +43,20 @@ def get_gemini_model_name() -> str:
     return os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 
-def generate_json_response(prompt: str) -> str:
+# 產生式任務（問答、洞察）留一點變化比較自然；
+# 分類任務要的是「最可能的那一個標籤」，temperature 越低越穩定。
+DEFAULT_TEMPERATURE = 0.3
+CLASSIFY_TEMPERATURE = 0.0
+
+
+def generate_json_response(prompt: str, temperature: float = DEFAULT_TEMPERATURE) -> str:
     """
     把 prompt 送給 Gemini 並要求回傳 JSON。
+
+    temperature 預設 0.3，適合要產生文字的用途。
+    分類請傳 CLASSIFY_TEMPERATURE：實測同一組 prompt 在 0.3 下重跑，
+    100 篇文章裡有 12 篇會得到不同標籤，使得「改了 prompt 有沒有變好」
+    根本量不出來——雜訊比想驗證的差異還大。
 
     流程：
     1. 從 .env 取得 GOOGLE_API_KEY
@@ -64,7 +75,7 @@ def generate_json_response(prompt: str) -> str:
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                temperature=0.3,
+                temperature=temperature,
             ),
         )
     except errors.APIError as error:

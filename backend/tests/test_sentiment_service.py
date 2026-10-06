@@ -132,7 +132,7 @@ class TestBlockedBatchFallback:
         monkeypatch.setattr(
             sentiment_service,
             "generate_json_response",
-            lambda _prompt: '{"results": [{"id": 0, "sentiment": "positive"}]}',
+            lambda _prompt, _temperature=None: '{"results": [{"id": 0, "sentiment": "positive"}]}',
         )
 
         assert sentiment_service._score_batch(self._articles(1)) == {0: "positive"}
@@ -140,7 +140,7 @@ class TestBlockedBatchFallback:
     def test_splits_the_batch_so_one_blocked_article_does_not_sink_the_rest(self, monkeypatch):
         blocked_id = 2
 
-        def fake_generate(prompt):
+        def fake_generate(prompt, temperature=None):
             # 只要這一批含有問題文章，整批就回空——模擬真實的 block 行為。
             if f'"id": {blocked_id}' in prompt:
                 return ""
@@ -165,7 +165,7 @@ class TestBlockedBatchFallback:
         }
 
     def test_a_single_blocked_article_is_marked_so_it_is_not_retried_forever(self, monkeypatch):
-        monkeypatch.setattr(sentiment_service, "generate_json_response", lambda _prompt: "")
+        monkeypatch.setattr(sentiment_service, "generate_json_response", lambda _prompt, _temperature=None: "")
 
         result = sentiment_service._score_batch(self._articles(1))
 
@@ -174,7 +174,7 @@ class TestBlockedBatchFallback:
     def test_quota_errors_stop_the_run_instead_of_splitting(self, monkeypatch):
         calls = []
 
-        def fake_generate(prompt):
+        def fake_generate(prompt, temperature=None):
             calls.append(prompt)
             raise LLMServiceUnavailableError("quota")
 
@@ -185,3 +185,34 @@ class TestBlockedBatchFallback:
 
         # 額度用完時再拆下去只是白白多打幾次，必須第一次就停。
         assert len(calls) == 1
+
+
+class TestTrailingJunkInModelOutput:
+    """模型在合法 JSON 後面多吐字元時，不該整批丟掉。
+
+    實測遇過的回應長這樣：
+        {"results": [...]}\n}]}
+    前面完全正確，後面多了三個字元。舊版把整串丟給 json.loads，
+    一失敗就回 {}，那一批 20 篇全部維持未評分。
+    """
+
+    def test_trailing_characters_do_not_discard_the_batch(self):
+        from app.services.sentiment_service import _parse_batch_response
+
+        raw = '{"results": [{"id": 1, "sentiment": "positive"}]}\n}]}'
+
+        assert _parse_batch_response(raw) == {1: "positive"}
+
+    def test_leading_whitespace_is_tolerated(self):
+        from app.services.sentiment_service import _parse_batch_response
+
+        raw = '\n  {"results": [{"id": 2, "sentiment": "negative"}]}'
+
+        assert _parse_batch_response(raw) == {2: "negative"}
+
+    def test_genuinely_broken_output_still_yields_nothing(self):
+        from app.services.sentiment_service import _parse_batch_response
+
+        assert _parse_batch_response("not json at all") == {}
+        assert _parse_batch_response("") == {}
+        assert _parse_batch_response(None) == {}

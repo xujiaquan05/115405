@@ -51,9 +51,18 @@ def population_shares() -> tuple[dict[str, float], int]:
     return {label: counts.get(label, 0) / total for label in LABELS}, total
 
 
-def main(mine_file: str) -> None:
+def load_system_labels(name: str) -> dict[str, str]:
+    """系統這一側的標籤：預設讀抽樣當下存下的 answer_key.json，
+    也可以指定重新評分後的檔案，用來比較 prompt 改動前後的差異。"""
+    path = EVAL / name
+    if path.suffix == ".json":
+        return json.loads(path.read_text(encoding="utf-8"))
+    return load_labels(path)
+
+
+def main(mine_file: str, system_file: str = "answer_key.json") -> None:
     mine = load_labels(EVAL / mine_file)
-    ai = json.loads((EVAL / "answer_key.json").read_text(encoding="utf-8"))
+    ai = load_system_labels(system_file)
     ids = [i for i in mine if i in ai]
     n = len(ids)
 
@@ -113,4 +122,7 @@ def main(mine_file: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "claude_labels.txt")
+    main(
+        sys.argv[1] if len(sys.argv) > 1 else "claude_labels.txt",
+        sys.argv[2] if len(sys.argv) > 2 else "answer_key.json",
+    )
