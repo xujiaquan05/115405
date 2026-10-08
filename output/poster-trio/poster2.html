@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<title>115405 海報2</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  @page { size: 91cm 61cm; }
+  body { width: 91cm; height: 61cm; position: relative; overflow: hidden;
+    background: radial-gradient(60cm 30cm at 100% 0%, #EFEAFD 0%, rgba(239,234,253,0) 70%), var(--paper); }
+
+  .wrap { position: absolute; left: 2.5cm; right: 2.5cm; top: 2.2cm; bottom: 2.2cm;
+    display: grid; grid-template-rows: auto auto 1fr; row-gap: 0.9cm; }
+
+  /* 頁首 */
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 0.8cm; }
+  .brand svg { width: 2.9cm; height: 2.9cm; }
+  .brand .t1 { font-size: 0.9cm; font-weight: 700; color: var(--violet); letter-spacing: 0.12em; }
+  .brand .t2 { font-size: 1.6cm; font-weight: 800; letter-spacing: 0.05em; }
+  .slogan { font-size: 1.55cm; white-space: nowrap; font-weight: 800; letter-spacing: 0.06em; text-align: right; line-height: 1.25; }
+  .slogan em { font-style: normal; color: var(--brand); }
+
+  .row { display: grid; grid-template-columns: 40fr 46fr; column-gap: 1.2cm; }
+  .panel { border-radius: 0.8cm; padding: 1.1cm 1.4cm 1.2cm; }
+  .p-purpose { background: var(--lav); display: flex; flex-direction: column; }
+  .p-purpose .goals { flex: 1; align-content: space-evenly; }
+  .p-problem { background: var(--coral-bg); }
+
+  .sec-head { margin-bottom: 0.55cm; }
+  .sec-no { font-size: 1.9cm; }
+  .sec-en { font-size: 0.95cm; }
+  .sec-zh { font-size: 1.75cm; }
+  .lead { font-size: 0.98cm; line-height: 1.65; color: var(--ink-2); }
+  .lead b { color: var(--ink); }
+
+  .goals { display: grid; grid-template-columns: 1fr; row-gap: 0.45cm; margin-top: 0.7cm; }
+  .goal { display: grid; grid-template-columns: 2.4cm 1fr; column-gap: 0.7cm; align-items: center;
+    background: #fff; border-radius: 0.5cm; padding: 0.45cm 0.7cm; }
+  .goal .ic { width: 2.4cm; height: 2.4cm; border-radius: 0.6cm; background: var(--lav-2);
+    display: grid; place-items: center; }
+  .goal .ic svg { width: 1.45cm; height: 1.45cm; }
+  .goal h4 { font-size: 1.12cm; font-weight: 800; }
+  .goal p { font-size: 0.88cm; color: var(--muted); line-height: 1.45; margin-top: 0.08cm; }
+
+  .who { margin-top: 0.65cm; display: flex; align-items: center; gap: 0.5cm; flex-wrap: nowrap; }
+  .who .lb { font-size: 0.85cm; font-weight: 700; color: var(--violet); white-space: nowrap; }
+  .who .pill { font-size: 0.85cm; padding: 0.18cm 0.6cm; background: var(--brand); color: #fff; }
+
+  .p-problem .sec-no { color: var(--coral); }
+  .p-problem .sec-en { color: var(--coral); }
+  .probs { display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 0.6cm; }
+  .prob { background: #fff; border-radius: 0.5cm; padding: 0.6cm 0.7cm 0.6cm; }
+  .prob .big { font-size: 2.1cm; color: var(--coral); line-height: 1; }
+  .prob .big small { font-size: 0.85cm; font-weight: 700; margin-left: 0.15cm; }
+  .prob h4 { font-size: 1.05cm; font-weight: 800; margin-top: 0.35cm; }
+  .prob p { font-size: 0.8cm; color: var(--muted); line-height: 1.5; margin-top: 0.2cm; }
+
+  table.vs { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 0.6cm;
+    background: #fff; border-radius: 0.5cm; overflow: hidden; font-size: 0.82cm; }
+  .vs th, .vs td { padding: 0.24cm 0.6cm; text-align: left; border-bottom: 0.04cm solid #F3E1DB; }
+  .vs tr:last-child td { border-bottom: 0; }
+  .vs th { font-size: 0.8cm; color: var(--muted); font-weight: 700; background: #FFF8F5; }
+  .vs th.me { color: var(--brand); }
+  .vs td:first-child { font-weight: 800; width: 18%; }
+  .vs td.gen { color: var(--muted); width: 37%; }
+  .vs td.me { color: var(--ink); font-weight: 700; }
+  .vs td.me::before { content: "✓"; color: var(--mint); font-weight: 900; margin-right: 0.3cm; }
+
+  /* 方法 */
+  .approach { background: var(--night); border-radius: 0.8cm; padding: 1.1cm 1.4cm 1.2cm; color: #fff;
+    display: grid; grid-template-rows: auto auto auto; row-gap: 0.6cm; align-content: start; }
+  .approach .sec-head { margin-bottom: 0; }
+  .approach .sec-no { color: #A99BFF; }
+  .approach .sec-en { color: #8FE3D3; }
+  .approach .sec-zh { color: #fff; }
+  .steps { display: grid; grid-template-columns: repeat(6, 1fr); column-gap: 0.85cm; position: relative; }
+  .step { background: rgba(255,255,255,0.07); border: 0.04cm solid rgba(255,255,255,0.14);
+    border-radius: 0.55cm; padding: 0.6cm 0.6cm; position: relative; }
+  .step:not(:last-child)::after { content: ""; position: absolute; right: -0.78cm; top: 1.5cm;
+    border: 0.4cm solid transparent; border-left: 0.55cm solid #8FE3D3; z-index: 2; }
+  .step .ic { width: 2.6cm; height: 2.6cm; border-radius: 50%; display: grid; place-items: center; }
+  .step .ic svg { width: 1.45cm; height: 1.45cm; }
+  .step .n { font-family: "Segoe UI"; font-size: 0.75cm; font-weight: 700; color: #8FE3D3; margin-top: 0.35cm; letter-spacing: 0.1em; }
+  .step h4 { font-size: 1.25cm; font-weight: 800; margin-top: 0.1cm; }
+  .step p { font-size: 0.88cm; line-height: 1.5; color: #D9D4F3; margin-top: 0.25cm; }
+
+  .bottom { display: grid; grid-template-columns: 52fr 34fr; column-gap: 0.8cm; }
+  .rag { background: rgba(143,227,211,0.1); border: 0.04cm solid rgba(143,227,211,0.35); border-radius: 0.55cm; padding: 0.75cm 0.9cm; }
+  .rag h5, .stack h5 { font-size: 0.95cm; font-weight: 800; color: #8FE3D3; }
+  .flow { display: flex; align-items: center; gap: 0.35cm; margin-top: 0.5cm; flex-wrap: nowrap; }
+  .flow span { font-size: 0.84cm; padding: 0.25cm 0.45cm; border-radius: 0.3cm; background: rgba(255,255,255,0.1); white-space: nowrap; }
+  .flow span.hl { background: #8FE3D3; color: var(--night); font-weight: 800; }
+  .flow i { font-style: normal; color: #8FE3D3; font-size: 0.8cm; }
+  .rag p { font-size: 0.84cm; color: #D9D4F3; margin-top: 0.45cm; line-height: 1.5; }
+  .stack { background: rgba(255,255,255,0.06); border-radius: 0.55cm; padding: 0.75cm 0.9cm; }
+  .chips { display: flex; flex-wrap: wrap; gap: 0.3cm; margin-top: 0.5cm; }
+  .chips span { font-size: 0.78cm; padding: 0.18cm 0.45cm; border-radius: 999px; border: 0.04cm solid rgba(255,255,255,0.35); }
+  .stack p { font-size: 0.84cm; color: #D9D4F3; margin-top: 0.45cm; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="brand">
+      <svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4F46E5"/><stop offset="1" stop-color="#6A43E6"/></linearGradient></defs>
+        <rect width="100" height="100" rx="27" fill="url(#g)"/><path d="M30 17 L33 26 L42 29 L33 32 L30 41 L27 32 L18 29 L27 26 Z" fill="#fff"/>
+        <rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg>
+      <div><div class="t1">專題簡介　PROJECT OVERVIEW</div><div class="t2"><span class="latin">MeBOD</span> 醫美時尚輿情分析系統</div></div>
+    </div>
+    <div class="slogan">把分散的社群討論，變成<em>查得到出處</em>的行銷洞察</div>
+  </div>
+
+  <div class="row">
+    <section class="panel p-purpose">
+      <div class="sec-head"><span class="sec-no">01</span><span class="sec-zh">專題動機與目的</span><span class="sec-en">Project purpose</span></div>
+      <p class="lead">醫美與保養的消費決策，越來越依賴社群上的<b>真實心得</b>；但討論散落在 PTT、Dcard、Mobile01、Threads 四個平台，格式各異，行銷人員只能逐站搜尋、人工整理。本專題建立從<b>蒐集、清理、分析到回查來源</b>的完整流程。</p>
+      <div class="goals">
+        <div class="goal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></div>
+          <div><h4>統一跨平台資料</h4><p>四種爬蟲轉成同一格式，可依平台、期間、關鍵字比較</p></div></div>
+        <div class="goal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+          <div><h4>看見趨勢、情緒與話題</h4><p>討論聲量趨勢、正中負情緒分布、醫美領域熱門話題</p></div></div>
+        <div class="goal"><div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg></div>
+          <div><h4>可回查來源的 AI 問答</h4><p>每個回答附上引用文章，點擊即可開啟社群原文核對</p></div></div>
+      </div>
+      <div class="who"><span class="lb">服務對象</span><span class="pill">醫美診所</span><span class="pill">保養品牌</span><span class="pill">行銷公關團隊</span></div>
+    </section>
+
+    <section class="panel p-problem">
+      <div class="sec-head"><span class="sec-no">02</span><span class="sec-zh">問題描述</span><span class="sec-en">Problem statement</span></div>
+      <div class="probs">
+        <div class="prob"><div class="big num">4<small>個平台</small></div><h4>資訊分散</h4><p>互動數、時間格式、留言結構各不相同，跨站比較要重複搜尋、手動對齊。</p></div>
+        <div class="prob"><div class="big num">7.6%<small>負面文章</small></div><h4>負面訊號被淹沒</h4><p>10,317 篇已評分文章中負面只有 780 篇，混在大量中性討論裡最容易漏看。</p></div>
+        <div class="prob"><div class="big num">12<small>/ 100 篇</small></div><h4>AI 判讀不穩定</h4><p>同一批 100 篇以 temperature 0.3 重跑，12 篇情緒標籤改變；結果會變又無出處，難作決策依據。</p></div>
+      </div>
+      <table class="vs">
+        <tr><th>比較項目</th><th>直接問通用 AI</th><th class="me">MeBOD</th></tr>
+        <tr><td>資料來源</td><td class="gen">不透明、難以指定平台</td><td class="me">四平台原文，可點回原文</td></tr>
+        <tr><td>時效</td><td class="gen">依模型與搜尋結果而定</td><td class="me">每日排程 + 手動爬取</td></tr>
+        <tr><td>內容篩選</td><td class="gen">離題、業配內容混雜</td><td class="me">醫美領域相關性過濾</td></tr>
+        <tr><td>產出形式</td><td class="gen">一段文字</td><td class="me">趨勢、情緒、話題、報表</td></tr>
+        <tr><td>持續追蹤</td><td class="gen">每次重新詢問</td><td class="me">監測關鍵字 + 自動預警</td></tr>
+      </table>
+    </section>
+  </div>
+
+  <section class="approach">
+    <div class="sec-head"><span class="sec-no">03</span><span class="sec-zh">專題方法與程序</span><span class="sec-en">Approaches</span></div>
+    <div class="steps">
+      <div class="step"><div class="ic" style="background:#6D4AE0"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
+        <div class="n">STEP 1</div><h4>資料蒐集</h4><p>四平台爬蟲；每日排程或管理員手動觸發，WebSocket 即時回報進度</p></div>
+      <div class="step"><div class="ic" style="background:#C2508A"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg></div>
+        <div class="n">STEP 2</div><h4>清理篩選</h4><p>領域關鍵字評分（標題 ×3、內文 ×1），未達門檻不入庫，重複文章略過</p></div>
+      <div class="step"><div class="ic" style="background:#2A8FB0"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg></div>
+        <div class="n">STEP 3</div><h4>情緒判讀</h4><p>Gemini 批次判讀正、中、負；設 temperature 0，重跑結果一致</p></div>
+      <div class="step"><div class="ic" style="background:#0E9384"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg></div>
+        <div class="n">STEP 4</div><h4>話題萃取</h4><p>jieba 斷詞後只計 178 個醫美領域詞，依「本次 vs 全庫」比例排序</p></div>
+      <div class="step"><div class="ic" style="background:#C98512"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+        <div class="n">STEP 5</div><h4>混合檢索</h4><p>文章切段向量化；關鍵字與語意兩種排名以 RRF 融合</p></div>
+      <div class="step"><div class="ic" style="background:#4F46E5"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></div>
+        <div class="n">STEP 6</div><h4>應用呈現</h4><p>Dashboard、AI 問答附來源、監測預警、<span class="nw">Excel 與 PDF 報表</span></p></div>
+    </div>
+    <div class="bottom">
+      <div class="rag">
+        <h5>RAG 問答：先檢索、再回答</h5>
+        <div class="flow">
+          <span>使用者提問</span><i>→</i><span>解析平台／期間／關鍵字</span><i>→</i><span>關鍵字 + 向量檢索</span><i>→</i><span>RRF 融合排名</span><i>→</i><span class="hl">Gemini 生成並附引用</span>
+        </div>
+        <p>尚無向量結果時自動退回純關鍵字檢索，問答不中斷；每則回答都列出引用文章，供使用者回到原文查證。</p>
+      </div>
+      <div class="stack">
+        <h5>系統架構與開發方法</h5>
+        <div class="chips latin"><span>Vue 3</span><span>FastAPI</span><span>PostgreSQL</span><span>Gemini API</span><span>Playwright</span><span>APScheduler</span></div>
+        <p>UML 物件導向分析與設計、UP 統一流程分階段開發；<span class="nw">pytest 與 Vitest 自動化測試。</span></p>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

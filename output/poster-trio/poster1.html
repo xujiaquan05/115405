@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<title>115405 海報1</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  @page { size: 91cm 26cm; }
+  body { width: 91cm; height: 26cm; position: relative; overflow: hidden;
+    background: linear-gradient(100deg, #FBFAFF 0%, #F6F3FE 45%, #F3F0FD 100%); }
+
+  .hero { position: absolute; right: 0; top: 0; width: 39cm; height: 26cm;
+    background: url(assets/hero.png) center / cover no-repeat; }
+  .hero::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, #F5F2FE 0%, rgba(245,242,254,0.85) 10%, rgba(245,242,254,0.55) 22%, rgba(245,242,254,0.25) 34%, rgba(245,242,254,0.08) 44%, rgba(245,242,254,0) 52%); }
+
+  .mark { position: absolute; left: 3cm; top: 5.2cm; width: 15.6cm; height: 15.6cm;
+    filter: drop-shadow(0 0.5cm 0.9cm rgba(79,70,229,0.28)); }
+
+  .text { position: absolute; left: 21.6cm; top: 2.5cm; }
+  .row-top { display: flex; align-items: center; gap: 0.8cm; }
+  .group { background: var(--brand); color: #fff; font-size: 1.5cm; padding: 0.25cm 0.8cm 0.32cm; letter-spacing: 0.06em; }
+  .school { font-size: 1.1cm; color: var(--ink-2); font-weight: 600; letter-spacing: 0.06em; }
+  .school i { font-style: normal; color: #B9AEEA; margin: 0 0.35cm; }
+
+  /* 與 docs/logo 文字標誌同色 #4338CA；不用漸層文字，避免印刷 PDF 出現色塊 */
+  .name { font-size: 7.0cm; line-height: 1; font-weight: 700; margin-top: 0.7cm; letter-spacing: -0.01em; color: #4338CA; }
+  .title { font-size: 2.9cm; font-weight: 800; letter-spacing: 0.12em; margin-top: 0.3cm; color: var(--ink); }
+  .en { font-size: 1.0cm; font-weight: 600; letter-spacing: 0.32em; color: var(--violet); margin-top: 0.4cm; text-transform: uppercase; }
+
+  .team { display: flex; gap: 0; margin-top: 0.9cm; padding-top: 0.8cm; align-items: baseline;
+    border-top: 0.06cm solid var(--lav-2); white-space: nowrap; }
+  .who { display: flex; align-items: baseline; gap: 0.45cm; padding-right: 1.3cm; margin-right: 1.3cm;
+    border-right: 0.06cm solid var(--line); }
+  .who:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
+  .role { font-size: 1.0cm; color: var(--violet); font-weight: 700; letter-spacing: 0.1em; }
+  .person { font-size: 1.75cm; font-weight: 800; letter-spacing: 0.08em; }
+  .sid { font-size: 1.0cm; color: var(--muted); font-weight: 500; }
+</style>
+</head>
+<body>
+  <div class="hero"></div>
+
+  <svg class="mark" viewBox="0 0 100 100" aria-label="MeBOD logo">
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#4F46E5"/><stop offset="1" stop-color="#6A43E6"/>
+      </linearGradient>
+    </defs>
+    <rect width="100" height="100" rx="27" fill="url(#g)"/>
+    <path d="M30 17 L33 26 L42 29 L33 32 L30 41 L27 32 L18 29 L27 26 Z" fill="#fff"/>
+    <rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/>
+    <rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/>
+    <rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/>
+  </svg>
+
+  <div class="text">
+    <div class="row-top">
+      <span class="pill group">第115405組</span>
+      <span class="school">國立臺北商業大學 資訊管理系<i>|</i>115 年資訊系統專案設計</span>
+    </div>
+    <div class="name latin">MeBOD</div>
+    <div class="title">醫美時尚輿情分析系統</div>
+    <div class="en latin">Medical Beauty Opinion Dashboard</div>
+    <div class="team">
+      <div class="who"><span class="role">指導老師</span><span class="person">陳信宏 老師</span></div>
+      <div class="who"><span class="role">組長</span><span class="person">陳威帆</span><span class="sid latin">11246044</span></div>
+      <div class="who"><span class="role">組員</span><span class="person">許家全</span><span class="sid latin">11246039</span></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# 字型檔每個約 7 MB，可由 make_fonts.py 重新產生
+assets/fonts/
+# 製作過程的預覽圖
+review/
+__pycache__/

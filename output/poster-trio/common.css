@@ -1,0 +1,82 @@
+/* 三張海報共用的色彩、字體與元件。尺寸一律用 cm，與實際印刷尺寸一致。 */
+:root {
+  --ink: #1E1B4B;
+  --ink-2: #37325F;
+  --muted: #514C6E;
+  --brand: #4F46E5;
+  --violet: #6D4AE0;
+  --lav: #F4F1FE;
+  --lav-2: #E7E1FC;
+  --mint: #0A7D70;
+  --mint-bg: #E0F5F1;
+  --coral: #C4503F;
+  --coral-bg: #FDEDE8;
+  --amber: #C98512;
+  --amber-bg: #FDF3DF;
+  --paper: #FCFBFF;
+  --night: #221B4A;
+  --line: #DCD6F5;
+}
+
+/* 中文字型：由系統的 Noto Sans TC 變數字型切出各字重的靜態檔。
+   直接用變數字型時，Chromium 會把它以 Type3 字型嵌進 PDF，部分印刷輸出機處理不佳；
+   靜態 TrueType 則會以標準 CID 字型嵌入。 */
+@font-face { font-family: "PosterTC"; font-weight: 400; src: url(assets/fonts/NotoSansTC-400.ttf) format("truetype"); }
+@font-face { font-family: "PosterTC"; font-weight: 500; src: url(assets/fonts/NotoSansTC-500.ttf) format("truetype"); }
+@font-face { font-family: "PosterTC"; font-weight: 600; src: url(assets/fonts/NotoSansTC-600.ttf) format("truetype"); }
+@font-face { font-family: "PosterTC"; font-weight: 700; src: url(assets/fonts/NotoSansTC-700.ttf) format("truetype"); }
+@font-face { font-family: "PosterTC"; font-weight: 800; src: url(assets/fonts/NotoSansTC-800.ttf) format("truetype"); }
+@font-face { font-family: "PosterTC"; font-weight: 900; src: url(assets/fonts/NotoSansTC-900.ttf) format("truetype"); }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page { margin: 0; }
+
+html, body {
+  font-family: "PosterTC", "Microsoft JhengHei", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  font-kerning: normal;
+}
+
+/* 避免段落最後一行只剩一兩個字 */
+p, .lead, td { text-wrap: pretty; }
+.nw { white-space: nowrap; }
+
+.latin { font-family: "Segoe UI", "PosterTC", sans-serif; }
+
+/* MeBOD 標誌：與 docs/logo 同一造型（圓角方塊、星芒、三根長條），改用向量以免放大後模糊。 */
+.mark { display: block; }
+
+/* 區塊標題：英文規定項目 + 中文說明 */
+.sec-head { display: flex; align-items: baseline; gap: 0.5em; }
+.sec-no {
+  font-family: "Segoe UI", sans-serif; font-weight: 700;
+  color: var(--brand); letter-spacing: 0.02em;
+}
+.sec-en {
+  font-family: "Segoe UI", sans-serif; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--violet);
+}
+.sec-zh { font-weight: 800; color: var(--ink); letter-spacing: 0.03em; }
+
+.pill {
+  display: inline-flex; align-items: center; border-radius: 999px;
+  font-weight: 700; white-space: nowrap;
+}
+
+.card {
+  background: #fff; border: 0.04cm solid var(--line); border-radius: 0.6cm;
+}
+
+.shot {
+  display: block; width: 100%; border-radius: 0.35cm;
+  border: 0.04cm solid #D9D5EA; background: #fff;
+}
+
+.num {
+  font-family: "Segoe UI", sans-serif; font-weight: 700;
+  font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+}

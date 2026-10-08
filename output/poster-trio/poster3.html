@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<title>115405 海報3</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  @page { size: 42cm 192cm; }
+  body { width: 42cm; height: 192cm; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #F1EDFD 0cm, var(--paper) 30cm, var(--paper) 150cm, #F1EDFD 192cm); }
+
+  .wrap { position: absolute; left: 2.5cm; right: 2.5cm; top: 2.5cm; bottom: 2.5cm;
+    display: flex; flex-direction: column; gap: 1.05cm; }
+
+  /* 頁首 */
+  .head .kicker { display: flex; align-items: center; gap: 0.6cm; }
+  .head svg { width: 2.6cm; height: 2.6cm; }
+  .head .kicker span { font-size: 0.95cm; font-weight: 700; color: var(--violet); letter-spacing: 0.1em; }
+  .head .big { display: flex; align-items: baseline; gap: 0.5cm; margin-top: 0.8cm; }
+  .head .no { font-family: "Segoe UI"; font-weight: 700; font-size: 4.6cm; line-height: 0.9; color: var(--brand); }
+  .head h1 { font-size: 3.3cm; font-weight: 900; letter-spacing: 0.06em; }
+  .head .en { font-family: "Segoe UI"; font-size: 1.15cm; font-weight: 600; color: var(--violet); letter-spacing: 0.3em; margin-top: 0.3cm; }
+  .head .tag { font-size: 1.25cm; font-weight: 700; line-height: 1.45; margin-top: 0.6cm; color: var(--ink-2); }
+  .head .tag em { font-style: normal; color: var(--brand); }
+
+  .head { position: relative; }
+  .head .deco { position: absolute; right: -0.5cm; top: 0.6cm; width: 13cm; height: 13cm; opacity: 0.9; }
+
+  /* KPI */
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6cm; }
+  .kpi { background: #fff; border-radius: 0.6cm; padding: 0.75cm 1.0cm; border: 0.04cm solid var(--line); }
+  .kpi .v { font-size: 3.2cm; line-height: 1; color: var(--brand); }
+  .kpi .l { font-size: 1.0cm; font-weight: 800; margin-top: 0.35cm; }
+  .kpi .d { font-size: 0.8cm; color: var(--muted); margin-top: 0.15cm; }
+  .kpi.c2 .v { color: var(--violet); } .kpi.c3 .v { color: var(--mint); } .kpi.c4 .v { color: #C2508A; }
+  .asof { font-size: 0.78cm; color: var(--muted); text-align: right; margin-top: -0.6cm; }
+
+  /* 資料組成 */
+  .comp { background: #fff; border-radius: 0.6cm; padding: 1.0cm; border: 0.04cm solid var(--line); }
+  .comp h3 { font-size: 1.1cm; font-weight: 800; }
+  .bar { display: flex; height: 1.3cm; border-radius: 0.65cm; overflow: hidden; margin-top: 0.5cm; }
+  .bar div { height: 100%; }
+  .legend { display: flex; flex-wrap: wrap; gap: 0.25cm 0.8cm; margin-top: 0.4cm; font-size: 0.82cm; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 0.6cm; height: 0.6cm; border-radius: 0.15cm; margin-right: 0.2cm; vertical-align: -0.08cm; }
+  .legend b { font-family: "Segoe UI"; }
+  .comp .gap { height: 0.7cm; }
+
+  /* 成果區塊 */
+  .feat .label { display: flex; align-items: center; gap: 0.5cm; }
+  .feat .label .n { font-family: "Segoe UI"; font-size: 0.85cm; font-weight: 700; color: #fff; background: var(--brand);
+    border-radius: 999px; padding: 0.15cm 0.55cm; letter-spacing: 0.08em; }
+  .feat h2 { font-size: 1.65cm; font-weight: 900; margin-top: 0.4cm; letter-spacing: 0.03em; }
+  .feat p { font-size: 0.95cm; color: var(--ink-2); line-height: 1.6; margin-top: 0.35cm; }
+  .feat .shots { display: grid; gap: 0.5cm; margin-top: 0.6cm; }
+  /* 截圖外框：仿瀏覽器視窗，圖說放在標題列，省下一行高度 */
+  .feat figure { border-radius: 0.45cm; overflow: hidden; border: 0.05cm solid #D5D0EA; background: #fff;
+    box-shadow: 0 0.3cm 0.8cm rgba(46,36,110,0.10); }
+  .feat figcaption { display: flex; align-items: center; gap: 0.25cm; height: 1.15cm; padding: 0 0.6cm;
+    background: var(--lav); border-bottom: 0.04cm solid #E3DEF6; font-size: 0.74cm; font-weight: 700; color: var(--ink-2); }
+  .feat figcaption i { width: 0.36cm; height: 0.36cm; border-radius: 50%; display: inline-block; }
+  .feat figcaption i:nth-child(1) { background: #E5736A; } .feat figcaption i:nth-child(2) { background: #E8B44A; }
+  .feat figcaption i:nth-child(3) { background: #3DBE9F; margin-right: 0.35cm; }
+  .feat .shot { border: 0; border-radius: 0; }
+
+  /* QR */
+  .qr { display: grid; grid-template-columns: 9.5cm 1fr; gap: 1.0cm; align-items: center;
+    background: var(--night); color: #fff; border-radius: 0.8cm; padding: 1.1cm; }
+  .qr img { width: 9.5cm; height: 9.5cm; border-radius: 0.4cm; display: block; }
+  .qr .t { font-size: 1.6cm; font-weight: 900; }
+  .qr .u { font-family: "Segoe UI"; font-size: 0.9cm; color: #8FE3D3; margin-top: 0.4cm; word-break: break-all; }
+  .qr .s { font-size: 0.85cm; color: #D9D4F3; margin-top: 0.4cm; line-height: 1.5; }
+
+  /* 品質驗證 */
+  .qa { background: var(--mint-bg); border-radius: 0.8cm; padding: 1.0cm 1.1cm 1.1cm; }
+  .qa h2 { font-size: 1.65cm; font-weight: 900; }
+  .qa .item { background: #fff; border-radius: 0.5cm; padding: 0.6cm 0.9cm; margin-top: 0.5cm;
+    display: grid; grid-template-columns: 10.5cm 1fr; gap: 0.6cm; align-items: center; }
+  .qa .v { font-size: 2.5cm; line-height: 1; color: var(--mint); }
+  .qa .v small { font-size: 0.9cm; font-weight: 700; margin-left: 0.15cm; }
+  .qa h4 { font-size: 1.0cm; font-weight: 800; }
+  .qa p { font-size: 0.85cm; color: var(--muted); line-height: 1.5; margin-top: 0.15cm; }
+
+  /* 下一步 */
+  .next { background: #fff; border-radius: 0.8cm; padding: 1.1cm; border: 0.04cm solid var(--line); }
+  .next h2 { font-size: 1.5cm; font-weight: 900; }
+  .next ul { list-style: none; margin-top: 0.5cm; }
+  .next li { font-size: 0.92cm; line-height: 1.55; padding: 0.35cm 0 0.35cm 1.2cm; position: relative; color: var(--ink-2); border-top: 0.04cm dashed var(--line); }
+  .next li:first-child { border-top: 0; }
+  .next li::before { content: ""; position: absolute; left: 0.1cm; top: 0.72cm; width: 0.55cm; height: 0.55cm; border-radius: 50%; background: var(--lav-2); border: 0.12cm solid var(--brand); }
+  .next li b { color: var(--ink); }
+
+  .foot { font-size: 0.72cm; color: var(--muted); line-height: 1.6; margin-top: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="head">
+    <div class="kicker">
+      <svg viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4F46E5"/><stop offset="1" stop-color="#6A43E6"/></linearGradient></defs>
+        <rect width="100" height="100" rx="27" fill="url(#g)"/><path d="M30 17 L33 26 L42 29 L33 32 L30 41 L27 32 L18 29 L27 26 Z" fill="#fff"/>
+        <rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg>
+      <span>專題成果　<span class="latin">MeBOD</span></span>
+    </div>
+    <svg class="deco" viewBox="0 0 100 100" aria-hidden="true">
+      <defs><linearGradient id="d" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#E7E1FC"/><stop offset="1" stop-color="#C9BEF7"/></linearGradient></defs>
+      <rect x="18" y="58" width="15" height="34" rx="7.5" fill="url(#d)" opacity="0.55"/>
+      <rect x="42" y="40" width="15" height="52" rx="7.5" fill="url(#d)" opacity="0.75"/>
+      <rect x="66" y="18" width="15" height="74" rx="7.5" fill="url(#d)"/>
+      <path d="M24 14 L27.5 24.5 L38 28 L27.5 31.5 L24 42 L20.5 31.5 L10 28 L20.5 24.5 Z" fill="#B7A8F5"/>
+    </svg>
+    <div class="big"><span class="no">04</span><h1>專題成效</h1></div>
+    <div class="en">END RESULT</div>
+    <div class="tag">從上萬篇社群討論，<br>到一份<em>每句話都查得到出處</em>的報告</div>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="v num">10,370</div><div class="l">篇社群文章</div><div class="d">來自 22 個看板與主題</div></div>
+    <div class="kpi c2"><div class="v num">6,364</div><div class="l">則留言</div><div class="d">逐則判讀情緒</div></div>
+    <div class="kpi c3"><div class="v num">4</div><div class="l">個平台爬蟲</div><div class="d">PTT・Dcard・Mobile01・Threads</div></div>
+    <div class="kpi c4"><div class="v num">19,631</div><div class="l">個向量段落</div><div class="d">供 AI 問答語意檢索</div></div>
+  </div>
+  <div class="asof">資料統計至 115/10/08</div>
+
+  <div class="comp">
+    <h3>文章來源</h3>
+    <div class="bar"><div style="flex:9398;background:#4F46E5"></div><div style="flex:623;background:#C2508A"></div><div style="flex:184;background:#0E9384"></div><div style="flex:165;background:#C98512"></div></div>
+    <div class="legend"><span><i style="background:#4F46E5"></i>PTT <b>9,398</b></span><span><i style="background:#C2508A"></i>Dcard <b>623</b></span><span><i style="background:#0E9384"></i>Threads <b>184</b></span><span><i style="background:#C98512"></i>Mobile01 <b>165</b></span></div>
+    <div class="gap"></div>
+    <h3>文章情緒（已評分 10,317 篇）</h3>
+    <div class="bar"><div style="flex:3512;background:#3DBE9F"></div><div style="flex:6025;background:#D9D5E6"></div><div style="flex:780;background:#E5736A"></div></div>
+    <div class="legend"><span><i style="background:#3DBE9F"></i>正面 <b>34.0%</b></span><span><i style="background:#D9D5E6"></i>中性 <b>58.4%</b></span><span><i style="background:#E5736A"></i>負面 <b>7.6%</b></span></div>
+  </div>
+
+  <section class="feat">
+    <div class="label"><span class="n">RESULT 1</span></div>
+    <h2>Dashboard 一頁看懂討論</h2>
+    <p>輸入療程或品牌關鍵字，立即看到聲量趨勢、情緒分布與醫美領域熱門話題。</p>
+    <div class="shots">
+      <figure><figcaption><i></i><i></i><i></i>討論趨勢：關鍵字「醫美」近 30 天每日則數</figcaption><img class="shot" src="assets/shot-trend.png"></figure>
+      <figure><figcaption><i></i><i></i><i></i>情緒分布與熱門話題</figcaption><img class="shot" src="assets/shot-topics.png"></figure>
+    </div>
+  </section>
+
+  <div class="qr">
+    <img src="assets/qr.svg" alt="QR code">
+    <div><div class="t">掃碼體驗</div><div class="u">mebod.clouda.dpdns.org</div><div class="s">訪客即可試用 Dashboard 與 AI 問答，登入後可設定監測預警。</div></div>
+  </div>
+
+  <section class="feat">
+    <div class="label"><span class="n">RESULT 2</span></div>
+    <h2>AI 問答，每句話都有出處</h2>
+    <p>以混合檢索找出相關原文再回答；回答下方列出引用文章、平台、作者與情緒，點擊即可回到原文。</p>
+    <div class="shots">
+      <figure><figcaption><i></i><i></i><i></i>重點整理與行銷建議</figcaption><img class="shot" src="assets/shot-answer.png"></figure>
+      <figure><figcaption><i></i><i></i><i></i>引用來源清單：平台、看板、作者、推文數與情緒標籤</figcaption><img class="shot" src="assets/shot-sources.png"></figure>
+    </div>
+  </section>
+
+  <section class="feat">
+    <div class="label"><span class="n">RESULT 3</span></div>
+    <h2>一鍵產出輿情報告</h2>
+    <p>總覽指標、情緒比例、AI 摘要、熱門話題與消費者痛點整理成報告，可列印或存成 PDF，也能匯出 Excel。</p>
+    <div class="shots">
+      <figure><figcaption><i></i><i></i><i></i>輿情分析報告：總覽指標、情緒比例與整體摘要</figcaption><img class="shot" src="assets/shot-report.png"></figure>
+    </div>
+  </section>
+
+  <section class="qa">
+    <h2>品質驗證</h2>
+    <div class="item"><div class="v num">533<small>項</small></div><div><h4>自動化測試通過</h4><p>後端 pytest 490、前端 Vitest 43；1 項略過（115/10/08）</p></div></div>
+    <div class="item"><div class="v num">0<small>篇變動</small></div><div><h4>同批 100 篇重跑，標籤不變</h4><p>判讀改用 temperature 0 後兩次結果完全相同；原設定 0.3 時有 12 篇改變</p></div></div>
+    <div class="item"><div class="v num">82<small>%</small></div><div><h4>盲標一致率（κ = 0.73）</h4><p>分層抽樣 100 篇，與另一個語言模型盲標比對。此為模型間一致率，不是人工標註正確率</p></div></div>
+  </section>
+
+  <div class="foot">介面截圖為 115/10/07 實際系統畫面，僅裁切未修改。統計數字查詢自本系統資料庫。系統定位為資訊整理與行銷觀察工具，不提供醫療建議。</div>
+</div>
+</body>
+</html>
