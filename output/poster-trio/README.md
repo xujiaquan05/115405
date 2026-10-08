@@ -5,14 +5,46 @@
 | 檔案 | 尺寸 | 內容 |
 |---|---|---|
 | `115405－海報1.pdf / .png` | 91 × 26 cm | 組別序號、題目、Logo、組員、指導老師 |
-| `115405－海報2.pdf / .png` | 91 × 61 cm | 01 Project purpose、02 Problem statement、03 Approaches |
-| `115405－海報3.pdf / .png` | 42 × 192 cm | 04 End result（成果截圖、QR Code、品質驗證） |
+| `115405－海報2.pdf / .png` | 91 × 61 cm | 專題簡介：前後對照（散落的真實討論 → MeBOD 整理後）、為什麼需要、運作六步驟、使用者 |
+| `115405－海報3.pdf / .png` | 42 × 192 cm | 成果展示：筆電與手機畫面、資料規模、QR Code、熱門話題泡泡圖、療程排行、報告、品質驗證 |
 | `115405－Logo.pdf / .png` | 31 × 10 cm | 橫式標誌，PNG 為透明背景 |
 
 - 尺寸依公版「圖做在 91×26、91×61、42×192 cm 範圍內」直接做成該尺寸，展板四周留白由公版外框提供。
 - PDF 為向量（文字與圖形可無限放大），字型已嵌入（標準 CID 字型，無 Type3）。
 - PNG 為 300 dpi，檔案內已寫入 dpi 資訊。
 - 海報 3 的 QR Code 已用 pyzbar 從成品實際解碼，內容為 `https://mebod.clouda.dpdns.org`。
+
+## 第二版（115/10/09）：改為圖像化敘事
+
+依使用者意見，海報 2、3 不再寫出「Project purpose／Problem statement／Approaches／End result」四個標題，
+改用故事與圖像呈現同樣的內容：
+
+| 規定項目 | 呈現位置 |
+|---|---|
+| 動機與目的 | 海報 2 標題句、「現在 → 使用 MeBOD」前後對照、「誰會用它？」 |
+| 問題描述 | 海報 2「現在」區的真實文章標題、「為什麼需要它？」三個數字 |
+| 方法與程序 | 海報 2 中間的轉換圖示、「背後怎麼運作」六步驟與 AI 問答流程 |
+| 成效說明 | 海報 3 全張：實際畫面、資料規模、話題與療程統計、報告、品質驗證 |
+
+新增的圖像全部是向量自繪：聊天泡泡裝飾、轉換引擎、使用者頭像、筆電與手機外框、
+情緒圓環、熱門詞泡泡圖、療程排行條、報告紙張。圖表由 `build.py` 依 `data.json` 產生。
+
+### 第二版的檢查與修正
+
+| 輪 | 海報 | 發現的問題 | 修正 |
+|---|---|---|---|
+| 1 | 2 | 「之後」欄的 AI 回答被截掉，「運作」區溢出 | 縮小標題、加高前後對照區、調整下排欄寬 |
+| 2 | 2 | 泡泡字太小，下排留白 | 放大泡泡與步驟文字、使用者頭像 |
+| 3 | 2 | 泡泡互相重疊、右側被裁切 | 重新排列 9 個泡泡位置 |
+| 4 | 2 | 泡泡上的看板名稱是猜的 | 逐筆查資料庫，改成實際看板（facelift、醫美、彩妝保養、#玻尿酸） |
+| 5 | 2 | 標題右側空白 | 加入聊天泡泡插圖 |
+| 6 | 2 | 小圓環中間的字印出來只有 0.4 cm | 改為單一大字「情緒」 |
+| 7 | 3 | 初稿超出約 30 cm | 移除每月文章數圖表，泡泡圖改為橫向排列 |
+| 8 | 3 | 「9 月衝上 735 篇，來自赴韓醫美話題」查證不實：主要是新增 Dcard 爬取 | 改寫；最後連同該圖表一起移除，避免把收錄量誤當成討論聲量 |
+| 9 | 3 | 區塊被 flex 壓縮，QR Code 被裁、手機內來源卡片溢出 | 禁止壓縮並重新分配間距；手機只留兩筆來源加「共 5 筆」 |
+| 10 | 3 | 期間標籤寫「30 天」，實際可選 7／30／90 天；標籤擋住說明文字 | 依 SearchBar.vue 更正並移位，標題旁加插圖 |
+
+成品再次確認：PDF 字型全為 Type0（無 Type3），海報 3 的 QR Code 從 300 dpi 成品解碼成功。
 
 ## 內容依據（全部可回查）
 
@@ -25,6 +57,9 @@
 | temperature 0.3 重跑 12/100 篇改變；temperature 0 為 0/100 | `docs/manual-work/sentiment-eval/README.md` | 115/10/06 |
 | 盲標一致率 82%、κ = 0.73 | 同上；**對照組為另一個語言模型，不是人工標註**，海報上已註明 | 115/10/06 |
 | 178 個領域詞、RRF k = 60、相關性評分（標題 ×3、內文 ×1）、每批 20 篇 | `beauty_lexicon.py`、`rag_service.py`、`relevance_filter.py`、`sentiment_service.py` | 原始碼 |
+| 9 則泡泡文章標題、看板與情緒 | 資料庫 `articles` 實際標題（去掉 [問題] 等前綴） | 115/10/09 |
+| 熱門詞（皮膚 1,902 篇…）、療程排行（玻尿酸 349 篇…） | `data.py` 以系統同一套斷詞與 178 詞詞庫統計全部文章 | 115/10/09 |
+| 手機畫面的 AI 回答與來源 | `docs/demo-work/admin-male/screens/08-answer.txt`、`09-sources.png`，依原文重繪並精簡 | 115/10/07 |
 | 組員與指導老師 | 系統手冊封面（陳信宏 老師、組長 11246044 陳威帆、組員 11246039 許家全） | 手冊 |
 
 介面截圖取自 `docs/demo-work/admin-male/screens`（115/10/07 實際系統畫面），只裁切與放大，未修改內容。
@@ -87,13 +122,16 @@
 
 1. **網站目前打不開**：115/10/08 檢查 `https://mebod.clouda.dpdns.org` 回傳 502（後端沒有在執行）。展覽期間 QR Code 要能用，記得開啟後端與 Cloudflare Tunnel。
 2. 海報 1 的人像是 AI 生成的概念插畫，若老師或校方不接受 AI 圖像，可改用純色版本。
-3. 數字是 115/10/08 的資料庫快照。若展覽前再爬資料，可更新 `poster3.html` 的數字後重新輸出。
+3. 數字是 115/10/09 的資料庫快照。展覽前若再爬資料，重跑 `data.py`、`build.py` 後重新輸出即可，數字會自動更新。
+4. 海報 2、3 請改 `*.tpl.html`，`poster2.html`、`poster3.html` 是產生出來的檔案。
 
 ## 重新產生
 
 ```
 python output\poster-trio\make_fonts.py          # 需要 fonttools；只需執行一次
 python output\poster-trio\assets.py              # QR Code 與截圖裁切
+cd backend && venv\Scripts\python.exe ..\output\poster-trio\data.py && cd ..   # 更新統計數字（需 jieba 與資料庫）
+python output\poster-trio\build.py               # 由 *.tpl.html 產生 poster2.html、poster3.html
 backend\venv\Scripts\python.exe output\poster-trio\render.py poster1 --final
 backend\venv\Scripts\python.exe output\poster-trio\render.py poster2 --final
 backend\venv\Scripts\python.exe output\poster-trio\render.py poster3 --final
