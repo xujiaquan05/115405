@@ -31,7 +31,7 @@
   .story { background: #fff; border-radius: 1cm; border: 0.05cm solid var(--line);
     box-shadow: 0 0.6cm 1.6cm rgba(46,36,110,0.08);
     display: grid; grid-template-columns: 36cm 10.5cm 1fr; height: 24.4cm; overflow: hidden; }
-  .zone { padding: 0.9cm 1.3cm 0.9cm; position: relative; }
+  .zone { padding: 1.1cm 1.3cm 1cm; position: relative; }
   .zone .tag { display: inline-flex; align-items: center; font-size: 0.85cm; font-weight: 800; color: #fff;
     border-radius: 999px; padding: 0.15cm 0.6cm; letter-spacing: 0.1em; }
   .zone h2 { font-size: 1.35cm; font-weight: 900; margin-top: 0.4cm; letter-spacing: 0.02em; }
@@ -51,7 +51,7 @@
   .bub .t { font-size: 0.95cm; font-weight: 700; margin-top: 0.12cm; color: var(--ink); }
   .ptt { background: #4F46E5; } .dcard { background: #2A8FB0; } .m01 { background: #C98512; } .thr { background: #222; }
   .pos { background: #3DBE9F; } .neu { background: #C9C4D9; } .neg { background: #E5736A; }
-  .note { position: absolute; left: 1.3cm; right: 1.3cm; bottom: 0.7cm; font-size: 0.74cm; font-weight: 600; color: var(--muted);
+  .note { position: absolute; left: 1.3cm; right: 1.3cm; bottom: 0.8cm; font-size: 0.66cm; color: var(--muted);
     display: flex; gap: 0.6cm; align-items: center; }
   .note i { display: inline-block; width: 0.42cm; height: 0.42cm; border-radius: 50%; margin-right: 0.15cm; vertical-align: -0.05cm; }
 
@@ -60,7 +60,7 @@
   .engine svg { width: 10.5cm; height: 24.4cm; }
 
   /* 「之後」的迷你儀表板 */
-  .dash { margin-top: 0.5cm; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5cm; }
+  .dash { margin-top: 0.6cm; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5cm; }
   .tile { background: #fff; border-radius: 0.5cm; border: 0.04cm solid #E3DEF6; padding: 0.45cm 0.65cm;
     box-shadow: 0 0.15cm 0.4cm rgba(46,36,110,0.07); }
   .tile .k { font-size: 0.66cm; font-weight: 700; color: var(--muted); }
@@ -68,25 +68,17 @@
   .tile .v small { font-size: 0.7cm; color: var(--muted); margin-left: 0.15cm; }
   .tile.trend { grid-column: span 2; padding-bottom: 0.4cm; }
   .tile.trend .row { display: flex; justify-content: space-between; align-items: baseline; }
-  .tm { display: grid; grid-template-columns: 2.9cm 1fr 2.6cm; align-items: center; gap: 0.3cm; margin-top: 0.12cm; }
-  .tm .tw { font-size: 0.76cm; font-weight: 800; line-height: 1.3; }
-  .tm .tb { height: 0.5cm; background: var(--lav); border-radius: 0.25cm; overflow: hidden; }
-  .tm .tb i { display: block; height: 100%; border-radius: 0.25cm; background: linear-gradient(90deg, #8B7BF0, #4F46E5); }
-  .tm .tn { font-family: "Segoe UI"; font-size: 0.68cm; font-weight: 700; color: var(--muted); text-align: right; }
+  .spark { width: 100%; height: 2.1cm; display: block; margin-top: 0.2cm; }
   .mini-donut { width: 3.2cm; height: 3.2cm; flex: none; }
   .tile.senti { display: flex; align-items: center; gap: 0.5cm; }
   .tile.senti .lg { font-size: 0.66cm; line-height: 1.6; color: var(--ink-2); }
   .tile.senti .lg i { display: inline-block; width: 0.38cm; height: 0.38cm; border-radius: 50%; margin-right: 0.15cm; }
   .chips2 { display: flex; flex-wrap: wrap; gap: 0.22cm; margin-top: 0.3cm; }
   .chips2 span { font-size: 0.66cm; font-weight: 700; background: var(--lav); color: var(--violet); border-radius: 999px; padding: 0.08cm 0.35cm; }
-  .ai { grid-column: span 2; background: var(--night); color: #fff; border-radius: 0.55cm; padding: 0.5cm 0.75cm; position: relative; }
-  .ai .q { font-size: 0.74cm; color: #fff; font-weight: 700; display: flex; align-items: center; gap: 0.3cm; }
-  .ai .q b, .ai .a b { font-size: 0.58cm; font-weight: 800; border-radius: 0.2cm; padding: 0.04cm 0.25cm; }
-  .ai .q b { background: rgba(255,255,255,0.16); color: #CFC8F5; }
-  .ai .a { position: absolute; right: 0.75cm; top: 0.5cm; }
-  .ai .a b { background: #8FE3D3; color: var(--night); }
-  .ai ol { list-style: none; margin-top: 0.22cm; }
-  .ai li { font-size: 0.78cm; font-weight: 700; line-height: 1.45; }
+  .ai { grid-column: span 2; background: var(--night); color: #fff; border-radius: 0.55cm; padding: 0.6cm 0.75cm; position: relative; }
+  .ai .q { font-size: 0.72cm; color: #CFC8F5; }
+  .ai ol { list-style: none; margin-top: 0.25cm; }
+  .ai li { font-size: 0.78cm; font-weight: 700; line-height: 1.55; }
   .ai li b { color: #8FE3D3; font-family: "Segoe UI"; margin-right: 0.2cm; }
   .ai .src { margin-top: 0.3cm; display: inline-flex; gap: 0.3cm; align-items: center; font-size: 0.66cm; font-weight: 700;
     background: rgba(143,227,211,0.16); color: #8FE3D3; border-radius: 999px; padding: 0.1cm 0.45cm; }
@@ -185,7 +177,7 @@
         <div class="bub" style="left:1.2cm;top:11.1cm;transform:rotate(1.6deg)"><div class="src"><b class="thr">Threads</b>#醫美<span class="dot neu"></span></div><div class="t">第一次來韓國做醫美，別急著選項目。</div></div>
         <div class="bub" style="left:20.6cm;top:10.9cm;transform:rotate(-1.2deg)"><div class="src"><b class="dcard">Dcard</b>醫美<span class="dot neg"></span></div><div class="t">韓國腋下肉毒維持時間</div></div>
       </div>
-      <div class="note">以上都是系統實際收錄的文章標題；圓點是系統判讀的情緒：<span><i class="pos"></i>正面</span><span><i class="neu"></i>中性</span><span><i class="neg"></i>負面</span></div>
+      <div class="note">實際收錄的文章標題　系統判讀：<span><i class="pos"></i>正面</span><span><i class="neu"></i>中性</span><span><i class="neg"></i>負面</span></div>
     </div>
 
     <div class="engine">
@@ -218,12 +210,12 @@
       <div class="dash">
         <div class="tile"><div class="k">收錄文章</div><div class="v">10,370<small>篇</small></div><div class="k">另有 6,364 則留言</div></div>
         <div class="tile senti"><svg class="mini-donut" viewBox="0 0 100 100"><g transform="rotate(-90 50 50)"><circle cx="50" cy="50" r="40" fill="none" stroke="#3DBE9F" stroke-width="13" stroke-dasharray="84.95 166.37" stroke-dashoffset="-0.00"/><circle cx="50" cy="50" r="40" fill="none" stroke="#D9D5E6" stroke-width="13" stroke-dasharray="146.17 105.16" stroke-dashoffset="-85.55"/><circle cx="50" cy="50" r="40" fill="none" stroke="#E5736A" stroke-width="13" stroke-dasharray="18.40 232.93" stroke-dashoffset="-232.33"/></g><text x="50" y="58" text-anchor="middle" font-size="21" font-weight="900" fill="#1E1B4B">情緒</text></svg><div class="lg"><div><i class="pos"></i>正面 34.0%</div><div><i class="neu"></i>中性 58.4%</div><div><i class="neg"></i>負面 7.6%</div></div></div>
-        <div class="tile trend"><div class="row"><span class="k">大家最常討論的療程</span><span class="k" style="color:var(--violet)">提到它的文章數</span></div><div class="tm"><span class="tw">玻尿酸</span><span class="tb"><i style="width:100.0%"></i></span><span class="tn">349 篇</span></div><div class="tm"><span class="tw">雷射</span><span class="tb"><i style="width:80.2%"></i></span><span class="tn">280 篇</span></div><div class="tm"><span class="tw">音波</span><span class="tb"><i style="width:58.2%"></i></span><span class="tn">203 篇</span></div><div class="tm"><span class="tw">電波</span><span class="tb"><i style="width:57.0%"></i></span><span class="tn">199 篇</span></div></div>
+        <div class="tile trend"><div class="row"><span class="k">近一年每月收錄文章</span><span class="k" style="color:var(--violet)">9 月單月 735 篇</span></div><svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none"><defs><linearGradient id="sp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6D4AE0" stop-opacity="0.35"/><stop offset="1" stop-color="#6D4AE0" stop-opacity="0"/></linearGradient></defs><polygon points="0,30 0.0,24.7 9.1,24.8 18.2,25.1 27.3,23.6 36.4,23.9 45.5,23.7 54.5,15.4 63.6,12.7 72.7,22.1 81.8,24.0 90.9,21.6 100.0,4.0 100,30" fill="url(#sp)"/><polyline points="0.0,24.7 9.1,24.8 18.2,25.1 27.3,23.6 36.4,23.9 45.5,23.7 54.5,15.4 63.6,12.7 72.7,22.1 81.8,24.0 90.9,21.6 100.0,4.0" fill="none" stroke="#6D4AE0" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>
+          <div class="chips2"><span>玻尿酸</span><span>雷射</span><span>音波</span><span>電波</span><span>肉毒</span><span>淚溝</span></div></div>
         <div class="ai">
-          <div class="q"><b>你問</b>消費者最近最在意什麼？</div>
-          <div class="a"><b>AI 回答</b></div>
+          <div class="q">問：消費者最近最在意什麼？</div>
           <ol><li><b>1</b>赴韓醫美的真實經驗與風險</li><li><b>2</b>療程的痛感與恢復期</li><li><b>3</b>毛孔、凹疤、細紋的改善方法</li></ol>
-          <span class="src">5 筆引用來源，點一下就能看原文</span>
+          <span class="src">附 5 筆引用來源，點擊回到原文</span>
         </div>
       </div>
     </div>
@@ -234,8 +226,8 @@
       <div class="card-h">為什麼需要它？</div>
       <div class="card-s">三個常見困擾，以及 MeBOD 的解法</div>
       <div class="it"><div class="n">4<small>個平台</small></div><div><h4>各平台各說各話</h4><p>格式不一，只能一站站翻、手動整理</p><span class="fix">MeBOD 統一成同一種格式</span></div></div>
-      <div class="it"><div class="n">7.6%</div><div><h4>負評占比小，最容易漏看</h4><p>10,317 篇裡只有 780 篇是負面</p><span class="fix">自動標出負面，還能設定預警</span></div></div>
-      <div class="it"><div class="n">12<small>篇改判</small></div><div><h4>同樣問兩次，AI 答案不同</h4><p>100 篇請 AI 判讀兩次，12 篇結果不同</p><span class="fix">固定判讀方式，回答附原文出處</span></div></div>
+      <div class="it"><div class="n">7.6%</div><div><h4>負評太少，最容易漏看</h4><p>10,317 篇裡只有 780 篇是負面</p><span class="fix">自動標出負面，還能設定預警</span></div></div>
+      <div class="it"><div class="n">12<small>篇改判</small></div><div><h4>同樣問兩次，AI 答案不同</h4><p>100 篇請 AI 判讀兩次，12 篇前後不一</p><span class="fix">固定判讀方式，回答附原文出處</span></div></div>
     </section>
 
     <section class="how">
@@ -243,19 +235,19 @@
       <div class="card-s">從社群原文到可查證的洞察，共六個步驟</div>
       <div class="flow6">
         <div class="node"><div class="ic" style="background:#6D4AE0"><b>1</b><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div>
-          <div><h4>自動蒐集</h4><p>每天自動抓取四個平台，也能隨時手動更新</p></div></div>
+          <div><h4>自動蒐集</h4><p>四平台爬蟲每日排程，也可手動觸發並即時看進度</p></div></div>
         <div class="node"><div class="ic" style="background:#C2508A"><b>2</b><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8z"/></svg></div>
-          <div><h4>過濾雜訊</h4><p>和醫美無關或重複的文章，不收進資料庫</p></div></div>
+          <div><h4>過濾雜訊</h4><p>醫美關鍵字評分，不相關與重複文章不入庫</p></div></div>
         <div class="node"><div class="ic" style="background:#2A8FB0"><b>3</b><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg></div>
-          <div><h4>判讀情緒</h4><p>AI 逐篇判斷正面、中性或負面，重判結果不變</p></div></div>
+          <div><h4>判讀情緒</h4><p>Gemini 逐篇判讀正中負，固定參數讓結果可重現</p></div></div>
         <div class="node"><div class="ic" style="background:#0A7D70"><b>4</b><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg></div>
-          <div><h4>找出話題</h4><p>只統計 178 個醫美專業詞，排除無意義的雜詞</p></div></div>
+          <div><h4>找出話題</h4><p>只計 178 個醫美專業詞，排除「昨天」「留言」等雜詞</p></div></div>
         <div class="node"><div class="ic" style="background:#C98512"><b>5</b><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
-          <div><h4>混合檢索</h4><p>關鍵字加語意比對，換個說法也找得到</p></div></div>
+          <div><h4>混合檢索</h4><p>關鍵字比對加上語意向量，換句話說也找得到</p></div></div>
         <div class="node"><div class="ic" style="background:#4F46E5"><b>6</b><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></div>
-          <div><h4>呈現與預警</h4><p>儀表板、AI 問答、報表匯出與負評預警</p></div></div>
+          <div><h4>呈現與預警</h4><p>儀表板、AI 問答、報表匯出、關鍵字監測預警</p></div></div>
       </div>
-      <div class="rag"><span class="lb">AI 問答</span><span>提問</span><i>→</i><span>找出相關原文</span><i>→</i><span>依相關程度排序</span><i>→</i><span class="hl">生成回答並附出處</span></div>
+      <div class="rag"><span class="lb">AI 問答</span><span>提問</span><i>→</i><span>找出相關原文</span><i>→</i><span>RRF 融合排名</span><i>→</i><span class="hl">生成回答並附引用</span></div>
     </section>
 
     <section class="who">
