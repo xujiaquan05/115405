@@ -158,6 +158,16 @@ def treatment_rows() -> str:
     return "".join(out)
 
 
+def treatment_mini() -> str:
+    """海報 2 右側小卡：前四名療程與提到它的文章數。"""
+    rows = DATA["top_treatments"][:4]
+    peak = rows[0][1]
+    return "".join(
+        f'<div class="tm"><span class="tw">{w}</span><span class="tb"><i style="width:{n / peak * 100:.1f}%"></i></span><span class="tn">{n} 篇</span></div>'
+        for w, n in rows
+    )
+
+
 def percent(key: str) -> str:
     s = DATA["sentiment"]
     total = s["positive"] + s["neutral"] + s["negative"]
@@ -197,6 +207,7 @@ def values() -> dict[str, str]:
         "DONUT_BIG": donut("donut", percent("positive"), "正面", 10),
         "DONUT_MINI": donut("mini-donut", "情緒", "", 13, big_label=True),
         "TREATMENTS": treatment_rows(),
+        "TREAT_MINI": treatment_mini(),
     }
 
 
