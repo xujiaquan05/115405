@@ -30,7 +30,7 @@ def bubbles() -> str:
     """熱門詞泡泡圖：面積與「提到這個詞的文章數」成正比，顏色代表詞的類別。"""
     terms = DATA["top_terms"][:18]
     placed: list[tuple[float, float, float, list]] = []
-    gap = 1.2
+    gap = 0.7
     for word, count, group in terms:
         r = 3.2 * math.sqrt(count / 100)
         if not placed:
@@ -55,14 +55,27 @@ def bubbles() -> str:
     max_x = max(x + r for x, _, r, _ in placed) + pad
     min_y = min(y - r for _, y, r, _ in placed) - pad
     max_y = max(y + r for _, y, r, _ in placed) + pad
-    parts = [f'<svg class="bubbles" viewBox="{min_x:.1f} {min_y:.1f} {max_x - min_x:.1f} {max_y - min_y:.1f}">']
+    parts = [f'<svg class="bubbles" viewBox="{min_x:.1f} {min_y:.1f} {max_x - min_x:.1f} {max_y - min_y + 1:.1f}">']
+    # 每個類別一組放射漸層：左上偏亮，做出玻璃球的立體感（不用 SVG 濾鏡，PDF 仍是向量）
+    parts.append("<defs>")
+    for name, color in GROUP_COLORS.items():
+        gid = "bg" + str(list(GROUP_COLORS).index(name))
+        parts.append(
+            f'<radialGradient id="{gid}" cx="0.3" cy="0.22" r="0.8">'
+            f'<stop offset="0" stop-color="#fff" stop-opacity="0.42"/>'
+            f'<stop offset="0.45" stop-color="{color}" stop-opacity="0.95"/>'
+            f'<stop offset="1" stop-color="{color}"/></radialGradient>'
+        )
+    parts.append("</defs>")
     for x, y, r, (word, count, group) in placed:
         color = GROUP_COLORS[group]
+        gid = "bg" + str(list(GROUP_COLORS).index(group))
+        parts.append(f'<circle cx="{x:.1f}" cy="{y + r * 0.12:.1f}" r="{r:.1f}" fill="{color}" fill-opacity="0.18"/>')
         size = max(r * 0.42, 2.2)
         if len(word) == 3:
             size *= 0.85
         parts.append(
-            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="{color}" fill-opacity="0.92"/>'
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r:.1f}" fill="url(#{gid})"/>'
             f'<text x="{x:.1f}" y="{y - size * 0.12:.1f}" text-anchor="middle" font-size="{size:.1f}" font-weight="800" fill="#fff">{word}</text>'
             f'<text x="{x:.1f}" y="{y + size * 0.95:.1f}" text-anchor="middle" font-size="{size * 0.5:.1f}" font-weight="600" fill="#fff" fill-opacity="0.85">{fmt(count)} 篇</text>'
         )
@@ -147,10 +160,19 @@ def donut(cls: str, label_top: str, label_bottom: str, thickness: float = 9, big
 
 
 def treatment_rows() -> str:
+    """療程排行：前三名做成獎台卡片，其餘用橫條。"""
     rows = DATA["top_treatments"]
     peak = rows[0][1]
-    out = []
-    for i, (word, n) in enumerate(rows, 1):
+    medals = ["#4F46E5", "#6D4AE0", "#C2508A"]
+    podium = []
+    for i, (word, n) in enumerate(rows[:3]):
+        podium.append(
+            f'<div class="pod" style="--m:{medals[i]}"><span class="medal">{i + 1}</span>'
+            f'<div class="pw">{word}</div><div class="pn"><b>{n}</b> 篇</div>'
+            f'<div class="pb"><i style="width:{n / peak * 100:.1f}%"></i></div></div>'
+        )
+    out = ['<div class="podium">' + "".join(podium) + "</div>"]
+    for i, (word, n) in enumerate(rows[3:], 4):
         out.append(
             f'<div class="tr"><span class="rk">{i}</span><span class="tw">{word}</span>'
             f'<span class="tb"><i style="width:{n / peak * 100:.1f}%"></i></span><span class="tn">{n} 篇</span></div>'

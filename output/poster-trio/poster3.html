@@ -15,12 +15,12 @@
       radial-gradient(30cm 30cm at 100% 75%, rgba(252,217,209,0.45) 0%, rgba(252,217,209,0) 70%),
       var(--paper); }
   .wrap { position: absolute; z-index: 1; left: 2.4cm; right: 2.4cm; top: 2.4cm; bottom: 2.2cm;
-    display: flex; flex-direction: column; gap: 1.15cm; }
+    display: flex; flex-direction: column; gap: 0.95cm; }
   .wrap > * { flex-shrink: 0; }
 
   .brand { display: flex; align-items: center; gap: 0.45cm; font-size: 0.9cm; font-weight: 800; color: var(--violet); letter-spacing: 0.08em; }
   .brand svg { width: 1.5cm; height: 1.5cm; }
-  h1 { font-size: 3.9cm; font-weight: 900; line-height: 1.12; letter-spacing: 0.02em; margin-top: 0.7cm; }
+  h1 { font-size: 3.7cm; font-weight: 900; line-height: 1.12; letter-spacing: 0.02em; margin-top: 0.7cm; }
   h1 em { font-style: normal; color: var(--brand); }
   .lede { font-size: 1.1cm; font-weight: 600; color: var(--ink-2); line-height: 1.55; margin-top: 0.6cm; }
   .lede b { color: var(--ink); }
@@ -29,7 +29,7 @@
   .deco { position: absolute; right: -1.2cm; top: 1.4cm; width: 15cm; height: 9.3cm; }
 
   /* 裝置示意：筆電放實際畫面，手機以向量重現實際 AI 回答內容 */
-  .devices { position: relative; height: 26.4cm; margin-top: 0.4cm; }
+  .devices { position: relative; height: 25.4cm; margin-top: 0.4cm; }
   .laptop { position: absolute; left: 0; top: 0.6cm; width: 33cm; }
   .laptop .lid { background: #1B1733; border-radius: 0.9cm 0.9cm 0.2cm 0.2cm; padding: 0.75cm 0.75cm 0.9cm;
     box-shadow: 0 1cm 2cm rgba(30,27,75,0.25); }
@@ -39,7 +39,7 @@
   .laptop .base::before { content: ""; position: absolute; left: 50%; top: 0; width: 5cm; height: 0.35cm; margin-left: -2.5cm;
     background: #A39CBB; border-radius: 0 0 0.3cm 0.3cm; }
 
-  .phone { position: absolute; right: -0.4cm; top: 7.2cm; width: 11.4cm; height: 19.6cm; background: #1B1733;
+  .phone { position: absolute; right: -0.4cm; top: 5.6cm; width: 11.4cm; height: 19.6cm; background: #1B1733;
     border-radius: 1.6cm; padding: 0.55cm; box-shadow: 0 1cm 2.2cm rgba(30,27,75,0.35); }
   .screen { width: 100%; height: 100%; background: #F7F6FB; border-radius: 1.15cm; overflow: hidden; padding: 0.9cm 0.6cm 0.6cm; }
   .screen .bar { display: flex; align-items: center; gap: 0.3cm; font-size: 0.62cm; font-weight: 800; color: var(--ink); padding-bottom: 0.35cm; border-bottom: 0.03cm solid #E3DEF6; }
@@ -71,8 +71,10 @@
   /* 規模 */
   .scale { display: grid; grid-template-columns: 13.5cm 1fr; gap: 1cm; align-items: center; }
   .donut { width: 13.5cm; height: 13.5cm; }
-  .kpi { display: flex; align-items: baseline; gap: 0.3cm; padding: 0.42cm 0; border-bottom: 0.04cm dashed var(--line); }
+  .kpi { display: flex; align-items: center; gap: 0.3cm; padding: 0.42cm 0; border-bottom: 0.04cm dashed var(--line); }
   .kpi:last-child { border-bottom: 0; }
+  .kpi .ki { width: 1.25cm; height: 1.25cm; border-radius: 0.35cm; display: grid; place-items: center; flex: none; margin-right: 0.15cm; }
+  .kpi .ki svg { width: 0.75cm; height: 0.75cm; }
   .kpi .v { font-family: "Segoe UI"; font-size: 1.9cm; font-weight: 700; color: var(--brand); line-height: 1; }
   .kpi .l { font-size: 0.82cm; font-weight: 700; color: var(--ink-2); }
   .legend3 { display: flex; justify-content: center; gap: 0.45cm; margin-top: 0.4cm; white-space: nowrap; font-size: 0.72cm; font-weight: 700; color: var(--ink-2); }
@@ -94,15 +96,26 @@
   .try p { font-size: 0.82cm; color: #D9D4F3; margin-top: 0.4cm; line-height: 1.55; }
 
   /* 話題 */
-  .bubbles { width: 100%; display: block; }
+  .bubbles { width: 100%; height: 16.5cm; display: block; }
   .bleg { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25cm 0.9cm; margin-top: 0.5cm; font-size: 0.8cm; font-weight: 700; color: var(--ink-2); }
   .bleg i { display: inline-block; width: 0.55cm; height: 0.55cm; border-radius: 50%; margin-right: 0.2cm; vertical-align: -0.05cm; }
-  .rank h3 { font-size: 1.15cm; font-weight: 900; }
+  .rank h3 { font-size: 1.15cm; font-weight: 900; margin-bottom: 0.5cm; }
   .rank h3 small { font-size: 0.75cm; font-weight: 600; color: var(--muted); margin-left: 0.3cm; }
   .tr { display: grid; grid-template-columns: 1.3cm 4.2cm 1fr 3.3cm; align-items: center; gap: 0.35cm; margin-top: 0.42cm; }
   .tr .rk { width: 1.1cm; height: 1.1cm; border-radius: 0.35cm; background: var(--lav-2); color: var(--violet); font-family: "Segoe UI";
     font-weight: 700; font-size: 0.65cm; display: grid; place-items: center; }
-  .tr:nth-child(-n+4) .rk { background: var(--brand); color: #fff; }
+  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5cm; margin: 0.6cm 0 0.3cm; }
+  .pod { position: relative; border-radius: 0.6cm; padding: 0.9cm 0.6cm 0.6cm; text-align: center;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--m) 12%, #fff) 0%, #fff 100%);
+    border: 0.05cm solid color-mix(in srgb, var(--m) 30%, #fff); }
+  .pod .medal { position: absolute; left: 50%; top: -0.55cm; margin-left: -0.6cm; width: 1.2cm; height: 1.2cm; border-radius: 50%;
+    background: var(--m); color: #fff; font-family: "Segoe UI"; font-weight: 700; font-size: 0.7cm; display: grid; place-items: center;
+    box-shadow: 0 0.15cm 0.35cm color-mix(in srgb, var(--m) 40%, transparent); }
+  .pod .pw { font-size: 1.35cm; font-weight: 900; color: var(--ink); }
+  .pod .pn { font-size: 0.72cm; font-weight: 700; color: var(--muted); margin-top: 0.1cm; }
+  .pod .pn b { font-family: "Segoe UI"; font-size: 1.05cm; color: var(--m); }
+  .pod .pb { height: 0.35cm; background: color-mix(in srgb, var(--m) 12%, #fff); border-radius: 0.2cm; margin-top: 0.35cm; overflow: hidden; }
+  .pod .pb i { display: block; height: 100%; background: var(--m); border-radius: 0.2cm; }
   .tr .tw { font-size: 0.95cm; font-weight: 800; }
   .tr .tb { height: 0.75cm; background: var(--lav); border-radius: 0.4cm; overflow: hidden; }
   .tr .tb i { display: block; height: 100%; border-radius: 0.4cm; background: linear-gradient(90deg, #8B7BF0, #4F46E5); }
@@ -124,7 +137,7 @@
   /* 品質 */
   .badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6cm; margin-top: 0.9cm; }
   .badge { background: #fff; border-radius: 0.8cm; padding: 0.9cm 0.5cm 0.8cm; text-align: center; border: 0.05cm solid var(--line); }
-  .badge .ring { width: 5.8cm; height: 5.8cm; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+  .badge .ring { width: 5.4cm; height: 5.4cm; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
     background: conic-gradient(var(--c) 0 100%); padding: 0.45cm; }
   .badge .ring div { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
   .badge .v { font-family: "Segoe UI"; font-size: 2.1cm; font-weight: 700; line-height: 1; color: var(--c); }
@@ -132,7 +145,24 @@
   .badge h4 { font-size: 0.92cm; font-weight: 900; margin-top: 0.6cm; }
   .badge p { font-size: 0.66cm; color: var(--muted); line-height: 1.5; margin-top: 0.2cm; }
 
-  .foot { font-size: 0.62cm; color: var(--muted); line-height: 1.6; margin-top: auto; }
+
+  /* 區塊小標：英文標籤 + 短色條，建立段落節奏 */
+  .kick { display: flex; align-items: center; gap: 0.4cm; margin-bottom: 0.45cm; }
+  .kick i { width: 1.6cm; height: 0.22cm; border-radius: 0.11cm; background: linear-gradient(90deg, var(--brand), #A99BFF); }
+  .kick span { font-family: "Segoe UI"; font-size: 0.72cm; font-weight: 700; letter-spacing: 0.28em; color: var(--violet); }
+  /* 滿版色帶：讓長海報有明暗起伏，不再是一整排白卡片 */
+  .band { margin: 0 -2.4cm; padding: 1.5cm 2.4cm 1.5cm; position: relative; }
+  .band.lav { background: linear-gradient(180deg, #EEE9FD 0%, #F6F3FE 100%); }
+  .band.mint { background: linear-gradient(180deg, #E3F6F1 0%, #F2FBF8 100%); }
+  .band.mint .kick i { background: linear-gradient(90deg, var(--mint), #8FE3D3); }
+  .band.mint .kick span { color: var(--mint); }
+
+  .foot { margin-top: auto; display: grid; grid-template-columns: auto 1fr; gap: 0.8cm; align-items: center;
+    border-top: 0.05cm solid var(--line); padding-top: 0.6cm; }
+  .foot .sig { display: flex; align-items: center; gap: 0.35cm; font-size: 0.8cm; font-weight: 900; color: var(--ink); white-space: nowrap; }
+  .foot .sig svg { width: 1.3cm; height: 1.3cm; }
+  .foot .sig small { display: block; font-size: 0.6cm; font-weight: 700; color: var(--violet); }
+  .foot p { font-size: 0.56cm; color: var(--muted); line-height: 1.55; }
 </style>
 </head>
 <body>
@@ -179,21 +209,22 @@
           <div style="justify-content:center;color:var(--violet);font-weight:800">共 5 筆引用，點擊開啟原文</div>
         </div>
       </div></div>
-      <div class="float" style="left:1.2cm;top:21.6cm"><div class="v" style="color:var(--mint)">5 筆</div><div class="k">每個回答都附引用來源</div></div>
-      <div class="float" style="left:19.5cm;top:1.6cm"><div class="v" style="color:var(--brand)">7／30／90 天</div><div class="k">自選觀察期間、平台與關鍵字</div></div>
+      <div class="float" style="left:1.2cm;top:20.6cm"><div class="v" style="color:var(--mint)">5 筆</div><div class="k">每個回答都附引用來源</div></div>
+      <div class="float" style="left:15.6cm;top:1.0cm"><div class="v" style="color:var(--brand)">7／30／90 天</div><div class="k">自選觀察期間、平台與關鍵字</div></div>
     </div>
   </header>
 
   <section class="sec">
+    <div class="kick"><i></i><span>BY THE NUMBERS</span></div>
     <h2>已經整理了<br><em>10,370</em> 篇真實討論</h2>
     <div class="panel">
       <div class="scale">
         <div><svg class="donut" viewBox="0 0 100 100"><g transform="rotate(-90 50 50)"><circle cx="50" cy="50" r="40" fill="none" stroke="#3DBE9F" stroke-width="10" stroke-dasharray="84.95 166.37" stroke-dashoffset="-0.00"/><circle cx="50" cy="50" r="40" fill="none" stroke="#D9D5E6" stroke-width="10" stroke-dasharray="146.17 105.16" stroke-dashoffset="-85.55"/><circle cx="50" cy="50" r="40" fill="none" stroke="#E5736A" stroke-width="10" stroke-dasharray="18.40 232.93" stroke-dashoffset="-232.33"/></g><text x="50" y="49" text-anchor="middle" font-size="13" font-weight="800" fill="#1E1B4B" font-family="Segoe UI">34.0%</text><text x="50" y="62" text-anchor="middle" font-size="6.5" font-weight="600" fill="#514C6E">正面</text></svg><div class="legend3"><span><i class="pos"></i>正面 34.0%</span><span><i class="neu"></i>中性 58.4%</span><span><i class="neg"></i>負面 7.6%</span></div></div>
         <div>
-          <div class="kpi"><span class="v">6,364</span><span class="l">則留言也逐則判讀情緒</span></div>
-          <div class="kpi"><span class="v">10,317</span><span class="l">篇完成情緒判讀</span></div>
-          <div class="kpi"><span class="v">19,631</span><span class="l">段文字讓 AI 找得到相關內容</span></div>
-          <div class="kpi"><span class="v">22</span><span class="l">個看板、4 個平台</span></div>
+          <div class="kpi"><span class="ki" style="background:#C2508A"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="v">6,364</span><span class="l">則留言也逐則判讀情緒</span></div>
+          <div class="kpi"><span class="ki" style="background:#0A7D70"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg></span><span class="v">10,317</span><span class="l">篇完成情緒判讀</span></div>
+          <div class="kpi"><span class="ki" style="background:#C98512"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="v">19,631</span><span class="l">段文字讓 AI 找得到相關內容</span></div>
+          <div class="kpi"><span class="ki" style="background:#4F46E5"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="v">22</span><span class="l">個看板、4 個平台</span></div>
         </div>
       </div>
       <div class="plat-h">文章來自哪些平台</div>
@@ -204,24 +235,26 @@
 
   <section class="try">
     <img src="assets/qr.svg" alt="QR code">
-    <div><div class="t">拿起手機，<br>現在就試試看</div><div class="u">mebod.clouda.dpdns.org</div><p>訪客即可試用 Dashboard 與 AI 問答；登入後可設定監測預警。</p></div>
+    <div><div class="t">拿起手機，<br>現在就試試看</div><div class="u">mebod.clouda.dpdns.org</div><p>訪客就能試用儀表板與 AI 問答，<br>登入後還可設定負評預警。</p></div>
   </section>
 
-  <section class="sec">
-    <h2>大家到底<br>在聊<em>什麼</em>？</h2>
-    <p class="sub">泡泡越大，代表越多文章提到它。只統計 178 個醫美與保養專業詞，「昨天」「留言」這類雜詞不會出現。</p>
+  <section class="sec band lav">
+    <div class="kick"><i></i><span>TRENDING TOPICS</span></div>
+    <h2>大家到底在聊<em>什麼</em>？</h2>
+    <p class="sub">泡泡越大，代表越多文章提到；只統計 178 個醫美與保養專業詞。</p>
     <div class="panel">
-      <svg class="bubbles" viewBox="-78.7 -35.2 151.2 74.4"><circle cx="0.0" cy="0.0" r="14.0" fill="#0A7D70" fill-opacity="0.92"/><text x="0.0" y="-0.7" text-anchor="middle" font-size="5.9" font-weight="800" fill="#fff">皮膚</text><text x="0.0" y="5.6" text-anchor="middle" font-size="2.9" font-weight="600" fill="#fff" fill-opacity="0.85">1,902 篇</text><circle cx="28.7" cy="0.0" r="13.5" fill="#4F46E5" fill-opacity="0.92"/><text x="28.7" y="-0.7" text-anchor="middle" font-size="5.7" font-weight="800" fill="#fff">保濕</text><text x="28.7" y="5.4" text-anchor="middle" font-size="2.8" font-weight="600" fill="#fff" fill-opacity="0.85">1,782 篇</text><circle cx="-27.6" cy="0.0" r="12.4" fill="#4F46E5" fill-opacity="0.92"/><text x="-27.6" y="-0.6" text-anchor="middle" font-size="5.2" font-weight="800" fill="#fff">保養</text><text x="-27.6" y="5.0" text-anchor="middle" font-size="2.6" font-weight="600" fill="#fff" fill-opacity="0.85">1,511 篇</text><circle cx="15.6" cy="-22.7" r="11.5" fill="#4F46E5" fill-opacity="0.92"/><text x="15.6" y="-23.3" text-anchor="middle" font-size="4.8" font-weight="800" fill="#fff">質地</text><text x="15.6" y="-18.1" text-anchor="middle" font-size="2.4" font-weight="600" fill="#fff" fill-opacity="0.85">1,293 篇</text><circle cx="-15.2" cy="21.7" r="11.3" fill="#4F46E5" fill-opacity="0.92"/><text x="-15.2" y="21.1" text-anchor="middle" font-size="4.8" font-weight="800" fill="#fff">精華</text><text x="-15.2" y="26.2" text-anchor="middle" font-size="2.4" font-weight="600" fill="#fff" fill-opacity="0.85">1,255 篇</text><circle cx="14.3" cy="20.4" r="9.7" fill="#4F46E5" fill-opacity="0.92"/><text x="14.3" y="20.0" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">保養品</text><text x="14.3" y="23.7" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">922 篇</text><circle cx="-14.2" cy="-20.3" r="9.6" fill="#C2508A" fill-opacity="0.92"/><text x="-14.2" y="-20.7" text-anchor="middle" font-size="4.0" font-weight="800" fill="#fff">底妝</text><text x="-14.2" y="-16.4" text-anchor="middle" font-size="2.0" font-weight="600" fill="#fff" fill-opacity="0.85">897 篇</text><circle cx="-50.6" cy="0.0" r="9.4" fill="#4F46E5" fill-opacity="0.92"/><text x="-50.6" y="-0.5" text-anchor="middle" font-size="3.9" font-weight="800" fill="#fff">防曬</text><text x="-50.6" y="3.7" text-anchor="middle" font-size="2.0" font-weight="600" fill="#fff" fill-opacity="0.85">856 篇</text><circle cx="52.6" cy="0.0" r="9.2" fill="#C2508A" fill-opacity="0.92"/><text x="52.6" y="-0.5" text-anchor="middle" font-size="3.9" font-weight="800" fill="#fff">遮瑕</text><text x="52.6" y="3.7" text-anchor="middle" font-size="1.9" font-weight="600" fill="#fff" fill-opacity="0.85">827 篇</text><circle cx="-40.6" cy="-18.6" r="9.0" fill="#C98512" fill-opacity="0.92"/><text x="-40.6" y="-19.0" text-anchor="middle" font-size="3.8" font-weight="800" fill="#fff">醫美</text><text x="-40.6" y="-15.0" text-anchor="middle" font-size="1.9" font-weight="600" fill="#fff" fill-opacity="0.85">795 篇</text><circle cx="-40.5" cy="18.4" r="8.9" fill="#C98512" fill-opacity="0.92"/><text x="-40.5" y="18.0" text-anchor="middle" font-size="3.7" font-weight="800" fill="#fff">診所</text><text x="-40.5" y="22.0" text-anchor="middle" font-size="1.9" font-weight="600" fill="#fff" fill-opacity="0.85">767 篇</text><circle cx="44.5" cy="-17.3" r="8.6" fill="#C2508A" fill-opacity="0.92"/><text x="44.5" y="-17.7" text-anchor="middle" font-size="3.6" font-weight="800" fill="#fff">妝感</text><text x="44.5" y="-13.8" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">728 篇</text><circle cx="44.6" cy="17.2" r="8.5" fill="#0A7D70" fill-opacity="0.92"/><text x="44.6" y="16.7" text-anchor="middle" font-size="3.6" font-weight="800" fill="#fff">毛孔</text><text x="44.6" y="20.6" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">711 篇</text><circle cx="-59.2" cy="-16.9" r="8.4" fill="#4F46E5" fill-opacity="0.92"/><text x="-59.2" y="-17.4" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">吸收</text><text x="-59.2" y="-13.6" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">690 篇</text><circle cx="-60.0" cy="16.4" r="8.3" fill="#0A7D70" fill-opacity="0.92"/><text x="-60.0" y="15.9" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">肌膚</text><text x="-60.0" y="19.7" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">679 篇</text><circle cx="-69.4" cy="0.0" r="8.3" fill="#4F46E5" fill-opacity="0.92"/><text x="-69.4" y="-0.4" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">乳液</text><text x="-69.4" y="3.3" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">670 篇</text><circle cx="30.9" cy="30.0" r="8.3" fill="#C2508A" fill-opacity="0.92"/><text x="30.9" y="29.5" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">粉底</text><text x="30.9" y="33.3" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">666 篇</text><circle cx="63.2" cy="15.2" r="8.2" fill="#4F46E5" fill-opacity="0.92"/><text x="63.2" y="14.8" text-anchor="middle" font-size="3.4" font-weight="800" fill="#fff">清爽</text><text x="63.2" y="18.5" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">657 篇</text></svg>
+      <svg class="bubbles" viewBox="-77.2 -34.8 148.4 74.3"><defs><radialGradient id="bg0" cx="0.3" cy="0.22" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="0.45" stop-color="#4F46E5" stop-opacity="0.95"/><stop offset="1" stop-color="#4F46E5"/></radialGradient><radialGradient id="bg1" cx="0.3" cy="0.22" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="0.45" stop-color="#C2508A" stop-opacity="0.95"/><stop offset="1" stop-color="#C2508A"/></radialGradient><radialGradient id="bg2" cx="0.3" cy="0.22" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="0.45" stop-color="#0A7D70" stop-opacity="0.95"/><stop offset="1" stop-color="#0A7D70"/></radialGradient><radialGradient id="bg3" cx="0.3" cy="0.22" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="0.45" stop-color="#C98512" stop-opacity="0.95"/><stop offset="1" stop-color="#C98512"/></radialGradient><radialGradient id="bg4" cx="0.3" cy="0.22" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="0.45" stop-color="#6D4AE0" stop-opacity="0.95"/><stop offset="1" stop-color="#6D4AE0"/></radialGradient><radialGradient id="bg5" cx="0.3" cy="0.22" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.42"/><stop offset="0.45" stop-color="#7C7896" stop-opacity="0.95"/><stop offset="1" stop-color="#7C7896"/></radialGradient></defs><circle cx="0.0" cy="1.7" r="14.0" fill="#0A7D70" fill-opacity="0.18"/><circle cx="0.0" cy="0.0" r="14.0" fill="url(#bg2)"/><text x="0.0" y="-0.7" text-anchor="middle" font-size="5.9" font-weight="800" fill="#fff">皮膚</text><text x="0.0" y="5.6" text-anchor="middle" font-size="2.9" font-weight="600" fill="#fff" fill-opacity="0.85">1,902 篇</text><circle cx="28.2" cy="1.6" r="13.5" fill="#4F46E5" fill-opacity="0.18"/><circle cx="28.2" cy="0.0" r="13.5" fill="url(#bg0)"/><text x="28.2" y="-0.7" text-anchor="middle" font-size="5.7" font-weight="800" fill="#fff">保濕</text><text x="28.2" y="5.4" text-anchor="middle" font-size="2.8" font-weight="600" fill="#fff" fill-opacity="0.85">1,782 篇</text><circle cx="-27.1" cy="1.5" r="12.4" fill="#4F46E5" fill-opacity="0.18"/><circle cx="-27.1" cy="0.0" r="12.4" fill="url(#bg0)"/><text x="-27.1" y="-0.6" text-anchor="middle" font-size="5.2" font-weight="800" fill="#fff">保養</text><text x="-27.1" y="5.0" text-anchor="middle" font-size="2.6" font-weight="600" fill="#fff" fill-opacity="0.85">1,511 篇</text><circle cx="15.3" cy="-20.9" r="11.5" fill="#4F46E5" fill-opacity="0.18"/><circle cx="15.3" cy="-22.3" r="11.5" fill="url(#bg0)"/><text x="15.3" y="-22.8" text-anchor="middle" font-size="4.8" font-weight="800" fill="#fff">質地</text><text x="15.3" y="-17.7" text-anchor="middle" font-size="2.4" font-weight="600" fill="#fff" fill-opacity="0.85">1,293 篇</text><circle cx="-14.9" cy="22.7" r="11.3" fill="#4F46E5" fill-opacity="0.18"/><circle cx="-14.9" cy="21.3" r="11.3" fill="url(#bg0)"/><text x="-14.9" y="20.7" text-anchor="middle" font-size="4.8" font-weight="800" fill="#fff">精華</text><text x="-14.9" y="25.8" text-anchor="middle" font-size="2.4" font-weight="600" fill="#fff" fill-opacity="0.85">1,255 篇</text><circle cx="14.0" cy="21.1" r="9.7" fill="#4F46E5" fill-opacity="0.18"/><circle cx="14.0" cy="20.0" r="9.7" fill="url(#bg0)"/><text x="14.0" y="19.5" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">保養品</text><text x="14.0" y="23.3" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">922 篇</text><circle cx="-13.9" cy="-18.7" r="9.6" fill="#C2508A" fill-opacity="0.18"/><circle cx="-13.9" cy="-19.9" r="9.6" fill="url(#bg1)"/><text x="-13.9" y="-20.3" text-anchor="middle" font-size="4.0" font-weight="800" fill="#fff">底妝</text><text x="-13.9" y="-16.0" text-anchor="middle" font-size="2.0" font-weight="600" fill="#fff" fill-opacity="0.85">897 篇</text><circle cx="-49.6" cy="1.1" r="9.4" fill="#4F46E5" fill-opacity="0.18"/><circle cx="-49.6" cy="0.0" r="9.4" fill="url(#bg0)"/><text x="-49.6" y="-0.5" text-anchor="middle" font-size="3.9" font-weight="800" fill="#fff">防曬</text><text x="-49.6" y="3.7" text-anchor="middle" font-size="2.0" font-weight="600" fill="#fff" fill-opacity="0.85">856 篇</text><circle cx="51.6" cy="1.1" r="9.2" fill="#C2508A" fill-opacity="0.18"/><circle cx="51.6" cy="0.0" r="9.2" fill="url(#bg1)"/><text x="51.6" y="-0.5" text-anchor="middle" font-size="3.9" font-weight="800" fill="#fff">遮瑕</text><text x="51.6" y="3.7" text-anchor="middle" font-size="1.9" font-weight="600" fill="#fff" fill-opacity="0.85">827 篇</text><circle cx="-39.8" cy="-17.1" r="9.0" fill="#C98512" fill-opacity="0.18"/><circle cx="-39.8" cy="-18.2" r="9.0" fill="url(#bg3)"/><text x="-39.8" y="-18.6" text-anchor="middle" font-size="3.8" font-weight="800" fill="#fff">醫美</text><text x="-39.8" y="-14.6" text-anchor="middle" font-size="1.9" font-weight="600" fill="#fff" fill-opacity="0.85">795 篇</text><circle cx="-39.7" cy="19.1" r="8.9" fill="#C98512" fill-opacity="0.18"/><circle cx="-39.7" cy="18.0" r="8.9" fill="url(#bg3)"/><text x="-39.7" y="17.6" text-anchor="middle" font-size="3.7" font-weight="800" fill="#fff">診所</text><text x="-39.7" y="21.6" text-anchor="middle" font-size="1.9" font-weight="600" fill="#fff" fill-opacity="0.85">767 篇</text><circle cx="43.7" cy="-15.8" r="8.6" fill="#C2508A" fill-opacity="0.18"/><circle cx="43.7" cy="-16.8" r="8.6" fill="url(#bg1)"/><text x="43.7" y="-17.2" text-anchor="middle" font-size="3.6" font-weight="800" fill="#fff">妝感</text><text x="43.7" y="-13.4" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">728 篇</text><circle cx="43.8" cy="17.7" r="8.5" fill="#0A7D70" fill-opacity="0.18"/><circle cx="43.8" cy="16.7" r="8.5" fill="url(#bg2)"/><text x="43.8" y="16.3" text-anchor="middle" font-size="3.6" font-weight="800" fill="#fff">毛孔</text><text x="43.8" y="20.1" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">711 篇</text><circle cx="-57.9" cy="-15.6" r="8.4" fill="#4F46E5" fill-opacity="0.18"/><circle cx="-57.9" cy="-16.6" r="8.4" fill="url(#bg0)"/><text x="-57.9" y="-17.0" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">吸收</text><text x="-57.9" y="-13.2" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">690 篇</text><circle cx="-58.8" cy="16.9" r="8.3" fill="#0A7D70" fill-opacity="0.18"/><circle cx="-58.8" cy="15.9" r="8.3" fill="url(#bg2)"/><text x="-58.8" y="15.5" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">肌膚</text><text x="-58.8" y="19.3" text-anchor="middle" font-size="1.8" font-weight="600" fill="#fff" fill-opacity="0.85">679 篇</text><circle cx="-67.9" cy="1.0" r="8.3" fill="#4F46E5" fill-opacity="0.18"/><circle cx="-67.9" cy="0.0" r="8.3" fill="url(#bg0)"/><text x="-67.9" y="-0.4" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">乳液</text><text x="-67.9" y="3.3" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">670 篇</text><circle cx="30.2" cy="30.3" r="8.3" fill="#C2508A" fill-opacity="0.18"/><circle cx="30.2" cy="29.3" r="8.3" fill="url(#bg1)"/><text x="30.2" y="28.9" text-anchor="middle" font-size="3.5" font-weight="800" fill="#fff">粉底</text><text x="30.2" y="32.6" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">666 篇</text><circle cx="62.0" cy="15.8" r="8.2" fill="#4F46E5" fill-opacity="0.18"/><circle cx="62.0" cy="14.8" r="8.2" fill="url(#bg0)"/><text x="62.0" y="14.4" text-anchor="middle" font-size="3.4" font-weight="800" fill="#fff">清爽</text><text x="62.0" y="18.1" text-anchor="middle" font-size="1.7" font-weight="600" fill="#fff" fill-opacity="0.85">657 篇</text></svg>
       <div class="bleg"><span><i style="background:#0A7D70"></i>肌膚</span><span><i style="background:#4F46E5"></i>保養</span><span><i style="background:#C2508A"></i>彩妝</span><span><i style="background:#C98512"></i>醫療</span></div>
     </div>
     <div class="panel rank">
       <h3>醫美療程聲量排行<small>（提到該療程的文章數）</small></h3>
-      <div class="tr"><span class="rk">1</span><span class="tw">玻尿酸</span><span class="tb"><i style="width:100.0%"></i></span><span class="tn">349 篇</span></div><div class="tr"><span class="rk">2</span><span class="tw">雷射</span><span class="tb"><i style="width:80.2%"></i></span><span class="tn">280 篇</span></div><div class="tr"><span class="rk">3</span><span class="tw">音波</span><span class="tb"><i style="width:58.2%"></i></span><span class="tn">203 篇</span></div><div class="tr"><span class="rk">4</span><span class="tw">電波</span><span class="tb"><i style="width:57.0%"></i></span><span class="tn">199 篇</span></div><div class="tr"><span class="rk">5</span><span class="tw">肉毒</span><span class="tb"><i style="width:52.4%"></i></span><span class="tn">183 篇</span></div><div class="tr"><span class="rk">6</span><span class="tw">淚溝</span><span class="tb"><i style="width:43.8%"></i></span><span class="tn">153 篇</span></div><div class="tr"><span class="rk">7</span><span class="tw">法令紋</span><span class="tb"><i style="width:43.3%"></i></span><span class="tn">151 篇</span></div><div class="tr"><span class="rk">8</span><span class="tw">皮秒</span><span class="tb"><i style="width:35.5%"></i></span><span class="tn">124 篇</span></div>
+      <div class="podium"><div class="pod" style="--m:#4F46E5"><span class="medal">1</span><div class="pw">玻尿酸</div><div class="pn"><b>349</b> 篇</div><div class="pb"><i style="width:100.0%"></i></div></div><div class="pod" style="--m:#6D4AE0"><span class="medal">2</span><div class="pw">雷射</div><div class="pn"><b>280</b> 篇</div><div class="pb"><i style="width:80.2%"></i></div></div><div class="pod" style="--m:#C2508A"><span class="medal">3</span><div class="pw">音波</div><div class="pn"><b>203</b> 篇</div><div class="pb"><i style="width:58.2%"></i></div></div></div><div class="tr"><span class="rk">4</span><span class="tw">電波</span><span class="tb"><i style="width:57.0%"></i></span><span class="tn">199 篇</span></div><div class="tr"><span class="rk">5</span><span class="tw">肉毒</span><span class="tb"><i style="width:52.4%"></i></span><span class="tn">183 篇</span></div><div class="tr"><span class="rk">6</span><span class="tw">淚溝</span><span class="tb"><i style="width:43.8%"></i></span><span class="tn">153 篇</span></div><div class="tr"><span class="rk">7</span><span class="tw">法令紋</span><span class="tb"><i style="width:43.3%"></i></span><span class="tn">151 篇</span></div><div class="tr"><span class="rk">8</span><span class="tw">皮秒</span><span class="tb"><i style="width:35.5%"></i></span><span class="tn">124 篇</span></div>
     </div>
   </section>
 
   <section class="sec">
-    <h2>一鍵產出<br>輿情報告</h2>
+    <div class="kick"><i></i><span>ONE-CLICK REPORT</span></div>
+    <h2>一鍵產出<em>輿情報告</em></h2>
     <p class="sub">總覽指標、情緒比例、AI 摘要、熱門話題與消費者痛點，自動排版成可列印的報告。</p>
     <div class="paper"><div class="sheet"><img src="assets/shot-report.png" alt="輿情分析報告實際畫面"></div></div>
     <div class="feats">
@@ -232,8 +265,9 @@
     </div>
   </section>
 
-  <section class="sec">
-    <h2>結果可信，<br>經得起檢驗</h2>
+  <section class="sec band mint">
+    <div class="kick"><i></i><span>VERIFIED</span></div>
+    <h2>結果可信，經得起檢驗</h2>
     <div class="badges">
       <div class="badge" style="--c:#4F46E5"><div class="ring"><div><span class="v">533</span><span class="u">項全部通過</span></div></div>
         <h4>自動化測試</h4><p>後端 490 項、前端 43 項<br>（另 1 項略過）</p></div>
@@ -244,7 +278,7 @@
     </div>
   </section>
 
-  <div class="foot">統計數字查詢自本系統資料庫（115/10/09）；介面畫面為 115/10/07 實際系統截圖，手機畫面依同一次 AI 回答內容重繪。系統定位為資訊整理與行銷觀察工具，不提供醫療建議。</div>
+  <div class="foot"><div class="sig"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="27" fill="#4F46E5"/><path d="M30 17 L33 26 L42 29 L33 32 L30 41 L27 32 L18 29 L27 26 Z" fill="#fff"/><rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg><div><span class="latin">MeBOD</span><small>第115405組</small></div></div><p>統計數字查詢自本系統資料庫（115/10/09）；介面畫面為 115/10/07 實際系統截圖，手機畫面依同一次 AI 回答內容重繪。系統定位為資訊整理與行銷觀察工具，不提供醫療建議。</p></div>
 </div>
 </body>
 </html>
