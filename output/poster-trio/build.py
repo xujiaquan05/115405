@@ -159,7 +159,7 @@ def donut(cls: str, label_top: str, label_bottom: str, thickness: float = 9, big
     return "".join(parts)
 
 
-def treatment_rows() -> str:
+def treatment_rows(podium_only: bool = False) -> str:
     """療程排行：前三名做成獎台卡片，其餘用橫條。"""
     rows = DATA["top_treatments"]
     peak = rows[0][1]
@@ -172,6 +172,8 @@ def treatment_rows() -> str:
             f'<div class="pb"><i style="width:{n / peak * 100:.1f}%"></i></div></div>'
         )
     out = ['<div class="podium">' + "".join(podium) + "</div>"]
+    if podium_only:
+        return out[0]
     for i, (word, n) in enumerate(rows[3:], 4):
         out.append(
             f'<div class="tr"><span class="rk">{i}</span><span class="tw">{word}</span>'
@@ -230,6 +232,7 @@ def values() -> dict[str, str]:
         "DONUT_MINI": donut("mini-donut", "情緒", "", 13, big_label=True),
         "TREATMENTS": treatment_rows(),
         "TREAT_MINI": treatment_mini(),
+        "TREAT_PODIUM": treatment_rows(podium_only=True),
     }
 
 

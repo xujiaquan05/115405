@@ -15,12 +15,12 @@
       radial-gradient(30cm 30cm at 100% 75%, rgba(252,217,209,0.45) 0%, rgba(252,217,209,0) 70%),
       var(--paper); }
   .wrap { position: absolute; z-index: 1; left: 2.4cm; right: 2.4cm; top: 2.4cm; bottom: 2.2cm;
-    display: flex; flex-direction: column; gap: 0.95cm; }
+    display: flex; flex-direction: column; gap: 0.7cm; }
   .wrap > * { flex-shrink: 0; }
 
   .brand { display: flex; align-items: center; gap: 0.45cm; font-size: 0.9cm; font-weight: 800; color: var(--violet); letter-spacing: 0.08em; }
   .brand svg { width: 1.5cm; height: 1.5cm; }
-  h1 { font-size: 3.7cm; font-weight: 900; line-height: 1.12; letter-spacing: 0.02em; margin-top: 0.7cm; }
+  h1 { font-size: 3.4cm; font-weight: 900; line-height: 1.12; letter-spacing: 0.02em; margin-top: 0.7cm; }
   h1 em { font-style: normal; color: var(--brand); }
   .lede { font-size: 1.1cm; font-weight: 600; color: var(--ink-2); line-height: 1.55; margin-top: 0.6cm; }
   .lede b { color: var(--ink); }
@@ -29,7 +29,7 @@
   .deco { position: absolute; right: -1.2cm; top: 1.4cm; width: 15cm; height: 9.3cm; }
 
   /* 裝置示意：筆電放實際畫面，手機以向量重現實際 AI 回答內容 */
-  .devices { position: relative; height: 25.4cm; margin-top: 0.4cm; }
+  .devices { position: relative; height: 23.4cm; margin-top: 0.4cm; }
   .laptop { position: absolute; left: 0; top: 0.6cm; width: 33cm; }
   .laptop .lid { background: #1B1733; border-radius: 0.9cm 0.9cm 0.2cm 0.2cm; padding: 0.75cm 0.75cm 0.9cm;
     box-shadow: 0 1cm 2cm rgba(30,27,75,0.25); }
@@ -39,7 +39,7 @@
   .laptop .base::before { content: ""; position: absolute; left: 50%; top: 0; width: 5cm; height: 0.35cm; margin-left: -2.5cm;
     background: #A39CBB; border-radius: 0 0 0.3cm 0.3cm; }
 
-  .phone { position: absolute; right: -0.4cm; top: 5.6cm; width: 11.4cm; height: 19.6cm; background: #1B1733;
+  .phone { position: absolute; right: -0.4cm; top: 4.4cm; width: 11cm; height: 18.6cm; background: #1B1733;
     border-radius: 1.6cm; padding: 0.55cm; box-shadow: 0 1cm 2.2cm rgba(30,27,75,0.35); }
   .screen { width: 100%; height: 100%; background: #F7F6FB; border-radius: 1.15cm; overflow: hidden; padding: 0.9cm 0.6cm 0.6cm; }
   .screen .bar { display: flex; align-items: center; gap: 0.3cm; font-size: 0.62cm; font-weight: 800; color: var(--ink); padding-bottom: 0.35cm; border-bottom: 0.03cm solid #E3DEF6; }
@@ -62,15 +62,15 @@
   .float .k { font-size: 0.66cm; font-weight: 700; color: var(--muted); margin-top: 0.15cm; }
 
   /* 通用區塊 */
-  .sec h2 { font-size: 2.1cm; font-weight: 900; letter-spacing: 0.02em; line-height: 1.25; }
+  .sec h2 { font-size: 1.9cm; font-weight: 900; letter-spacing: 0.02em; line-height: 1.25; }
   .sec h2 em { font-style: normal; color: var(--brand); }
   .sec .sub { font-size: 0.95cm; color: var(--ink-2); line-height: 1.55; margin-top: 0.35cm; }
   .panel { background: #fff; border-radius: 0.9cm; border: 0.05cm solid var(--line); padding: 1.1cm;
     box-shadow: 0 0.5cm 1.4cm rgba(46,36,110,0.07); margin-top: 0.9cm; }
 
   /* 規模 */
-  .scale { display: grid; grid-template-columns: 13.5cm 1fr; gap: 1cm; align-items: center; }
-  .donut { width: 13.5cm; height: 13.5cm; }
+  .scale { display: grid; grid-template-columns: 12cm 1fr; gap: 1cm; align-items: center; }
+  .donut { width: 12cm; height: 12cm; }
   .kpi { display: flex; align-items: center; gap: 0.3cm; padding: 0.42cm 0; border-bottom: 0.04cm dashed var(--line); }
   .kpi:last-child { border-bottom: 0; }
   .kpi .ki { width: 1.25cm; height: 1.25cm; border-radius: 0.35cm; display: grid; place-items: center; flex: none; margin-right: 0.15cm; }
@@ -87,18 +87,19 @@
   .pos { background: #3DBE9F; } .neu { background: #D9D5E6; } .neg { background: #E5736A; }
 
   /* QR */
-  .try { background: var(--night); color: #fff; border-radius: 1cm; padding: 1.2cm; display: grid; grid-template-columns: 11cm 1fr;
+  .try { background: var(--night); color: #fff; border-radius: 1cm; padding: 1.0cm; display: grid; grid-template-columns: 10cm 1fr;
     gap: 1.1cm; align-items: center; position: relative; overflow: hidden;
     background: radial-gradient(16cm 14cm at 100% 0%, rgba(109,74,224,0.6) 0%, rgba(109,74,224,0) 100%), var(--night); }
-  .try img { width: 11cm; height: 11cm; border-radius: 0.5cm; display: block; }
+  .try img { width: 10cm; height: 10cm; border-radius: 0.5cm; display: block; }
   .try .t { font-size: 2.0cm; font-weight: 900; line-height: 1.2; }
   .try .u { font-family: "Segoe UI"; font-size: 0.85cm; color: #8FE3D3; margin-top: 0.5cm; }
   .try p { font-size: 0.82cm; color: #D9D4F3; margin-top: 0.4cm; line-height: 1.55; }
 
   /* 話題 */
-  .bubbles { width: 100%; height: 16.5cm; display: block; }
+  .bubbles { width: 100%; height: 12.4cm; display: block; }
   .bleg { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25cm 0.9cm; margin-top: 0.5cm; font-size: 0.8cm; font-weight: 700; color: var(--ink-2); }
   .bleg i { display: inline-block; width: 0.55cm; height: 0.55cm; border-radius: 50%; margin-right: 0.2cm; vertical-align: -0.05cm; }
+  .rank { border-top: 0.05cm dashed var(--line); margin-top: 0.8cm; padding-top: 0.8cm; }
   .rank h3 { font-size: 1.15cm; font-weight: 900; margin-bottom: 0.5cm; }
   .rank h3 small { font-size: 0.75cm; font-weight: 600; color: var(--muted); margin-left: 0.3cm; }
   .tr { display: grid; grid-template-columns: 1.3cm 4.2cm 1fr 3.3cm; align-items: center; gap: 0.35cm; margin-top: 0.42cm; }
@@ -137,10 +138,10 @@
   /* 品質 */
   .badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6cm; margin-top: 0.9cm; }
   .badge { background: #fff; border-radius: 0.8cm; padding: 0.9cm 0.5cm 0.8cm; text-align: center; border: 0.05cm solid var(--line); }
-  .badge .ring { width: 5.4cm; height: 5.4cm; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+  .badge .ring { width: 5.2cm; height: 5.2cm; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
     background: conic-gradient(var(--c) 0 100%); padding: 0.45cm; }
   .badge .ring div { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
-  .badge .v { font-family: "Segoe UI"; font-size: 2.1cm; font-weight: 700; line-height: 1; color: var(--c); }
+  .badge .v { font-family: "Segoe UI"; font-size: 1.7cm; font-weight: 700; line-height: 1; color: var(--c); }
   .badge .u { font-size: 0.66cm; font-weight: 800; color: var(--muted); margin-top: 0.15cm; }
   .badge h4 { font-size: 0.92cm; font-weight: 900; margin-top: 0.6cm; }
   .badge p { font-size: 0.66cm; color: var(--muted); line-height: 1.5; margin-top: 0.2cm; }
@@ -151,11 +152,62 @@
   .kick i { width: 1.6cm; height: 0.22cm; border-radius: 0.11cm; background: linear-gradient(90deg, var(--brand), #A99BFF); }
   .kick span { font-family: "Segoe UI"; font-size: 0.72cm; font-weight: 700; letter-spacing: 0.28em; color: var(--violet); }
   /* 滿版色帶：讓長海報有明暗起伏，不再是一整排白卡片 */
-  .band { margin: 0 -2.4cm; padding: 1.5cm 2.4cm 1.5cm; position: relative; }
+  .band { margin: 0 -2.4cm; padding: 1.2cm 2.4cm 1.25cm; position: relative; }
   .band.lav { background: linear-gradient(180deg, #EEE9FD 0%, #F6F3FE 100%); }
   .band.mint { background: linear-gradient(180deg, #E3F6F1 0%, #F2FBF8 100%); }
   .band.mint .kick i { background: linear-gradient(90deg, var(--mint), #8FE3D3); }
   .band.mint .kick span { color: var(--mint); }
+
+
+  /* 情境示意：時間軸 */
+  .story3 .who3 { display: flex; align-items: center; gap: 0.6cm; margin-top: 0.6cm; }
+  .story3 .who3 svg { width: 2.9cm; height: 2.9cm; flex: none; }
+  .story3 .who3 b { font-size: 1.0cm; font-weight: 900; }
+  .story3 .who3 span { display: block; font-size: 0.8cm; color: var(--muted); margin-top: 0.1cm; }
+  .story3 .who3 .was { color: #8E3A2D; font-weight: 700; margin-top: 0.3cm; }
+  .story3 .who3 .was b { background: var(--coral); color: #fff; border-radius: 999px; padding: 0.02cm 0.35cm; font-size: 0.66cm; margin-right: 0.25cm; }
+  .before3 { margin-top: 0.7cm; display: flex; align-items: center; gap: 0.4cm; background: var(--coral-bg); border-radius: 0.5cm;
+    padding: 0.45cm 0.7cm; font-size: 0.85cm; font-weight: 700; color: #8E3A2D; }
+  .before3 b { background: var(--coral); color: #fff; border-radius: 999px; padding: 0.05cm 0.4cm; font-size: 0.7cm; flex: none; }
+  .tl { position: relative; margin-top: 0.8cm; padding-left: 5.4cm; }
+  .tl::before { content: ""; position: absolute; left: 4.15cm; top: 0.6cm; bottom: 1.2cm; width: 0.12cm; border-radius: 0.06cm;
+    background: linear-gradient(180deg, var(--brand), #3DBE9F); }
+  .stp { position: relative; margin-bottom: 0.45cm; background: #fff; border-radius: 0.7cm; border: 0.05cm solid var(--line);
+    padding: 0.55cm 0.8cm; box-shadow: 0 0.35cm 0.9cm rgba(46,36,110,0.08); }
+  .stp .tm { position: absolute; left: -5.4cm; top: 0.5cm; width: 3.6cm; text-align: right; font-family: "Segoe UI"; font-size: 1.15cm; font-weight: 700; color: var(--brand); }
+  .stp .dot { position: absolute; left: -1.62cm; top: 0.75cm; width: 0.75cm; height: 0.75cm; border-radius: 50%; background: #fff; border: 0.2cm solid var(--brand); }
+  .stp h4 { font-size: 1.05cm; font-weight: 900; }
+  .stp p { font-size: 0.8cm; color: var(--muted); line-height: 1.5; margin-top: 0.15cm; }
+  .ui { margin-top: 0.35cm; }
+  .ui.search { display: flex; gap: 0.3cm; align-items: center; background: var(--lav); border-radius: 0.4cm; padding: 0.3cm 0.4cm; font-size: 0.72cm; }
+  .ui.search .chip { background: #fff; border: 0.04cm solid var(--line); border-radius: 0.25cm; padding: 0.05cm 0.35cm; font-weight: 800; }
+  .ui.search .go { margin-left: auto; background: var(--night); color: #fff; border-radius: 0.25cm; padding: 0.08cm 0.45cm; font-weight: 800; }
+  .ui.alert { display: flex; align-items: center; gap: 0.35cm; background: #FDECE9; border: 0.05cm solid #F4C3BA; border-radius: 0.4cm; padding: 0.3cm 0.45cm; font-size: 0.74cm; font-weight: 800; color: #9B3526; }
+  .ui.alert i { width: 0.55cm; height: 0.55cm; border-radius: 50%; background: var(--coral); flex: none; }
+  .ui.chat { display: grid; gap: 0.25cm; font-size: 0.72cm; }
+  .ui.chat .u { justify-self: end; background: var(--brand); color: #fff; border-radius: 0.35cm 0.35cm 0.08cm 0.35cm; padding: 0.2cm 0.45cm; font-weight: 700; }
+  .ui.chat .a { background: var(--lav); border-radius: 0.35cm 0.35cm 0.35cm 0.08cm; padding: 0.25cm 0.45cm; line-height: 1.5; }
+  .ui.chat .a em { font-style: normal; color: var(--mint); font-weight: 800; }
+  .ui.rep { display: grid; grid-template-columns: 8cm 1fr; gap: 0.5cm; align-items: center; }
+  .ui.rep img { width: 100%; border-radius: 0.3cm; border: 0.04cm solid var(--line); box-shadow: 0 0.2cm 0.5cm rgba(46,36,110,0.12); transform: rotate(-2deg); }
+  .ui.rep span { font-size: 0.72cm; font-weight: 800; color: var(--violet); line-height: 1.6; }
+  .demo-note { font-size: 0.62cm; color: var(--muted); margin-top: 0.1cm; }
+
+  /* 下一步 */
+  .road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45cm; margin-top: 0.8cm; }
+  .rd { background: #fff; border-radius: 0.7cm; border: 0.05cm solid var(--line); padding: 0.7cm 0.6cm; text-align: center; }
+  .rd .ic { width: 2.3cm; height: 2.3cm; border-radius: 0.7cm; display: grid; place-items: center; margin: 0 auto 0.4cm; }
+  .rd .ic svg { width: 1.25cm; height: 1.25cm; }
+  .rd h4 { font-size: 0.95cm; font-weight: 900; }
+  .rd h4 small { display: inline-block; font-size: 0.58cm; font-weight: 800; color: var(--violet); background: var(--lav); border-radius: 999px; padding: 0.03cm 0.3cm; margin-top: 0.2cm; }
+  .rd p { font-size: 0.72cm; color: var(--muted); line-height: 1.45; margin-top: 0.2cm; }
+  .agent { margin-top: 0.5cm; border-radius: 0.8cm; padding: 0.75cm 0.9cm; color: #fff;
+    background: radial-gradient(14cm 10cm at 100% 0%, rgba(109,74,224,0.6) 0%, rgba(109,74,224,0) 100%), var(--night); }
+  .agent h4 { font-size: 1.05cm; font-weight: 900; }
+  .agent ul { list-style: none; margin-top: 0.4cm; display: grid; gap: 0.25cm; }
+  .agent li { font-size: 0.8cm; line-height: 1.45; color: #E4E0FA; padding-left: 0.9cm; position: relative; }
+  .agent li::before { content: "✓"; position: absolute; left: 0; color: #8FE3D3; font-weight: 900; }
+  .agent li b { color: #fff; }
 
   .foot { margin-top: auto; display: grid; grid-template-columns: auto 1fr; gap: 0.8cm; align-items: center;
     border-top: 0.05cm solid var(--line); padding-top: 0.6cm; }
@@ -202,21 +254,37 @@
         <div class="bar"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="27" fill="#4F46E5"/><rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg>AI 問答</div>
         <div class="msg-u">請整理三個消費者關注重點，並提出一項行銷建議，附上資料來源。</div>
         <div class="msg-a"><h6>重點整理</h6><ul><li>赴韓醫美的真實經驗與潛在風險</li><li>療程的痛感與恢復期</li><li>毛孔、凹疤、細紋的改善需求</li></ul>
-          <div class="tip">建議：製作「韓國醫美經驗分享」系列，誠實呈現優缺點與術後恢復。</div></div>
+          <div class="tip">建議：製作「韓國醫美經驗分享」系列內容。</div></div>
         <div class="srcs">
           <div><b>threads</b>韓國醫美・推 5824<span class="s" style="background:#FDE2DE;color:#B93E2E">負面</span></div>
-          <div><b>threads</b>韓國醫美・推 5483<span class="s" style="background:#DDF5EC;color:#0B6E55">正面</span></div>
           <div style="justify-content:center;color:var(--violet);font-weight:800">共 5 筆引用，點擊開啟原文</div>
         </div>
       </div></div>
-      <div class="float" style="left:1.2cm;top:20.6cm"><div class="v" style="color:var(--mint)">5 筆</div><div class="k">每個回答都附引用來源</div></div>
+      <div class="float" style="left:1.2cm;top:19.8cm"><div class="v" style="color:var(--mint)">5 筆</div><div class="k">每個回答都附引用來源</div></div>
       <div class="float" style="left:15.6cm;top:1.0cm"><div class="v" style="color:var(--brand)">7／30／90 天</div><div class="k">自選觀察期間、平台與關鍵字</div></div>
     </div>
   </header>
 
+  <section class="sec story3">
+    <div class="kick"><i></i><span>A DAY WITH MEBOD</span></div>
+    <h2>行銷企劃的<em>一個早上</em></h2>
+    <div class="who3"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#FDEDE8"/><path d="M17 40c-3-12 1-27 15-27s18 15 15 27z" fill="#5A3A2E"/><path d="M12 60c2-11 10-16 20-16s18 5 20 16z" fill="#C2508A"/><circle cx="32" cy="28" r="10.5" fill="#F6D9C8"/><path d="M21 27c1-8 6-11 11-11s10 3 11 11c-4-3-7-6-11-6s-7 3-11 6z" fill="#5A3A2E"/></svg><div><b>小美・醫美診所行銷企劃</b><span>老闆想知道：最近大家怎麼看「皮秒」？</span><span class="was"><b>以前</b>四個平台逐一搜尋、複製貼上，整理完已經下班</span></div></div>
+    <div class="tl">
+      <div class="stp"><span class="tm">09:00</span><span class="dot"></span><h4>輸入關鍵字，一頁看懂</h4>
+        <div class="ui search"><span>關鍵字</span><span class="chip">皮秒</span><span class="chip">近 30 天</span><span class="chip">全部平台</span><span class="go">搜尋</span></div></div>
+      <div class="stp"><span class="tm">09:05</span><span class="dot" style="border-color:var(--coral)"></span><h4>負評升溫，系統先提醒</h4>
+        <div class="ui alert"><i></i>預警：「皮秒」負面比例超過門檻，點擊查看相關文章</div></div>
+      <div class="stp"><span class="tm">09:15</span><span class="dot" style="border-color:#2A8FB0"></span><h4>直接問 AI 原因</h4>
+        <div class="ui chat"><span class="u">大家對皮秒最不滿意的是什麼？</span><span class="a">整理出 3 個重點……<em>附 5 筆出處</em></span></div></div>
+      <div class="stp"><span class="tm">09:30</span><span class="dot" style="border-color:#3DBE9F"></span><h4>一鍵匯出，帶去開會</h4>
+        <div class="ui rep"><img src="assets/shot-report.png" alt="輿情分析報告實際畫面"><span>總覽指標、情緒比例、<br>AI 摘要與消費者痛點<br>可列印、存 PDF、匯出 Excel</span></div></div>
+    </div>
+    <div class="demo-note">＊情境示意：人物為虛構，流程中的功能皆為系統現有功能，報告縮圖為實際畫面。</div>
+  </section>
+
   <section class="sec">
     <div class="kick"><i></i><span>BY THE NUMBERS</span></div>
-    <h2>已經整理了<br><em>{{ARTICLES}}</em> 篇真實討論</h2>
+    <h2>已整理 <em>{{ARTICLES}}</em> 篇真實討論</h2>
     <div class="panel">
       <div class="scale">
         <div>{{DONUT_BIG}}<div class="legend3"><span><i class="pos"></i>正面 {{POS}}</span><span><i class="neu"></i>中性 {{NEU}}</span><span><i class="neg"></i>負面 {{NEG}}</span></div></div>
@@ -224,12 +292,9 @@
           <div class="kpi"><span class="ki" style="background:#C2508A"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="v">{{COMMENTS}}</span><span class="l">則留言也逐則判讀情緒</span></div>
           <div class="kpi"><span class="ki" style="background:#0A7D70"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg></span><span class="v">{{SCORED}}</span><span class="l">篇完成情緒判讀</span></div>
           <div class="kpi"><span class="ki" style="background:#C98512"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="v">{{CHUNKS}}</span><span class="l">段文字讓 AI 找得到相關內容</span></div>
-          <div class="kpi"><span class="ki" style="background:#4F46E5"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="v">{{BOARDS}}</span><span class="l">個看板、4 個平台</span></div>
+          <div class="kpi"><span class="ki" style="background:#4F46E5"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="v">{{BOARDS}}</span><span class="l">個看板、4 個社群平台</span></div>
         </div>
       </div>
-      <div class="plat-h">文章來自哪些平台</div>
-      <div class="platbar"><div style="flex:{{PTT_F}};background:#4F46E5"></div><div style="flex:{{DCARD_F}};background:#2A8FB0"></div><div style="flex:{{THREADS_F}};background:#222"></div><div style="flex:{{MOBILE01_F}};background:#C98512"></div></div>
-      <div class="platleg"><span><i style="background:#4F46E5"></i>PTT <b>{{PTT}}</b></span><span><i style="background:#2A8FB0"></i>Dcard <b>{{DCARD}}</b></span><span><i style="background:#222"></i>Threads <b>{{THREADS}}</b></span><span><i style="background:#C98512"></i>Mobile01 <b>{{MOBILE01}}</b></span></div>
     </div>
   </section>
 
@@ -245,23 +310,8 @@
     <div class="panel">
       {{BUBBLES}}
       <div class="bleg">{{BUBBLE_LEGEND}}</div>
-    </div>
-    <div class="panel rank">
-      <h3>醫美療程聲量排行<small>（提到該療程的文章數）</small></h3>
-      {{TREATMENTS}}
-    </div>
-  </section>
-
-  <section class="sec">
-    <div class="kick"><i></i><span>ONE-CLICK REPORT</span></div>
-    <h2>一鍵產出<em>輿情報告</em></h2>
-    <p class="sub">總覽指標、情緒比例、AI 摘要、熱門話題與消費者痛點，自動排版成可列印的報告。</p>
-    <div class="paper"><div class="sheet"><img src="assets/shot-report.png" alt="輿情分析報告實際畫面"></div></div>
-    <div class="feats">
-      <div><svg viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linejoin="round"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/></svg>列印／存成 PDF</div>
-      <div><svg viewBox="0 0 24 24" fill="none" stroke="#0A7D70" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>匯出 Excel</div>
-      <div><svg viewBox="0 0 24 24" fill="none" stroke="#C4503F" stroke-width="2" stroke-linecap="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>關鍵字監測預警</div>
-      <div><svg viewBox="0 0 24 24" fill="none" stroke="#6D4AE0" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>分析歷史隨時回看</div>
+      <div class="rank"><h3>討論最多的醫美療程<small>（提到該療程的文章數）</small></h3>
+      {{TREAT_PODIUM}}
     </div>
   </section>
 
@@ -275,6 +325,27 @@
         <h4>重判也不會變</h4><p>同樣 100 篇判讀兩次完全相同<br>（改善前有 12 篇不同）</p></div>
       <div class="badge" style="--c:#C98512"><div class="ring"><div><span class="v">82%</span><span class="u">結論相同</span></div></div>
         <h4>交叉比對</h4><p>另請一個 AI 獨立判讀 100 篇<br>82 篇與系統相同（非人工標註）</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="kick"><i></i><span>WHAT'S NEXT</span></div>
+    <h2>下一步，<em>走得更遠</em></h2>
+    <div class="road">
+      <div class="rd"><div class="ic" style="background:#C2508A"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-6 7-6s7 2 7 6"/><path d="M17 11l2 2 4-4"/></svg></div>
+        <div><h4>消費者版<br><small>規劃中</small></h4><p>讓一般民眾也能查療程口碑</p></div></div>
+      <div class="rd"><div class="ic" style="background:#2A8FB0"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg></div>
+        <div><h4>更多資料來源<br><small>規劃中</small></h4><p>加入影音留言、新聞與部落格</p></div></div>
+      <div class="rd"><div class="ic" style="background:#0A7D70"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg></div>
+        <div><h4>人工標註驗證<br><small>規劃中</small></h4><p>以人工標註驗證判讀正確率</p></div></div>
+    </div>
+    <div class="agent">
+      <h4>AI 代理越來越強，MeBOD 憑什麼留下來？</h4>
+      <ul>
+        <li><b>垂直資料庫：</b>每天累積、去除雜訊的醫美討論</li>
+        <li><b>可回查出處：</b>每個結論都能點回原文</li>
+        <li><b>持續監測：</b>關鍵字追蹤與預警，不必每次下指令</li>
+      </ul>
     </div>
   </section>
 
