@@ -198,6 +198,55 @@ def percent(key: str) -> str:
     return f"{s[key] / total * 100:.1f}%"
 
 
+
+PLATFORM_NAMES = {"ptt": "PTT", "dcard": "Dcard", "mobile01": "Mobile01", "threads": "Threads"}
+
+
+def share(counts: dict, key: str) -> float:
+    total = sum(counts.get(k, 0) for k in ("positive", "neutral", "negative"))
+    return counts.get(key, 0) / total * 100 if total else 0.0
+
+
+def platform_bars() -> str:
+    """各平台主文情緒的堆疊長條，依正面比例由高到低排列。"""
+    data = DATA["platform_sentiment"]
+    order = sorted(data, key=lambda p: share(data[p], "positive"), reverse=True)
+    out = []
+    for p in order:
+        c = data[p]
+        n = sum(c.values())
+        pos, neu, neg = (share(c, k) for k in ("positive", "neutral", "negative"))
+        out.append(
+            f'<div class="pr"><span class="pn">{PLATFORM_NAMES[p]}<small>{n:,} 篇</small></span>'
+            f'<span class="pbar"><i class="pos" style="width:{pos:.1f}%">{pos:.0f}%</i>'
+            f'<i class="neu" style="width:{neu:.1f}%"></i><i class="neg" style="width:{neg:.1f}%"></i></span>'
+            f'<span class="pneg">{neg:.1f}%</span></div>'
+        )
+    return "".join(out)
+
+
+def platform_values() -> dict[str, str]:
+    a, c = DATA["platform_sentiment"], DATA["comment_sentiment"]
+    best = max(a, key=lambda p: share(a[p], "positive"))
+    # 保養詞第一名 vs 療程第一名：說明日常保養的聲量遠高於單一療程
+    care_word, care_n, _ = next(t for t in DATA["top_terms"] if t[2] == "保養")
+    treat_word, treat_n = DATA["top_treatments"][0]
+    return {
+        "CARE_WORD": care_word,
+        "TREAT_WORD": treat_word,
+        "CARE_RATIO": f"{care_n / treat_n:.0f}",
+        "BEST_PLATFORM": PLATFORM_NAMES[best],
+        "BEST_POS": f"{share(a[best], 'positive'):.0f}%",
+        "PTT_ART_NEG": f"{share(a['ptt'], 'negative'):.1f}%",
+        "PTT_COM_NEG": f"{share(c['ptt'], 'negative'):.1f}%",
+        "PTT_RATIO": f"{share(c['ptt'], 'negative') / share(a['ptt'], 'negative'):.1f}",
+        "DCARD_COM_POS": f"{share(c['dcard'], 'positive'):.0f}%",
+        "PLATFORM_BARS": platform_bars(),
+        "TABLES": str(DATA["tables"]),
+        "PLANS": str(DATA["plans"]),
+    }
+
+
 def values() -> dict[str, str]:
     s = DATA["sentiment"]
     p = DATA["platforms"]
@@ -233,6 +282,7 @@ def values() -> dict[str, str]:
         "TREATMENTS": treatment_rows(),
         "TREAT_MINI": treatment_mini(),
         "TREAT_PODIUM": treatment_rows(podium_only=True),
+        **platform_values(),
     }
 
 

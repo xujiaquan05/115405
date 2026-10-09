@@ -66,6 +66,47 @@
    735
   ]
  ],
+ "platform_sentiment": {
+  "ptt": {
+   "negative": 740,
+   "neutral": 5532,
+   "positive": 3126
+  },
+  "threads": {
+   "negative": 16,
+   "neutral": 121,
+   "positive": 47
+  },
+  "mobile01": {
+   "neutral": 104,
+   "negative": 5,
+   "positive": 56
+  },
+  "dcard": {
+   "neutral": 268,
+   "negative": 19,
+   "positive": 283
+  }
+ },
+ "comment_sentiment": {
+  "ptt": {
+   "negative": 464,
+   "neutral": 1445,
+   "positive": 1405
+  },
+  "mobile01": {
+   "neutral": 413,
+   "negative": 80,
+   "positive": 467
+  },
+  "dcard": {
+   "neutral": 873,
+   "negative": 109,
+   "positive": 1063
+  }
+ },
+ "tables": 18,
+ "plans": 3,
  "top_terms": [
   [
    "皮膚",

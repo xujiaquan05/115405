@@ -52,6 +52,10 @@ CROPS = [
     ("shot-topics.png", "04-sentiment.png", 186, 180, 1316, 590),
     ("shot-trend.png", "03-trend.png", 186, 198, 1316, 578),
     ("shot-laptop.png", "02-search.png", 0, 0, 1412, 891),
+    ("g-detail.png", "06-detail.png", 300, 370, 1110, 870),
+    ("g-insight.png", "10-insight.png", 186, 190, 1316, 891),
+    ("g-crawler.png", "12-admin.png", 90, 80, 1020, 700),
+    ("g-report.png", "11-report.png", 262, 156, 1148, 747),
 ]
 
 

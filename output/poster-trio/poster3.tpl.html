@@ -4,31 +4,31 @@
 <meta charset="utf-8">
 <title>115405 海報3</title>
 <link rel="stylesheet" href="common.css">
-<!-- 本檔由 build.py 從 poster3.tpl.html 產生，請改 tpl 檔。 -->
+<!-- 本檔由 build.py 從 poster3.tpl.html 產生，請改 tpl 檔。
+     海報 2 講「為什麼、怎麼做、給誰用」；海報 3 只放海報 2 沒有的東西：
+     實際畫面、資料裡的發現、建置規模與驗證、下一步。 -->
 <style>
   @page { size: 42cm 192cm; }
   body { width: 42cm; height: 192cm; position: relative; overflow: hidden; background: var(--paper); }
   .bg { position: absolute; inset: 0; z-index: 0;
     background:
-      radial-gradient(30cm 34cm at 100% 8%, rgba(201,190,247,0.7) 0%, rgba(201,190,247,0) 70%),
-      radial-gradient(26cm 30cm at 0% 30%, rgba(143,227,211,0.30) 0%, rgba(143,227,211,0) 70%),
-      radial-gradient(30cm 30cm at 100% 75%, rgba(252,217,209,0.45) 0%, rgba(252,217,209,0) 70%),
+      radial-gradient(30cm 34cm at 100% 6%, rgba(201,190,247,0.7) 0%, rgba(201,190,247,0) 70%),
+      radial-gradient(26cm 30cm at 0% 22%, rgba(143,227,211,0.30) 0%, rgba(143,227,211,0) 70%),
       var(--paper); }
   .wrap { position: absolute; z-index: 1; left: 2.4cm; right: 2.4cm; top: 2.4cm; bottom: 2.2cm;
     display: flex; flex-direction: column; gap: 0.7cm; }
   .wrap > * { flex-shrink: 0; }
 
+  /* ── 標題 ── */
+  header { position: relative; }
   .brand { display: flex; align-items: center; gap: 0.45cm; font-size: 0.9cm; font-weight: 800; color: var(--violet); letter-spacing: 0.08em; }
   .brand svg { width: 1.5cm; height: 1.5cm; }
-  h1 { font-size: 3.4cm; font-weight: 900; line-height: 1.12; letter-spacing: 0.02em; margin-top: 0.7cm; }
+  h1 { font-size: 3.4cm; font-weight: 900; line-height: 1.15; letter-spacing: 0.02em; margin-top: 0.7cm; }
   h1 em { font-style: normal; color: var(--brand); }
-  .lede { font-size: 1.1cm; font-weight: 600; color: var(--ink-2); line-height: 1.55; margin-top: 0.6cm; }
-  .lede b { color: var(--ink); }
+  .lede { font-size: 1.05cm; font-weight: 600; color: var(--ink-2); line-height: 1.55; margin-top: 0.55cm; }
+  .deco { position: absolute; right: -0.8cm; top: 1.0cm; width: 14cm; height: 10cm; }
 
-  header { position: relative; }
-  .deco { position: absolute; right: -1.2cm; top: 1.4cm; width: 15cm; height: 9.3cm; }
-
-  /* 裝置示意：筆電放實際畫面，手機以向量重現實際 AI 回答內容 */
+  /* 裝置：筆電為實際畫面；手機依實際引用來源重繪 */
   .devices { position: relative; height: 23.4cm; margin-top: 0.4cm; }
   .laptop { position: absolute; left: 0; top: 0.6cm; width: 33cm; }
   .laptop .lid { background: #1B1733; border-radius: 0.9cm 0.9cm 0.2cm 0.2cm; padding: 0.75cm 0.75cm 0.9cm;
@@ -38,164 +38,110 @@
     background: linear-gradient(180deg, #D8D4E6 0%, #B8B2CC 100%); position: relative; }
   .laptop .base::before { content: ""; position: absolute; left: 50%; top: 0; width: 5cm; height: 0.35cm; margin-left: -2.5cm;
     background: #A39CBB; border-radius: 0 0 0.3cm 0.3cm; }
-
   .phone { position: absolute; right: -0.4cm; top: 4.4cm; width: 11cm; height: 18.6cm; background: #1B1733;
     border-radius: 1.6cm; padding: 0.55cm; box-shadow: 0 1cm 2.2cm rgba(30,27,75,0.35); }
-  .screen { width: 100%; height: 100%; background: #F7F6FB; border-radius: 1.15cm; overflow: hidden; padding: 0.9cm 0.6cm 0.6cm; }
-  .screen .bar { display: flex; align-items: center; gap: 0.3cm; font-size: 0.62cm; font-weight: 800; color: var(--ink); padding-bottom: 0.35cm; border-bottom: 0.03cm solid #E3DEF6; }
+  .screen { width: 100%; height: 100%; background: #F7F6FB; border-radius: 1.15cm; overflow: hidden; padding: 0.9cm 0.55cm 0.6cm; }
+  .screen .bar { display: flex; align-items: center; gap: 0.3cm; font-size: 0.62cm; font-weight: 800; color: var(--ink);
+    padding-bottom: 0.35cm; border-bottom: 0.03cm solid #E3DEF6; }
   .screen .bar svg { width: 0.8cm; height: 0.8cm; }
-  .msg-u { margin: 0.45cm 0 0 1.4cm; background: var(--brand); color: #fff; border-radius: 0.45cm 0.45cm 0.1cm 0.45cm;
-    padding: 0.35cm 0.45cm; font-size: 0.55cm; line-height: 1.5; font-weight: 600; }
-  .msg-a { margin: 0.4cm 0.6cm 0 0; background: #fff; border-radius: 0.45cm 0.45cm 0.45cm 0.1cm; padding: 0.4cm 0.45cm;
-    font-size: 0.52cm; line-height: 1.55; color: var(--ink-2); box-shadow: 0 0.1cm 0.25cm rgba(46,36,110,0.08); }
-  .msg-a h6 { font-size: 0.56cm; font-weight: 900; color: var(--ink); }
-  .msg-a li { margin-left: 0.55cm; margin-top: 0.08cm; }
-  .msg-a .tip { margin-top: 0.3cm; border-left: 0.12cm solid var(--mint); background: var(--mint-bg); padding: 0.22cm 0.3cm; color: #0B5F56; font-weight: 600; }
-  .srcs { margin-top: 0.35cm; display: grid; gap: 0.18cm; }
-  .srcs div { background: #fff; border-radius: 0.3cm; padding: 0.18cm 0.35cm; font-size: 0.48cm; display: flex; gap: 0.2cm; align-items: center; border: 0.03cm solid #E3DEF6; }
-  .srcs b { background: #222; color: #fff; border-radius: 0.15cm; padding: 0 0.15cm; font-family: "Segoe UI"; font-size: 0.42cm; }
-  .srcs .s { margin-left: auto; border-radius: 0.15cm; padding: 0 0.18cm; font-size: 0.42cm; font-weight: 700; }
-
-  .float { position: absolute; background: rgba(255,255,255,0.92); border-radius: 0.6cm; padding: 0.5cm 0.7cm;
+  .screen .cnt { margin-left: auto; font-size: 0.5cm; color: #fff; background: var(--brand); border-radius: 999px; padding: 0.02cm 0.3cm; }
+  .src { background: #fff; border: 0.03cm solid #E3DEF6; border-radius: 0.4cm; padding: 0.35cm 0.4cm; margin-top: 0.3cm;
+    box-shadow: 0 0.1cm 0.25cm rgba(46,36,110,0.06); }
+  .src .tt { font-size: 0.6cm; font-weight: 900; color: var(--ink); line-height: 1.35; }
+  .src .mt { display: flex; align-items: center; gap: 0.2cm; margin-top: 0.18cm; font-size: 0.45cm; color: var(--muted); }
+  .src .mt b { background: #222; color: #fff; border-radius: 0.12cm; padding: 0 0.15cm; font-family: "Segoe UI"; font-size: 0.42cm; }
+  .src .mt .s { margin-left: auto; border-radius: 0.15cm; padding: 0 0.18cm; font-weight: 800; }
+  .src .go { display: block; margin-top: 0.18cm; font-size: 0.46cm; font-weight: 800; color: var(--brand); }
+  .more { text-align: center; margin-top: 0.35cm; font-size: 0.5cm; font-weight: 800; color: var(--violet); }
+  .float { position: absolute; background: rgba(255,255,255,0.94); border-radius: 0.6cm; padding: 0.5cm 0.7cm;
     box-shadow: 0 0.5cm 1.2cm rgba(46,36,110,0.18); border: 0.04cm solid #fff; }
-  .float .v { font-family: "Segoe UI"; font-size: 1.5cm; font-weight: 700; line-height: 1; }
+  .float .v { font-family: "Segoe UI"; font-size: 1.45cm; font-weight: 700; line-height: 1; }
   .float .k { font-size: 0.66cm; font-weight: 700; color: var(--muted); margin-top: 0.15cm; }
 
-  /* 通用區塊 */
+  /* ── 區塊共用 ── */
+  .kick { display: flex; align-items: center; gap: 0.4cm; margin-bottom: 0.45cm; }
+  .kick i { width: 1.6cm; height: 0.22cm; border-radius: 0.11cm; background: linear-gradient(90deg, var(--brand), #A99BFF); }
+  .kick span { font-family: "Segoe UI"; font-size: 0.72cm; font-weight: 700; letter-spacing: 0.28em; color: var(--violet); }
   .sec h2 { font-size: 1.9cm; font-weight: 900; letter-spacing: 0.02em; line-height: 1.25; }
   .sec h2 em { font-style: normal; color: var(--brand); }
-  .sec .sub { font-size: 0.95cm; color: var(--ink-2); line-height: 1.55; margin-top: 0.35cm; }
-  .panel { background: #fff; border-radius: 0.9cm; border: 0.05cm solid var(--line); padding: 1.1cm;
-    box-shadow: 0 0.5cm 1.4cm rgba(46,36,110,0.07); margin-top: 0.9cm; }
-
-  /* 規模 */
-  .scale { display: grid; grid-template-columns: 12cm 1fr; gap: 1cm; align-items: center; }
-  .donut { width: 12cm; height: 12cm; }
-  .kpi { display: flex; align-items: center; gap: 0.3cm; padding: 0.42cm 0; border-bottom: 0.04cm dashed var(--line); }
-  .kpi:last-child { border-bottom: 0; }
-  .kpi .ki { width: 1.25cm; height: 1.25cm; border-radius: 0.35cm; display: grid; place-items: center; flex: none; margin-right: 0.15cm; }
-  .kpi .ki svg { width: 0.75cm; height: 0.75cm; }
-  .kpi .v { font-family: "Segoe UI"; font-size: 1.9cm; font-weight: 700; color: var(--brand); line-height: 1; }
-  .kpi .l { font-size: 0.82cm; font-weight: 700; color: var(--ink-2); }
-  .legend3 { display: flex; justify-content: center; gap: 0.45cm; margin-top: 0.4cm; white-space: nowrap; font-size: 0.72cm; font-weight: 700; color: var(--ink-2); }
-  .legend3 i { display: inline-block; width: 0.55cm; height: 0.55cm; border-radius: 50%; margin-right: 0.2cm; vertical-align: -0.05cm; }
-  .platbar { display: flex; height: 1.2cm; border-radius: 0.6cm; overflow: hidden; margin-top: 0.35cm; }
-  .plat-h { font-size: 0.85cm; font-weight: 800; margin-top: 0.8cm; color: var(--ink-2); }
-  .platleg { display: flex; flex-wrap: wrap; gap: 0.2cm 0.9cm; margin-top: 0.4cm; font-size: 0.8cm; color: var(--ink-2); }
-  .platleg i { display: inline-block; width: 0.55cm; height: 0.55cm; border-radius: 0.15cm; margin-right: 0.2cm; vertical-align: -0.05cm; }
-  .platleg b { font-family: "Segoe UI"; }
+  .band { margin: 0 -2.4cm; padding: 1.3cm 2.4cm 1.4cm; position: relative; }
+  .band.lav { background: linear-gradient(180deg, #EEE9FD 0%, #F6F3FE 100%); }
+  .band.mint { background: linear-gradient(180deg, #E3F6F1 0%, #F2FBF8 100%); }
+  .band.mint .kick i { background: linear-gradient(90deg, var(--mint), #8FE3D3); }
+  .band.mint .kick span { color: var(--mint); }
   .pos { background: #3DBE9F; } .neu { background: #D9D5E6; } .neg { background: #E5736A; }
 
-  /* QR */
-  .try { background: var(--night); color: #fff; border-radius: 1cm; padding: 1.0cm; display: grid; grid-template-columns: 10cm 1fr;
-    gap: 1.1cm; align-items: center; position: relative; overflow: hidden;
+  /* ── 實際畫面 ── */
+  .gal { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7cm; margin-top: 0.8cm; }
+  .shot3 { background: #fff; border-radius: 0.6cm; overflow: hidden; border: 0.05cm solid #D5D0EA;
+    box-shadow: 0 0.35cm 0.9cm rgba(46,36,110,0.10); }
+  .shot3 .tb { display: flex; align-items: center; gap: 0.22cm; height: 1.0cm; padding: 0 0.5cm; background: var(--lav);
+    border-bottom: 0.04cm solid #E3DEF6; }
+  .shot3 .tb i { width: 0.32cm; height: 0.32cm; border-radius: 50%; display: inline-block; }
+  .shot3 .tb i:nth-child(1) { background: #E5736A; } .shot3 .tb i:nth-child(2) { background: #E8B44A; } .shot3 .tb i:nth-child(3) { background: #3DBE9F; }
+  .shot3 img { display: block; width: 100%; height: 9.0cm; object-fit: cover; object-position: top left; }
+  .shot3 .cap { padding: 0.5cm 0.6cm 0.6cm; border-top: 0.04cm solid #EEEAF8; }
+  .shot3 .cap b { display: flex; align-items: center; gap: 0.3cm; font-size: 0.95cm; font-weight: 900; }
+  .shot3 .cap b span { font-family: "Segoe UI"; font-size: 0.6cm; color: #fff; background: var(--brand); border-radius: 50%;
+    width: 0.95cm; height: 0.95cm; display: grid; place-items: center; flex: none; }
+  .shot3 .cap p { font-size: 0.74cm; color: var(--muted); line-height: 1.45; margin-top: 0.15cm; }
+
+  /* ── 資料發現 ── */
+  .find { background: #fff; border-radius: 0.9cm; border: 0.05cm solid var(--line); padding: 1.0cm 1.1cm;
+    box-shadow: 0 0.5cm 1.4cm rgba(46,36,110,0.07); margin-top: 0.7cm; }
+  .fh { display: grid; grid-template-columns: auto 1fr; gap: 0.8cm; align-items: center; }
+  .fh .no { font-family: "Segoe UI"; font-size: 0.72cm; font-weight: 700; color: var(--violet); letter-spacing: 0.15em; }
+  .fh .big { font-family: "Segoe UI"; font-size: 3.2cm; font-weight: 700; line-height: 0.95; color: var(--brand); }
+  .fh .big small { font-size: 1.1cm; margin-left: 0.15cm; }
+  .fh h3 { font-size: 1.2cm; font-weight: 900; line-height: 1.3; }
+  .fh p { font-size: 0.8cm; color: var(--muted); line-height: 1.5; margin-top: 0.2cm; }
+  .pr { display: grid; grid-template-columns: 5.4cm 1fr 2.6cm; gap: 0.4cm; align-items: center; margin-top: 0.4cm; }
+  .pr .pn { font-family: "Segoe UI"; font-size: 0.9cm; font-weight: 700; }
+  .pr .pn small { display: block; font-size: 0.55cm; font-weight: 600; color: var(--muted); }
+  .pbar { display: flex; height: 1.0cm; border-radius: 0.5cm; overflow: hidden; }
+  .pbar i { display: flex; align-items: center; padding-left: 0.3cm; font-style: normal; font-family: "Segoe UI";
+    font-size: 0.6cm; font-weight: 700; color: #fff; }
+  .pr .pneg { font-family: "Segoe UI"; font-size: 0.8cm; font-weight: 700; color: #C4503F; text-align: right; }
+  .phead { display: grid; grid-template-columns: 5.4cm 1fr 2.6cm; gap: 0.4cm; margin-top: 0.8cm; font-size: 0.62cm; font-weight: 700; color: var(--muted); }
+  .phead span:last-child { text-align: right; }
+  .phead .lg { display: flex; gap: 0.5cm; }
+  .phead .lg i { display: inline-block; width: 0.42cm; height: 0.42cm; border-radius: 50%; margin-right: 0.15cm; vertical-align: -0.04cm; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5cm; margin-top: 0.7cm; }
+  .vs div { border-radius: 0.55cm; padding: 0.55cm 0.6cm; text-align: center; }
+  .vs .a { background: #F4F2FA; } .vs .c { background: #FDECE9; }
+  .vs b { display: block; font-family: "Segoe UI"; font-size: 1.9cm; line-height: 1; }
+  .vs .a b { color: #6F6A86; } .vs .c b { color: #C4503F; }
+  .vs span { display: block; font-size: 0.72cm; font-weight: 800; margin-top: 0.2cm; color: var(--ink-2); }
+  .bubbles { width: 100%; height: 10.6cm; display: block; margin-top: 0.5cm; }
+  .bleg { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25cm 0.9cm; margin-top: 0.4cm; font-size: 0.78cm; font-weight: 700; color: var(--ink-2); }
+  .bleg i { display: inline-block; width: 0.55cm; height: 0.55cm; border-radius: 50%; margin-right: 0.2cm; vertical-align: -0.05cm; }
+
+  /* ── QR ── */
+  .try { color: #fff; border-radius: 1cm; padding: 1.0cm; display: grid; grid-template-columns: 10cm 1fr; gap: 1.1cm; align-items: center;
     background: radial-gradient(16cm 14cm at 100% 0%, rgba(109,74,224,0.6) 0%, rgba(109,74,224,0) 100%), var(--night); }
   .try img { width: 10cm; height: 10cm; border-radius: 0.5cm; display: block; }
   .try .t { font-size: 2.0cm; font-weight: 900; line-height: 1.2; }
   .try .u { font-family: "Segoe UI"; font-size: 0.85cm; color: #8FE3D3; margin-top: 0.5cm; }
   .try p { font-size: 0.82cm; color: #D9D4F3; margin-top: 0.4cm; line-height: 1.55; }
 
-  /* 話題 */
-  .bubbles { width: 100%; height: 12.4cm; display: block; }
-  .bleg { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25cm 0.9cm; margin-top: 0.5cm; font-size: 0.8cm; font-weight: 700; color: var(--ink-2); }
-  .bleg i { display: inline-block; width: 0.55cm; height: 0.55cm; border-radius: 50%; margin-right: 0.2cm; vertical-align: -0.05cm; }
-  .rank { border-top: 0.05cm dashed var(--line); margin-top: 0.8cm; padding-top: 0.8cm; }
-  .rank h3 { font-size: 1.15cm; font-weight: 900; margin-bottom: 0.5cm; }
-  .rank h3 small { font-size: 0.75cm; font-weight: 600; color: var(--muted); margin-left: 0.3cm; }
-  .tr { display: grid; grid-template-columns: 1.3cm 4.2cm 1fr 3.3cm; align-items: center; gap: 0.35cm; margin-top: 0.42cm; }
-  .tr .rk { width: 1.1cm; height: 1.1cm; border-radius: 0.35cm; background: var(--lav-2); color: var(--violet); font-family: "Segoe UI";
-    font-weight: 700; font-size: 0.65cm; display: grid; place-items: center; }
-  .podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5cm; margin: 0.6cm 0 0.3cm; }
-  .pod { position: relative; border-radius: 0.6cm; padding: 0.9cm 0.6cm 0.6cm; text-align: center;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--m) 12%, #fff) 0%, #fff 100%);
-    border: 0.05cm solid color-mix(in srgb, var(--m) 30%, #fff); }
-  .pod .medal { position: absolute; left: 50%; top: -0.55cm; margin-left: -0.6cm; width: 1.2cm; height: 1.2cm; border-radius: 50%;
-    background: var(--m); color: #fff; font-family: "Segoe UI"; font-weight: 700; font-size: 0.7cm; display: grid; place-items: center;
-    box-shadow: 0 0.15cm 0.35cm color-mix(in srgb, var(--m) 40%, transparent); }
-  .pod .pw { font-size: 1.35cm; font-weight: 900; color: var(--ink); }
-  .pod .pn { font-size: 0.72cm; font-weight: 700; color: var(--muted); margin-top: 0.1cm; }
-  .pod .pn b { font-family: "Segoe UI"; font-size: 1.05cm; color: var(--m); }
-  .pod .pb { height: 0.35cm; background: color-mix(in srgb, var(--m) 12%, #fff); border-radius: 0.2cm; margin-top: 0.35cm; overflow: hidden; }
-  .pod .pb i { display: block; height: 100%; background: var(--m); border-radius: 0.2cm; }
-  .tr .tw { font-size: 0.95cm; font-weight: 800; }
-  .tr .tb { height: 0.75cm; background: var(--lav); border-radius: 0.4cm; overflow: hidden; }
-  .tr .tb i { display: block; height: 100%; border-radius: 0.4cm; background: linear-gradient(90deg, #8B7BF0, #4F46E5); }
-  .tr .tn { font-family: "Segoe UI"; font-size: 0.8cm; font-weight: 700; color: var(--muted); text-align: right; }
-
-  .months { width: 100%; display: block; }
-
-  /* 報告 */
-  .paper { position: relative; margin: 1.0cm 0.6cm 0.3cm; }
-  .paper::before { content: ""; position: absolute; inset: 0.6cm -0.5cm -0.5cm 0.6cm; background: #E7E1FC; border-radius: 0.5cm; transform: rotate(2deg); }
-  .paper .sheet { position: relative; background: #fff; border-radius: 0.5cm; padding: 0.6cm; transform: rotate(-1.2deg);
-    box-shadow: 0 0.6cm 1.4cm rgba(46,36,110,0.18); }
-  .paper img { display: block; width: 100%; }
-  .feats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5cm; margin-top: 1.0cm; }
-  .feats div { background: #fff; border-radius: 0.5cm; padding: 0.5cm 0.6cm; font-size: 0.82cm; font-weight: 800; border: 0.04cm solid var(--line);
-    display: flex; align-items: center; gap: 0.35cm; }
-  .feats svg { width: 1.1cm; height: 1.1cm; flex: none; }
-
-  /* 品質 */
-  .badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6cm; margin-top: 0.9cm; }
-  .badge { background: #fff; border-radius: 0.8cm; padding: 0.9cm 0.5cm 0.8cm; text-align: center; border: 0.05cm solid var(--line); }
-  .badge .ring { width: 5.2cm; height: 5.2cm; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
-    background: conic-gradient(var(--c) 0 100%); padding: 0.45cm; }
+  /* ── 建置與驗證 ── */
+  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.4cm; margin-top: 0.8cm; }
+  .strip div { background: #fff; border-radius: 0.55cm; padding: 0.55cm 0.3cm; text-align: center; border: 0.05cm solid #CDEBE3; }
+  .strip b { display: block; font-family: "Segoe UI"; font-size: 1.45cm; line-height: 1; color: var(--mint); }
+  .strip span { display: block; font-size: 0.66cm; font-weight: 800; color: var(--ink-2); margin-top: 0.2cm; }
+  .badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6cm; margin-top: 0.6cm; }
+  .badge { background: #fff; border-radius: 0.8cm; padding: 0.8cm 0.4cm 0.7cm; text-align: center; border: 0.05cm solid var(--line); }
+  .badge .ring { width: 5.0cm; height: 5.0cm; margin: 0 auto; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(var(--c) 0 100%); padding: 0.42cm; }
   .badge .ring div { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
-  .badge .v { font-family: "Segoe UI"; font-size: 1.7cm; font-weight: 700; line-height: 1; color: var(--c); }
-  .badge .u { font-size: 0.66cm; font-weight: 800; color: var(--muted); margin-top: 0.15cm; }
-  .badge h4 { font-size: 0.92cm; font-weight: 900; margin-top: 0.6cm; }
-  .badge p { font-size: 0.66cm; color: var(--muted); line-height: 1.5; margin-top: 0.2cm; }
+  .badge .v { font-family: "Segoe UI"; font-size: 1.65cm; font-weight: 700; line-height: 1; color: var(--c); }
+  .badge .u { font-size: 0.62cm; font-weight: 800; color: var(--muted); margin-top: 0.12cm; }
+  .badge h4 { font-size: 0.92cm; font-weight: 900; margin-top: 0.5cm; }
+  .badge p { font-size: 0.64cm; color: var(--muted); line-height: 1.5; margin-top: 0.18cm; }
 
-
-  /* 區塊小標：英文標籤 + 短色條，建立段落節奏 */
-  .kick { display: flex; align-items: center; gap: 0.4cm; margin-bottom: 0.45cm; }
-  .kick i { width: 1.6cm; height: 0.22cm; border-radius: 0.11cm; background: linear-gradient(90deg, var(--brand), #A99BFF); }
-  .kick span { font-family: "Segoe UI"; font-size: 0.72cm; font-weight: 700; letter-spacing: 0.28em; color: var(--violet); }
-  /* 滿版色帶：讓長海報有明暗起伏，不再是一整排白卡片 */
-  .band { margin: 0 -2.4cm; padding: 1.2cm 2.4cm 1.25cm; position: relative; }
-  .band.lav { background: linear-gradient(180deg, #EEE9FD 0%, #F6F3FE 100%); }
-  .band.mint { background: linear-gradient(180deg, #E3F6F1 0%, #F2FBF8 100%); }
-  .band.mint .kick i { background: linear-gradient(90deg, var(--mint), #8FE3D3); }
-  .band.mint .kick span { color: var(--mint); }
-
-
-  /* 情境示意：時間軸 */
-  .story3 .who3 { display: flex; align-items: center; gap: 0.6cm; margin-top: 0.6cm; }
-  .story3 .who3 svg { width: 2.9cm; height: 2.9cm; flex: none; }
-  .story3 .who3 b { font-size: 1.0cm; font-weight: 900; }
-  .story3 .who3 span { display: block; font-size: 0.8cm; color: var(--muted); margin-top: 0.1cm; }
-  .story3 .who3 .was { color: #8E3A2D; font-weight: 700; margin-top: 0.3cm; }
-  .story3 .who3 .was b { background: var(--coral); color: #fff; border-radius: 999px; padding: 0.02cm 0.35cm; font-size: 0.66cm; margin-right: 0.25cm; }
-  .before3 { margin-top: 0.7cm; display: flex; align-items: center; gap: 0.4cm; background: var(--coral-bg); border-radius: 0.5cm;
-    padding: 0.45cm 0.7cm; font-size: 0.85cm; font-weight: 700; color: #8E3A2D; }
-  .before3 b { background: var(--coral); color: #fff; border-radius: 999px; padding: 0.05cm 0.4cm; font-size: 0.7cm; flex: none; }
-  .tl { position: relative; margin-top: 0.8cm; padding-left: 5.4cm; }
-  .tl::before { content: ""; position: absolute; left: 4.15cm; top: 0.6cm; bottom: 1.2cm; width: 0.12cm; border-radius: 0.06cm;
-    background: linear-gradient(180deg, var(--brand), #3DBE9F); }
-  .stp { position: relative; margin-bottom: 0.45cm; background: #fff; border-radius: 0.7cm; border: 0.05cm solid var(--line);
-    padding: 0.55cm 0.8cm; box-shadow: 0 0.35cm 0.9cm rgba(46,36,110,0.08); }
-  .stp .tm { position: absolute; left: -5.4cm; top: 0.5cm; width: 3.6cm; text-align: right; font-family: "Segoe UI"; font-size: 1.15cm; font-weight: 700; color: var(--brand); }
-  .stp .dot { position: absolute; left: -1.62cm; top: 0.75cm; width: 0.75cm; height: 0.75cm; border-radius: 50%; background: #fff; border: 0.2cm solid var(--brand); }
-  .stp h4 { font-size: 1.05cm; font-weight: 900; }
-  .stp p { font-size: 0.8cm; color: var(--muted); line-height: 1.5; margin-top: 0.15cm; }
-  .ui { margin-top: 0.35cm; }
-  .ui.search { display: flex; gap: 0.3cm; align-items: center; background: var(--lav); border-radius: 0.4cm; padding: 0.3cm 0.4cm; font-size: 0.72cm; }
-  .ui.search .chip { background: #fff; border: 0.04cm solid var(--line); border-radius: 0.25cm; padding: 0.05cm 0.35cm; font-weight: 800; }
-  .ui.search .go { margin-left: auto; background: var(--night); color: #fff; border-radius: 0.25cm; padding: 0.08cm 0.45cm; font-weight: 800; }
-  .ui.alert { display: flex; align-items: center; gap: 0.35cm; background: #FDECE9; border: 0.05cm solid #F4C3BA; border-radius: 0.4cm; padding: 0.3cm 0.45cm; font-size: 0.74cm; font-weight: 800; color: #9B3526; }
-  .ui.alert i { width: 0.55cm; height: 0.55cm; border-radius: 50%; background: var(--coral); flex: none; }
-  .ui.chat { display: grid; gap: 0.25cm; font-size: 0.72cm; }
-  .ui.chat .u { justify-self: end; background: var(--brand); color: #fff; border-radius: 0.35cm 0.35cm 0.08cm 0.35cm; padding: 0.2cm 0.45cm; font-weight: 700; }
-  .ui.chat .a { background: var(--lav); border-radius: 0.35cm 0.35cm 0.35cm 0.08cm; padding: 0.25cm 0.45cm; line-height: 1.5; }
-  .ui.chat .a em { font-style: normal; color: var(--mint); font-weight: 800; }
-  .ui.rep { display: grid; grid-template-columns: 8cm 1fr; gap: 0.5cm; align-items: center; }
-  .ui.rep img { width: 100%; border-radius: 0.3cm; border: 0.04cm solid var(--line); box-shadow: 0 0.2cm 0.5cm rgba(46,36,110,0.12); transform: rotate(-2deg); }
-  .ui.rep span { font-size: 0.72cm; font-weight: 800; color: var(--violet); line-height: 1.6; }
-  .demo-note { font-size: 0.62cm; color: var(--muted); margin-top: 0.1cm; }
-
-  /* 下一步 */
+  /* ── 下一步 ── */
   .road { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45cm; margin-top: 0.8cm; }
-  .rd { background: #fff; border-radius: 0.7cm; border: 0.05cm solid var(--line); padding: 0.7cm 0.6cm; text-align: center; }
+  .rd { background: #fff; border-radius: 0.7cm; border: 0.05cm solid var(--line); padding: 0.7cm 0.5cm; text-align: center; }
   .rd .ic { width: 2.3cm; height: 2.3cm; border-radius: 0.7cm; display: grid; place-items: center; margin: 0 auto 0.4cm; }
   .rd .ic svg { width: 1.25cm; height: 1.25cm; }
   .rd h4 { font-size: 0.95cm; font-weight: 900; }
@@ -228,73 +174,77 @@
         <rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg>
       <span><span class="latin">MeBOD</span>　實際運作成果</span>
     </div>
-    <svg class="deco" viewBox="0 0 170 105" aria-hidden="true">
+    <svg class="deco" viewBox="0 0 140 100" aria-hidden="true">
       <defs>
-        <linearGradient id="e1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B7BF0"/><stop offset="1" stop-color="#4F46E5"/></linearGradient>
-        <linearGradient id="e2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7B2A5"/><stop offset="1" stop-color="#E5736A"/></linearGradient>
-        <linearGradient id="e3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A5E9DA"/><stop offset="1" stop-color="#3DBE9F"/></linearGradient>
+        <linearGradient id="r1" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#C9BEF7"/><stop offset="1" stop-color="#8B7BF0"/></linearGradient>
+        <linearGradient id="r2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#A5E9DA"/><stop offset="1" stop-color="#2FAE8F"/></linearGradient>
       </defs>
-      <circle cx="118" cy="52" r="46" fill="#EDE8FD"/>
-      <g transform="translate(70 18) rotate(-6)"><rect width="52" height="34" rx="12" fill="url(#e1)"/><path d="M12 32 L8 44 L24 33 z" fill="#5E50E6"/>
-        <circle cx="16" cy="17" r="3.4" fill="#fff"/><circle cx="26" cy="17" r="3.4" fill="#fff"/><circle cx="36" cy="17" r="3.4" fill="#fff"/></g>
-      <g transform="translate(118 46) rotate(7)"><rect width="42" height="28" rx="10" fill="url(#e2)"/><path d="M30 26 L36 37 L22 27 z" fill="#E5736A"/>
-        <path d="M21 8.5c-2-3.6-8-3-8 1.6 0 4 8 9 8 9s8-5 8-9c0-4.6-6-5.2-8-1.6z" fill="#fff"/></g>
-      <g transform="translate(88 62) rotate(-3)"><rect width="36" height="24" rx="9" fill="url(#e3)"/><path d="M8 22 L5 32 L18 23 z" fill="#3DBE9F"/>
-        <path d="M10 12 l5 5 l10 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g>
-      <path d="M150 10 L152.5 17.5 L160 20 L152.5 22.5 L150 30 L147.5 22.5 L140 20 L147.5 17.5 Z" fill="#B7A8F5"/>
-      <path d="M62 64 L63.6 68.4 L68 70 L63.6 71.6 L62 76 L60.4 71.6 L56 70 L60.4 68.4 Z" fill="#F7B2A5"/>
-      <circle cx="160" cy="88" r="3" fill="#8FE3D3"/><circle cx="72" cy="12" r="2.4" fill="#C9BEF7"/>
+      <circle cx="78" cy="52" r="44" fill="#EDE8FD"/>
+      <rect x="44" y="58" width="13" height="26" rx="5" fill="url(#r1)" opacity="0.6"/>
+      <rect x="63" y="44" width="13" height="40" rx="5" fill="url(#r1)" opacity="0.8"/>
+      <rect x="82" y="28" width="13" height="56" rx="5" fill="url(#r1)"/>
+      <path d="M40 54 L60 40 L76 46 L100 22" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M92 20 L101 21 L100 30" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="108" cy="68" r="15" fill="url(#r2)"/>
+      <path d="M101 68 l5 5 l9 -10" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M124 14 L126.5 21.5 L134 24 L126.5 26.5 L124 34 L121.5 26.5 L114 24 L121.5 21.5 Z" fill="#B7A8F5"/>
+      <path d="M34 22 L35.6 26.4 L40 28 L35.6 29.6 L34 34 L32.4 29.6 L28 28 L32.4 26.4 Z" fill="#F7B2A5"/>
+      <circle cx="130" cy="88" r="3" fill="#8FE3D3"/>
     </svg>
-    <h1>上萬則討論，<br><em>一頁</em>看懂。</h1>
-    <p class="lede">系統每天自動蒐集、判讀、整理；<br>行銷人員只要<b>輸入關鍵字、提出問題</b>。</p>
+    <h1>不只是構想，<br><em>真的做出來了。</em></h1>
+    <p class="lede">以下是系統的實際畫面，<br>以及它從上萬則討論裡找到的發現。</p>
 
     <div class="devices">
       <div class="laptop"><div class="lid"><img src="assets/shot-laptop.png" alt="Dashboard 實際畫面"></div><div class="base"></div></div>
       <div class="phone"><div class="screen">
-        <div class="bar"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="27" fill="#4F46E5"/><rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg>AI 問答</div>
-        <div class="msg-u">請整理三個消費者關注重點，並提出一項行銷建議，附上資料來源。</div>
-        <div class="msg-a"><h6>重點整理</h6><ul><li>赴韓醫美的真實經驗與潛在風險</li><li>療程的痛感與恢復期</li><li>毛孔、凹疤、細紋的改善需求</li></ul>
-          <div class="tip">建議：製作「韓國醫美經驗分享」系列內容。</div></div>
-        <div class="srcs">
-          <div><b>threads</b>韓國醫美・推 5824<span class="s" style="background:#FDE2DE;color:#B93E2E">負面</span></div>
-          <div style="justify-content:center;color:var(--violet);font-weight:800">共 5 筆引用，點擊開啟原文</div>
-        </div>
+        <div class="bar"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="27" fill="#4F46E5"/><rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg>AI 回答的出處<span class="cnt">5 筆</span></div>
+        <div class="src"><div class="tt">韓國醫美</div><div class="mt"><b>threads</b>玻尿酸・推 5824<span class="s" style="background:#FDE2DE;color:#B93E2E">負面</span></div><span class="go">開啟原文 ↗</span></div>
+        <div class="src"><div class="tt">韓國醫美</div><div class="mt"><b>threads</b>醫美・推 5483<span class="s" style="background:#DDF5EC;color:#0B6E55">正面</span></div><span class="go">開啟原文 ↗</span></div>
+        <div class="src"><div class="tt">終於有人把韓國醫美說清楚了！</div><div class="mt"><b>threads</b>醫美診所・推 4214<span class="s" style="background:#ECEAF3;color:#514C6E">中性</span></div><span class="go">開啟原文 ↗</span></div>
+        <div class="more">還有 2 筆，向下查看</div>
       </div></div>
-      <div class="float" style="left:1.2cm;top:19.8cm"><div class="v" style="color:var(--mint)">5 筆</div><div class="k">每個回答都附引用來源</div></div>
+      <div class="float" style="left:1.2cm;top:19.8cm"><div class="v" style="color:var(--mint)">↗ 原文</div><div class="k">每一筆出處都能點回社群貼文</div></div>
       <div class="float" style="left:15.6cm;top:1.0cm"><div class="v" style="color:var(--brand)">7／30／90 天</div><div class="k">自選觀察期間、平台與關鍵字</div></div>
     </div>
   </header>
 
-  <section class="sec story3">
-    <div class="kick"><i></i><span>A DAY WITH MEBOD</span></div>
-    <h2>行銷企劃的<em>一個早上</em></h2>
-    <div class="who3"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#FDEDE8"/><path d="M17 40c-3-12 1-27 15-27s18 15 15 27z" fill="#5A3A2E"/><path d="M12 60c2-11 10-16 20-16s18 5 20 16z" fill="#C2508A"/><circle cx="32" cy="28" r="10.5" fill="#F6D9C8"/><path d="M21 27c1-8 6-11 11-11s10 3 11 11c-4-3-7-6-11-6s-7 3-11 6z" fill="#5A3A2E"/></svg><div><b>小美・醫美診所行銷企劃</b><span>老闆想知道：最近大家怎麼看「皮秒」？</span><span class="was"><b>以前</b>四個平台逐一搜尋、複製貼上，整理完已經下班</span></div></div>
-    <div class="tl">
-      <div class="stp"><span class="tm">09:00</span><span class="dot"></span><h4>輸入關鍵字，一頁看懂</h4>
-        <div class="ui search"><span>關鍵字</span><span class="chip">皮秒</span><span class="chip">近 30 天</span><span class="chip">全部平台</span><span class="go">搜尋</span></div></div>
-      <div class="stp"><span class="tm">09:05</span><span class="dot" style="border-color:var(--coral)"></span><h4>負評升溫，系統先提醒</h4>
-        <div class="ui alert"><i></i>預警：「皮秒」負面比例超過門檻，點擊查看相關文章</div></div>
-      <div class="stp"><span class="tm">09:15</span><span class="dot" style="border-color:#2A8FB0"></span><h4>直接問 AI 原因</h4>
-        <div class="ui chat"><span class="u">大家對皮秒最不滿意的是什麼？</span><span class="a">整理出 3 個重點……<em>附 5 筆出處</em></span></div></div>
-      <div class="stp"><span class="tm">09:30</span><span class="dot" style="border-color:#3DBE9F"></span><h4>一鍵匯出，帶去開會</h4>
-        <div class="ui rep"><img src="assets/shot-report.png" alt="輿情分析報告實際畫面"><span>總覽指標、情緒比例、<br>AI 摘要與消費者痛點<br>可列印、存 PDF、匯出 Excel</span></div></div>
+  <section class="sec">
+    <div class="kick"><i></i><span>REAL SCREENS</span></div>
+    <h2>每一個功能，<em>都能實際操作</em></h2>
+    <div class="gal">
+      <figure class="shot3"><div class="tb"><i></i><i></i><i></i></div><img src="assets/g-detail.png" alt="文章與留言情緒">
+        <figcaption class="cap"><b><span>1</span>留言也逐則判讀</b><p>推文、噓文分開標示，一眼看出留言的正負評比例</p></figcaption></figure>
+      <figure class="shot3"><div class="tb"><i></i><i></i><i></i></div><img src="assets/g-insight.png" alt="AI 洞察">
+        <figcaption class="cap"><b><span>2</span>AI 洞察分析</b><p>自動整理熱門話題與消費者痛點，附上判斷依據</p></figcaption></figure>
+      <figure class="shot3"><div class="tb"><i></i><i></i><i></i></div><img src="assets/g-crawler.png" alt="爬蟲管理">
+        <figcaption class="cap"><b><span>3</span>爬蟲管理</b><p>選平台與看板即可開始爬取，進度即時顯示</p></figcaption></figure>
+      <figure class="shot3"><div class="tb"><i></i><i></i><i></i></div><img src="assets/g-report.png" alt="輿情分析報告">
+        <figcaption class="cap"><b><span>4</span>輿情分析報告</b><p>指標、情緒比例與摘要自動排版，可直接列印</p></figcaption></figure>
     </div>
-    <div class="demo-note">＊情境示意：人物為虛構，流程中的功能皆為系統現有功能，報告縮圖為實際畫面。</div>
   </section>
 
-  <section class="sec">
-    <div class="kick"><i></i><span>BY THE NUMBERS</span></div>
-    <h2>已整理 <em>{{ARTICLES}}</em> 篇真實討論</h2>
-    <div class="panel">
-      <div class="scale">
-        <div>{{DONUT_BIG}}<div class="legend3"><span><i class="pos"></i>正面 {{POS}}</span><span><i class="neu"></i>中性 {{NEU}}</span><span><i class="neg"></i>負面 {{NEG}}</span></div></div>
-        <div>
-          <div class="kpi"><span class="ki" style="background:#C2508A"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="v">{{COMMENTS}}</span><span class="l">則留言也逐則判讀情緒</span></div>
-          <div class="kpi"><span class="ki" style="background:#0A7D70"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01M15 9h.01"/></svg></span><span class="v">{{SCORED}}</span><span class="l">篇完成情緒判讀</span></div>
-          <div class="kpi"><span class="ki" style="background:#C98512"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span><span class="v">{{CHUNKS}}</span><span class="l">段文字讓 AI 找得到相關內容</span></div>
-          <div class="kpi"><span class="ki" style="background:#4F46E5"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span><span class="v">{{BOARDS}}</span><span class="l">個看板、4 個社群平台</span></div>
-        </div>
-      </div>
+  <section class="sec band lav">
+    <div class="kick"><i></i><span>WHAT THE DATA SAYS</span></div>
+    <h2>資料告訴我們的<em>三件事</em></h2>
+
+    <div class="find">
+      <div class="fh"><div><div class="no">FINDING 01</div><div class="big">{{BEST_POS}}</div></div>
+        <div><h3>{{BEST_PLATFORM}} 的文章最正面</h3><p>同樣談醫美保養，各平台的口碑溫度差很多</p></div></div>
+      <div class="phead"><span>平台</span><span class="lg"><span><i class="pos"></i>正面</span><span><i class="neu"></i>中性</span><span><i class="neg"></i>負面</span></span><span>負面比例</span></div>
+      {{PLATFORM_BARS}}
+    </div>
+
+    <div class="find">
+      <div class="fh"><div><div class="no">FINDING 02</div><div class="big" style="color:#C4503F">{{PTT_RATIO}}<small>倍</small></div></div>
+        <div><h3>PTT 的負評，藏在留言裡</h3><p>只看主文，會低估大家的不滿</p></div></div>
+      <div class="vs"><div class="a"><b>{{PTT_ART_NEG}}</b><span>PTT 主文是負面</span></div><div class="c"><b>{{PTT_COM_NEG}}</b><span>PTT 留言是負面</span></div></div>
+    </div>
+
+    <div class="find">
+      <div class="fh"><div><div class="no">FINDING 03</div><div class="big" style="color:var(--mint)">{{CARE_RATIO}}<small>倍</small></div></div>
+        <div><h3>「{{CARE_WORD}}」被提到的次數，是「{{TREAT_WORD}}」的 {{CARE_RATIO}} 倍</h3><p>日常保養的聲量，遠高於單一醫美療程</p></div></div>
+      {{BUBBLES}}
+      <div class="bleg">{{BUBBLE_LEGEND}}</div>
     </div>
   </section>
 
@@ -303,21 +253,15 @@
     <div><div class="t">拿起手機，<br>現在就試試看</div><div class="u">mebod.clouda.dpdns.org</div><p>訪客就能試用儀表板與 AI 問答，<br>登入後還可設定負評預警。</p></div>
   </section>
 
-  <section class="sec band lav">
-    <div class="kick"><i></i><span>TRENDING TOPICS</span></div>
-    <h2>大家到底在聊<em>什麼</em>？</h2>
-    <p class="sub">泡泡越大，代表越多文章提到；只統計 178 個醫美與保養專業詞。</p>
-    <div class="panel">
-      {{BUBBLES}}
-      <div class="bleg">{{BUBBLE_LEGEND}}</div>
-      <div class="rank"><h3>討論最多的醫美療程<small>（提到該療程的文章數）</small></h3>
-      {{TREAT_PODIUM}}
-    </div>
-  </section>
-
   <section class="sec band mint">
-    <div class="kick"><i></i><span>VERIFIED</span></div>
-    <h2>結果可信，經得起檢驗</h2>
+    <div class="kick"><i></i><span>BUILT TO LAST</span></div>
+    <h2>做得扎實，<em style="color:var(--mint)">經得起檢驗</em></h2>
+    <div class="strip">
+      <div><b>{{CHUNKS}}</b><span>個語意段落</span></div>
+      <div><b>{{BOARDS}}</b><span>個看板</span></div>
+      <div><b>{{TABLES}}</b><span>張資料表</span></div>
+      <div><b>{{PLANS}}</b><span>種帳號方案</span></div>
+    </div>
     <div class="badges">
       <div class="badge" style="--c:#4F46E5"><div class="ring"><div><span class="v">533</span><span class="u">項全部通過</span></div></div>
         <h4>自動化測試</h4><p>後端 490 項、前端 43 項<br>（另 1 項略過）</p></div>
@@ -349,7 +293,8 @@
     </div>
   </section>
 
-  <div class="foot"><div class="sig"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="27" fill="#4F46E5"/><path d="M30 17 L33 26 L42 29 L33 32 L30 41 L27 32 L18 29 L27 26 Z" fill="#fff"/><rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg><div><span class="latin">MeBOD</span><small>第115405組</small></div></div><p>統計數字查詢自本系統資料庫（{{AS_OF}}）；介面畫面為 115/10/07 實際系統截圖，手機畫面依同一次 AI 回答內容重繪。系統定位為資訊整理與行銷觀察工具，不提供醫療建議。</p></div>
+  <div class="foot"><div class="sig"><svg viewBox="0 0 100 100"><rect width="100" height="100" rx="27" fill="#4F46E5"/><path d="M30 17 L33 26 L42 29 L33 32 L30 41 L27 32 L18 29 L27 26 Z" fill="#fff"/><rect x="23" y="55" width="13" height="23" rx="6.5" fill="#E2DFFB"/><rect x="43.5" y="42" width="13" height="36" rx="6.5" fill="#F1F0FE"/><rect x="64" y="28" width="13" height="50" rx="6.5" fill="#fff"/></svg><div><span class="latin">MeBOD</span><small>第115405組</small></div></div>
+    <p>統計數字查詢自本系統資料庫（{{AS_OF}}）；介面畫面為 115/10/07 實際系統截圖，手機畫面依同一次 AI 回答的實際引用來源重繪。系統定位為資訊整理與行銷觀察工具，不提供醫療建議。</p></div>
 </div>
 </body>
 </html>

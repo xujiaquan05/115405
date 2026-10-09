@@ -42,6 +42,13 @@ def group_of(word: str) -> str:
     return "其他"
 
 
+def nest(rows) -> dict:
+    out: dict = {}
+    for platform, sentiment, n in rows:
+        out.setdefault(platform, {})[sentiment] = n
+    return out
+
+
 def main() -> None:
     with SessionLocal() as db:
         q = lambda sql: db.execute(text(sql)).all()  # noqa: E731
@@ -59,6 +66,18 @@ def main() -> None:
             "where published_at >= '2025-10-01' and published_at < '2026-10-01' group by 1 order by 1"
         )
         rows = q("select title, content from articles")
+        # 各平台主文與留言的情緒分布（只算已判讀的三類）
+        platform_sentiment = q(
+            "select p.name, a.sentiment, count(*) from articles a join boards b on a.board_id=b.id "
+            "join platforms p on b.platform_id=p.id where a.sentiment in ('positive','neutral','negative') group by 1,2"
+        )
+        comment_sentiment = q(
+            "select p.name, c.sentiment, count(*) from comments c join articles a on c.article_id=a.id "
+            "join boards b on a.board_id=b.id join platforms p on b.platform_id=p.id "
+            "where c.sentiment in ('positive','neutral','negative') group by 1,2"
+        )
+        tables = q("select count(*) from information_schema.tables where table_schema='public' and table_name<>'alembic_version'")[0][0]
+        plans = q("select count(*) from plans")[0][0]
 
     frequency: Counter[str] = Counter()
     for title, content in rows:
@@ -73,6 +92,10 @@ def main() -> None:
         "platforms": platforms,
         "sentiment": sentiment,
         "monthly": [list(row) for row in monthly],
+        "platform_sentiment": nest(platform_sentiment),
+        "comment_sentiment": nest(comment_sentiment),
+        "tables": tables,
+        "plans": plans,
         "top_terms": [(w, n, group_of(w)) for w, n in frequency.most_common(22)],
         "top_treatments": [(w, n) for w, n in frequency.most_common() if w in TREATMENT_WORDS][:8],
     }
