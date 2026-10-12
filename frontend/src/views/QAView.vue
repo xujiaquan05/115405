@@ -169,7 +169,7 @@ function createWelcomeMessage() {
     id: Date.now(),
     role: "assistant",
     welcome: true,
-    answer: "我會根據目前 Dashboard 的分析資料回答，包括關鍵字、文章數、情緒分布、熱門文章與 LLM 洞察。你可以直接問這次分析代表什麼、風險在哪裡、或下一步行銷該怎麼做。",
+    answer: "我會在目前 Dashboard 的關鍵字與期間內，找出和你的問題最相關的文章，再搭配整體指標與情緒分布回答，並附上引用來源。你可以問這次分析代表什麼、風險在哪裡，或下一步行銷該怎麼做。",
     key_points: [],
     marketing_action: "",
     confidence: "",
@@ -600,7 +600,7 @@ function handleDashboardContextCreated(event) {
         <div class="qa-header-text">
           <h2>AI 問答</h2>
           <p>
-            目前依據 Dashboard「{{ dashboardState.keyword }}」的分析資料回答，包含指標、情緒、熱門文章與洞察。
+            在 Dashboard「{{ dashboardState.keyword }}」的範圍內檢索相關文章回答，並附引用來源。
           </p>
         </div>
       </div>

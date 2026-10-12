@@ -14,6 +14,7 @@ from app.core.time_utils import taiwan_now
 from app.models.database_models import Article, Platform
 from app.services.article_compressor import clean_text, compress_articles_for_llm
 from app.services.cache_service import get_cache, set_cache
+from app.services.dashboard_service import split_keyword_terms
 from app.services.embedding_service import rank_by_similarity
 from app.services.llm_client import generate_json_response
 
@@ -526,6 +527,7 @@ def generate_rag_answer(
     intent: dict[str, Any],
     articles: list[Article],
     history: list[dict[str, Any]] | None = None,
+    dashboard_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not articles:
         return {
@@ -563,7 +565,7 @@ JSON 格式：
 {_format_history(history)}
 使用者問題：{question}
 解析意圖：{json.dumps(intent, ensure_ascii=False)}
-
+{_dashboard_summary(dashboard_context)}
 文章資料：
 {articles_context}
 """
@@ -574,6 +576,59 @@ JSON 格式：
         return _safe_json(generate_json_response(prompt), fallback)
     except Exception:
         return fallback
+
+
+def _dashboard_summary(dashboard_context: dict[str, Any] | None) -> str:
+    """把 Dashboard 的整體數字濃縮成幾行，給 RAG 回答當背景。
+
+    只放總覽、情緒、熱門詞與洞察摘要；熱門文章不放——
+    回答的證據改由檢索出的文章提供，兩邊都放會讓 prompt 翻倍。
+    """
+    if not dashboard_context:
+        return ""
+
+    insight = dashboard_context.get("insight") or {}
+    summary = {
+        "keyword": dashboard_context.get("keyword"),
+        "days": dashboard_context.get("days"),
+        "overview": dashboard_context.get("overview"),
+        "sentiment": dashboard_context.get("sentiment"),
+        "keywords": (dashboard_context.get("keywords") or [])[:10],
+        "insight_summary": str(insight.get("summary") or "")[:600] if isinstance(insight, dict) else "",
+    }
+    return (
+        "目前 Dashboard 的整體分析（只作背景，具體說法請以下方文章為準）：\n"
+        f"{json.dumps(summary, ensure_ascii=False)}\n"
+    )
+
+
+def scope_intent_to_dashboard(
+    intent: dict[str, Any],
+    dashboard_context: dict[str, Any],
+    question: str,
+) -> dict[str, Any]:
+    """問題沒講清楚的條件，用使用者在 Dashboard 選的範圍補上。
+
+    - 關鍵字：問題裡的詞加上 Dashboard 的關鍵字。只用問題的詞時，
+      問「這次最大的風險是什麼」會解析出「風險」，撈到與主題無關的文章。
+    - 期間：問題明確提到「一週」「三個月」才用問題的，否則跟 Dashboard 一致，
+      避免回答引用的文章和畫面上的數字不是同一段時間。
+    """
+    scoped = dict(intent)
+
+    board_terms = [t for t in split_keyword_terms(str(dashboard_context.get("keyword") or "")) if t]
+    # 檢索最多用 5 個詞；Dashboard 的詞一定保留，問題的詞補滿剩下的名額。
+    room = max(5 - len(board_terms), 0)
+    keywords = list(dict.fromkeys([*intent.get("keywords", [])[:room], *board_terms]))
+    if keywords:
+        scoped["keywords"] = keywords
+
+    days = dashboard_context.get("days")
+    question_sets_period = _fallback_intent(question)["days"] != 30
+    if days in {7, 30, 90, 180} and not question_sets_period:
+        scoped["days"] = days
+
+    return scoped
 
 
 def _dashboard_context_sources(dashboard_context: dict[str, Any] | None) -> list[dict[str, Any]]:
@@ -686,7 +741,31 @@ def answer_question(
         if cached is not None:
             return {**cached, "cached": True}
 
-    if dashboard_context:
+    # Dashboard 頁面來的問題：在使用者選定的關鍵字與期間內做混合檢索，
+    # 以檢索到的文章為證據回答，Dashboard 數字作背景。
+    # 之前這條路徑完全不檢索，只把 Dashboard 的熱門文章前 5 篇當來源——
+    # 問題問的不是熱門文章在講的事時，引用就對不上回答。
+    articles: list[Article] = []
+    intent: dict[str, Any] = {}
+    if dashboard_context and db is not None:
+        intent = scope_intent_to_dashboard(parse_question_intent(question), dashboard_context, question)
+        articles = retrieve_articles(db, intent, question=question)
+
+    if dashboard_context and articles:
+        answer = generate_rag_answer(question, intent, articles, history, dashboard_context=dashboard_context)
+
+        result = {
+            "question": question,
+            "intent": {**intent, "source": "rag_with_dashboard"},
+            "answer": answer.get("answer", ""),
+            "key_points": answer.get("key_points", []),
+            "marketing_action": answer.get("marketing_action", ""),
+            "confidence": answer.get("confidence", "medium"),
+            "sources": serialize_sources(articles),
+            "cached": False,
+        }
+    elif dashboard_context:
+        # 檢索不到文章（例如範圍內尚無資料）時，退回只用 Dashboard 數字回答。
         answer = generate_dashboard_context_answer(question, dashboard_context, history)
 
         result = {

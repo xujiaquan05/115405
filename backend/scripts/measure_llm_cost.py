@@ -19,7 +19,8 @@ from sqlalchemy import func, text  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.models.database_models import Article  # noqa: E402
 from app.services.article_compressor import compress_articles_for_llm  # noqa: E402
-from app.services.rag_service import _fallback_intent, retrieve_by_keyword  # noqa: E402
+from app.services.dashboard_service import get_dashboard_full  # noqa: E402
+from app.services.rag_service import _dashboard_summary, _fallback_intent, retrieve_by_keyword  # noqa: E402
 from app.services.sentiment_service import _build_batch_prompt, _build_comment_prompt  # noqa: E402
 
 # 典型的使用者提問；意圖用規則版解析（不呼叫模型），檢索結果與正式流程的關鍵字路徑相同。
@@ -49,6 +50,15 @@ def main() -> None:
                 articles, max_chars_per_article=300, max_total_chars=13000, max_comment_chars=300
             )
             qa_inputs.append(RAG_PROMPT_FIXED_CHARS + len(q) + len(json.dumps(intent, ensure_ascii=False)) + len(context))
+
+        # AI 問答頁會附上 Dashboard 摘要（總覽、情緒、熱門詞、洞察摘要）
+        full = get_dashboard_full(db, keyword="醫美", days=30)
+        insight_row = db.execute(text(
+            "select result_json from analysis_results order by id desc limit 1")).scalar()
+        summary_chars = len(_dashboard_summary({
+            "keyword": "醫美", "days": 30, "overview": full["overview"], "sentiment": full["sentiment"],
+            "keywords": full["keywords"], "insight": insight_row if isinstance(insight_row, dict) else {},
+        }))
 
         # 已存的 LLM 回覆長度（儀表板洞察）作為輸出長度的參考
         outputs = [
@@ -81,6 +91,7 @@ def main() -> None:
 
     report = {
         "qa_input_chars": {"min": min(qa_inputs), "avg": round(statistics.mean(qa_inputs)), "max": max(qa_inputs)},
+        "dashboard_summary_chars": summary_chars,
         "intent_input_chars": INTENT_PROMPT_FIXED_CHARS + 20,
         "intent_output_chars": INTENT_OUTPUT_CHARS,
         "stored_llm_output_chars": {

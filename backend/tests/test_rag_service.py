@@ -1,5 +1,7 @@
 # backend/tests/test_rag_service.py
 
+import pytest
+
 from app.services import rag_service
 from app.services.cache_service import CACHE_STORE
 from app.services.rag_service import (
@@ -134,3 +136,73 @@ class TestAnswerQuestionCache:
         answer_question(db=None, question="風險在哪", dashboard_context=ctx, use_cache=False)
 
         assert calls["n"] == 2              # use_cache=False 強制重新生成
+
+
+class TestDashboardQuestionsUseRetrieval:
+    """AI 問答頁一定帶 Dashboard 脈絡；這時要在該範圍內做混合檢索，而不是只看熱門文章。"""
+
+    def test_scope_adds_dashboard_keyword_and_period(self):
+        intent = {"keywords": ["風險"], "days": 30, "platform": "all", "sentiment": "all"}
+        scoped = rag_service.scope_intent_to_dashboard(intent, {"keyword": "玻尿酸", "days": 90}, "最大的風險是什麼")
+
+        assert scoped["keywords"] == ["風險", "玻尿酸"]
+        assert scoped["days"] == 90
+
+    def test_scope_keeps_period_the_question_asks_for(self):
+        intent = {"keywords": ["玻尿酸"], "days": 7, "platform": "all", "sentiment": "all"}
+        scoped = rag_service.scope_intent_to_dashboard(intent, {"keyword": "玻尿酸", "days": 90}, "最近一週的評價")
+
+        assert scoped["days"] == 7
+        assert scoped["keywords"] == ["玻尿酸"]
+
+    def test_scope_never_drops_dashboard_keyword(self):
+        intent = {"keywords": ["a", "b", "c", "d", "e"], "days": 30}
+        scoped = rag_service.scope_intent_to_dashboard(intent, {"keyword": "玻尿酸", "days": 30}, "問題")
+
+        assert "玻尿酸" in scoped["keywords"]
+        assert len(scoped["keywords"]) == 5
+
+    def test_answer_cites_retrieved_articles(self, monkeypatch):
+        CACHE_STORE.clear()
+        seen = {}
+        monkeypatch.setattr(rag_service, "parse_question_intent",
+                            lambda q: {"keywords": ["痛"], "days": 30, "platform": "all",
+                                       "sentiment": "all", "question_type": "opinion"})
+
+        def fake_retrieve(db, intent, question=""):
+            seen["intent"] = intent
+            return ["article-1", "article-2"]
+
+        def fake_answer(question, intent, articles, history=None, dashboard_context=None):
+            seen["articles"] = articles
+            seen["context"] = dashboard_context
+            return {"answer": "依檢索文章回答", "key_points": [], "marketing_action": "", "confidence": "high"}
+
+        monkeypatch.setattr(rag_service, "retrieve_articles", fake_retrieve)
+        monkeypatch.setattr(rag_service, "generate_rag_answer", fake_answer)
+        monkeypatch.setattr(rag_service, "serialize_sources", lambda articles: [{"id": a} for a in articles])
+        monkeypatch.setattr(rag_service, "generate_dashboard_context_answer",
+                            lambda *a, **k: pytest.fail("有檢索結果時不該只用 Dashboard 回答"))
+
+        ctx = {"keyword": "皮秒", "days": 30, "hot_articles": [{"id": 99, "title": "熱門文"}]}
+        result = answer_question(db=object(), question="會痛嗎", dashboard_context=ctx)
+
+        assert result["answer"] == "依檢索文章回答"
+        assert [s["id"] for s in result["sources"]] == ["article-1", "article-2"]
+        assert result["intent"]["source"] == "rag_with_dashboard"
+        assert "皮秒" in seen["intent"]["keywords"]
+        assert seen["context"] is ctx
+
+    def test_falls_back_to_dashboard_when_nothing_retrieved(self, monkeypatch):
+        CACHE_STORE.clear()
+        monkeypatch.setattr(rag_service, "parse_question_intent",
+                            lambda q: {"keywords": ["x"], "days": 30, "platform": "all", "sentiment": "all"})
+        monkeypatch.setattr(rag_service, "retrieve_articles", lambda db, intent, question="": [])
+        monkeypatch.setattr(rag_service, "generate_dashboard_context_answer",
+                            lambda q, ctx, history=None: {"answer": "Dashboard 回答"})
+
+        ctx = {"keyword": "皮秒", "days": 30, "hot_articles": [{"id": 99, "title": "熱門文"}]}
+        result = answer_question(db=object(), question="會痛嗎", dashboard_context=ctx)
+
+        assert result["answer"] == "Dashboard 回答"
+        assert result["sources"][0]["id"] == 99
