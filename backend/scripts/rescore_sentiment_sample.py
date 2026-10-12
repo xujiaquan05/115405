@@ -13,21 +13,21 @@ BACKEND = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND))
 load_dotenv(BACKEND / ".env")
 
-from sqlalchemy import create_engine, text          # noqa: E402
-from sqlalchemy.orm import Session                  # noqa: E402
+import os  # noqa: E402
 
-from app.models.database_models import Article      # noqa: E402
-from app.services.sentiment_service import (        # noqa: E402
-    BATCH_SIZE,
-    _build_batch_prompt,
-    _parse_batch_response,
-)
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
+
+from app.models.database_models import Article  # noqa: E402
 from app.services.llm_client import (  # noqa: E402
     CLASSIFY_TEMPERATURE,
     generate_json_response,
 )
-
-import os                                            # noqa: E402
+from app.services.sentiment_service import (  # noqa: E402
+    BATCH_SIZE,
+    _build_batch_prompt,
+    _parse_batch_response,
+)
 
 EVAL = BACKEND.parent / "docs/manual-work/sentiment-eval"
 

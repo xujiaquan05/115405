@@ -125,3 +125,45 @@ class TestAlertsFlow:
 
         resp = client.post("/api/monitor/run-now", headers={"Authorization": f"Bearer {user_token}"})
         assert resp.status_code == 403
+
+
+class TestAlertIsolation:
+    """預警屬於建立監控關鍵字的人，其他帳號不能讀取或改動。"""
+
+    def _two_users_with_alert(self, client):
+        admin = admin_header(client)
+        client.post("/api/admin/users", json={"username": "u1", "password": "userpass1", "role": "user"}, headers=admin)
+        token = client.post("/api/auth/login", json={"username": "u1", "password": "userpass1"}).json()["access_token"]
+        other = {"Authorization": f"Bearer {token}"}
+
+        client.post("/api/monitor/keywords", json={"keyword": "玻尿酸", "days": 30}, headers=admin)
+        client.post("/api/monitor/alerts/check", headers=admin)
+        alert_id = client.get("/api/monitor/alerts", headers=admin).json()["data"]["alerts"][0]["id"]
+        return admin, other, alert_id
+
+    def test_cannot_mark_someone_elses_alert_read(self, client):
+        admin, other, alert_id = self._two_users_with_alert(client)
+
+        resp = client.post(f"/api/monitor/alerts/{alert_id}/read", headers=other)
+
+        assert resp.status_code == 404
+        assert client.get("/api/monitor/alerts", headers=admin).json()["data"]["unread_count"] == 1
+
+    def test_read_all_only_touches_own_alerts(self, client):
+        admin, other, _ = self._two_users_with_alert(client)
+
+        client.post("/api/monitor/alerts/read-all", headers=other)
+
+        assert client.get("/api/monitor/alerts", headers=admin).json()["data"]["unread_count"] == 1
+
+    def test_check_does_not_return_other_users_alerts(self, client):
+        admin = admin_header(client)
+        client.post("/api/admin/users", json={"username": "u1", "password": "userpass1", "role": "user"}, headers=admin)
+        token = client.post("/api/auth/login", json={"username": "u1", "password": "userpass1"}).json()["access_token"]
+        other = {"Authorization": f"Bearer {token}"}
+        client.post("/api/monitor/keywords", json={"keyword": "玻尿酸", "days": 30}, headers=admin)
+
+        resp = client.post("/api/monitor/alerts/check", headers=other)
+
+        assert resp.json()["created_count"] == 0
+        assert resp.json()["alerts"] == []

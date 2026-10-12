@@ -22,7 +22,7 @@ from sqlalchemy import func  # noqa: E402
 from app.core.database import SessionLocal  # noqa: E402
 from app.models.database_models import Article  # noqa: E402
 from app.services.beauty_lexicon import BEAUTY_LEXICON  # noqa: E402
-from app.services.keyword_extractor import CONTENT_CHARS_FOR_DF, STOPWORDS, _CJK_RE  # noqa: E402
+from app.services.keyword_extractor import _CJK_RE, CONTENT_CHARS_FOR_DF, STOPWORDS  # noqa: E402
 
 
 def main() -> None:

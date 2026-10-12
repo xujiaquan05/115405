@@ -164,15 +164,22 @@ def list_alerts(
     }
 
 
-@router.post("/alerts/check", dependencies=[Depends(get_current_user)])
-def check_alerts_now(db: Session = Depends(get_db)):
+@router.post("/alerts/check")
+def check_alerts_now(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
     """
     說明：
-    立即對所有監控關鍵字執行風險評估（不爬新資料），
+    立即對「目前使用者自己的」監控關鍵字執行風險評估（不爬新資料），
     達門檻就建立預警。適合示範與即時檢查。
+
+    只檢查自己的關鍵字：之前會檢查所有人，並把替別人建立的預警
+    一起回傳給呼叫者，等於任何登入者都看得到別人的監控內容。
+    所有人的檢查交給每日排程。
     """
 
-    created = run_alert_checks(db)
+    created = run_alert_checks(db, user_id=current_user.id)
     return {
         "status": "success",
         "created_count": len(created),
@@ -180,9 +187,19 @@ def check_alerts_now(db: Session = Depends(get_db)):
     }
 
 
-@router.post("/alerts/{alert_id}/read", dependencies=[Depends(get_current_user)])
-def mark_alert_read(alert_id: int, db: Session = Depends(get_db)):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+@router.post("/alerts/{alert_id}/read")
+def mark_alert_read(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # 只能標記自己的預警。別人的預警一律回 404 而不是 403，
+    # 避免從狀態碼推測某個 id 的預警是否存在。
+    alert = (
+        db.query(Alert)
+        .filter(Alert.id == alert_id, Alert.user_id == current_user.id)
+        .first()
+    )
     if alert is None:
         raise HTTPException(status_code=404, detail="找不到此預警。")
 
@@ -192,9 +209,15 @@ def mark_alert_read(alert_id: int, db: Session = Depends(get_db)):
     return {"status": "success"}
 
 
-@router.post("/alerts/read-all", dependencies=[Depends(get_current_user)])
-def mark_all_alerts_read(db: Session = Depends(get_db)):
-    db.query(Alert).filter(Alert.is_read == 0).update({Alert.is_read: 1})
+@router.post("/alerts/read-all")
+def mark_all_alerts_read(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    # 只清自己的未讀；之前沒有限定使用者，會把所有人的預警都標成已讀。
+    db.query(Alert).filter(
+        Alert.user_id == current_user.id, Alert.is_read == 0
+    ).update({Alert.is_read: 1})
     db.commit()
 
     return {"status": "success"}

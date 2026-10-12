@@ -85,18 +85,20 @@ def _has_recent_alert(db: Session, keyword: str, user_id: int | None = None) -> 
     return recent is not None
 
 
-def run_alert_checks(db: Session) -> list[Alert]:
+def run_alert_checks(db: Session, user_id: int | None = None) -> list[Alert]:
     """
     說明：
-    針對所有啟用中的監控關鍵字執行風險評估，
+    針對啟用中的監控關鍵字執行風險評估，
     達到門檻且近期沒有重複預警時建立 Alert。回傳新建立的預警清單。
+
+    user_id 為 None 時檢查所有人（每日排程用）；
+    指定 user_id 時只檢查該使用者的關鍵字，回傳值也只會有他自己的預警。
     """
 
-    watch_keywords = (
-        db.query(WatchKeyword)
-        .filter(WatchKeyword.enabled == 1)
-        .all()
-    )
+    query = db.query(WatchKeyword).filter(WatchKeyword.enabled == 1)
+    if user_id is not None:
+        query = query.filter(WatchKeyword.user_id == user_id)
+    watch_keywords = query.all()
 
     created: list[Alert] = []
 

@@ -20,10 +20,10 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 load_dotenv(pathlib.Path(__file__).resolve().parents[1] / ".env")
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, text  # noqa: E402
 
-from app.services.article_compressor import clean_text
-from app.services.article_service import COMMENT_SECTION_MARKER
+from app.services.article_compressor import clean_text  # noqa: E402
+from app.services.article_service import COMMENT_SECTION_MARKER  # noqa: E402
 
 SEED = 20261006          # 固定種子，重跑會得到同一批樣本
 PER_CLASS = 34           # 三類各 34 篇 → 102 篇，取前 100
