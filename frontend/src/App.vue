@@ -3,7 +3,7 @@
 <script setup>
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import AppNavbar from "./components/AppNavbar.vue";
+import AppNavbar from "./components/AppNavBar.vue";
 
 const route = useRoute();
 

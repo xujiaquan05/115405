@@ -118,7 +118,8 @@ async function fetchPlans() {
   try {
     const response = await api.get("/api/admin/plans");
     plans.value = response.data.data || [];
-  } catch (error) {
+  } catch {
+    // 讀不到方案清單時，下拉選單留空，建立帳號仍會套用後端預設方案。
     plans.value = [];
   }
 }
