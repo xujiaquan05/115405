@@ -23,8 +23,7 @@ AUTH_DEPENDENCIES = {"get_current_user", "require_admin", "get_optional_user"}
 PUBLIC_ENDPOINTS = {
     ("POST", "/api/auth/login"): "登入本身不能要求先登入",
     ("POST", "/api/auth/logout"): "清除 Cookie，未登入呼叫也無害",
-    ("GET", "/api/dashboard/full"): "訪客瀏覽 Dashboard 是產品功能",
-    ("GET", "/api/dashboard/boards"): "同上，儀表板的篩選選項",
+    ("GET", "/api/dashboard/boards"): "訪客瀏覽 Dashboard 是產品功能，這是儀表板的篩選選項",
     ("GET", "/api/articles/{article_id}"): "文章內容本來就是公開論壇的公開貼文",
     ("WEBSOCKET", "/ws/dashboard"): "推播爬取進度，不含帳號資料",
 }

@@ -49,12 +49,19 @@ def ask_question(
 
     history = [item.model_dump() for item in payload.history] if payload.history else None
 
+    # 檢索期間不得超過方案的查詢天數上限（例如專業版 90 天）。
+    max_days = plan_service.clamp_history_days(db, current_user, 365)
+    dashboard_context = payload.dashboard_context
+    if dashboard_context and isinstance(dashboard_context.get("days"), int):
+        dashboard_context = {**dashboard_context, "days": min(dashboard_context["days"], max_days)}
+
     result = answer_question(
         db=db,
         question=payload.question.strip(),
-        dashboard_context=payload.dashboard_context,
+        dashboard_context=dashboard_context,
         history=history,
         use_cache=not payload.no_cache,
+        max_days=max_days,
     )
 
     # 成功才計次；LLM 失敗時不該扣使用者的額度。

@@ -712,19 +712,28 @@ def _qa_cache_key(
     question: str,
     dashboard_context: dict[str, Any] | None,
     history: list[dict[str, Any]] | None,
+    max_days: int | None = None,
 ) -> str:
-    """依「問題 + Dashboard 條件 + 最近對話」組出快取 key。
+    """依「問題 + Dashboard 條件 + 最近對話 + 期間上限」組出快取 key。
 
-    相同問題、相同 Dashboard 條件、相同對話脈絡才會命中快取。
+    相同問題、相同 Dashboard 條件、相同對話脈絡才會命中快取；
+    期間上限不同（不同方案）時不可共用答案。
     """
     # Include the actual evidence and role boundaries, not just filter labels.
     # Canonical JSON also avoids collisions caused by delimiter concatenation.
     raw = json.dumps(
         {"question": question, "dashboard_context": dashboard_context,
-         "history": (history or [])[-6:]},
+         "history": (history or [])[-6:], "max_days": max_days},
         ensure_ascii=False, sort_keys=True, separators=(",", ":"),
     )
     return "qa:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _limit_intent_days(intent: dict[str, Any], max_days: int | None) -> dict[str, Any]:
+    """把問題解析出的期間收斂到方案上限內（None 代表不限制）。"""
+    if max_days is None or intent.get("days", 30) <= max_days:
+        return intent
+    return {**intent, "days": max_days}
 
 
 def answer_question(
@@ -733,9 +742,11 @@ def answer_question(
     dashboard_context: dict[str, Any] | None = None,
     history: list[dict[str, Any]] | None = None,
     use_cache: bool = True,
+    max_days: int | None = None,
 ) -> dict[str, Any]:
+    """max_days 為方案允許的最長檢索期間；問題裡要求更長的期間時會被收斂。"""
     # 快取：相同問題與脈絡直接回傳，省下 Gemini 呼叫（重新生成時 use_cache=False 略過）。
-    cache_key = _qa_cache_key(question, dashboard_context, history)
+    cache_key = _qa_cache_key(question, dashboard_context, history, max_days)
     if use_cache:
         cached = get_cache(cache_key)
         if cached is not None:
@@ -748,7 +759,9 @@ def answer_question(
     articles: list[Article] = []
     intent: dict[str, Any] = {}
     if dashboard_context and db is not None:
-        intent = scope_intent_to_dashboard(parse_question_intent(question), dashboard_context, question)
+        intent = _limit_intent_days(
+            scope_intent_to_dashboard(parse_question_intent(question), dashboard_context, question), max_days
+        )
         articles = retrieve_articles(db, intent, question=question)
 
     if dashboard_context and articles:
@@ -783,7 +796,7 @@ def answer_question(
             "cached": False,
         }
     else:
-        intent = parse_question_intent(question)
+        intent = _limit_intent_days(parse_question_intent(question), max_days)
         articles = retrieve_articles(db, intent, question=question)
         answer = generate_rag_answer(question, intent, articles, history)
 

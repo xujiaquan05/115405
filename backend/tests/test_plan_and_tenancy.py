@@ -206,3 +206,80 @@ class TestKeywordUpdate:
                        headers=header(c, "bob"))
 
         assert resp.status_code == 404
+
+
+class TestHistoryDaysLimit:
+    """查詢天數上限（表5-2）：訪客比照免費版 7 天、專業版 90 天，各端點都要收斂。"""
+
+    @pytest.fixture
+    def seen(self, monkeypatch):
+        seen = {}
+        monkeypatch.setattr("app.routers.dashboard.get_cache", lambda key: None)
+        monkeypatch.setattr("app.routers.dashboard.set_cache", lambda *a, **k: None)
+        monkeypatch.setattr("app.routers.dashboard.get_dashboard_full",
+                            lambda **kw: seen.__setitem__("dashboard", kw["days"]) or {})
+
+        def fake_analysis(**kw):
+            seen["analysis"] = kw["days"]
+            seen["force_refresh"] = kw["force_refresh"]
+            return {"data": {}}
+
+        monkeypatch.setattr("app.routers.analysis.analyze_keyword_with_llm", fake_analysis)
+        monkeypatch.setattr("app.routers.qa.answer_question",
+                            lambda **kw: seen.__setitem__("qa", kw) or {"answer": "ok"})
+        return seen
+
+    @pytest.mark.parametrize("user,asked,expected", [(None, 30, 7), ("alice", 90, 7), ("bob", 180, 90), ("bob", 30, 30)])
+    def test_dashboard_days_follow_plan(self, client, seen, user, asked, expected):
+        c, _ = client
+        headers = header(c, user) if user else {}
+
+        body = c.get(f"/api/dashboard/full?keyword=x&days={asked}", headers=headers).json()
+
+        assert seen["dashboard"] == expected
+        assert body["days"] == expected
+        assert body["requested_days"] == asked
+
+    def test_analysis_days_follow_plan(self, client, seen):
+        c, _ = client
+
+        c.get("/api/analysis/keyword?keyword=x&days=90")
+        assert seen["analysis"] == 7
+
+        c.get("/api/analysis/keyword?keyword=x&days=180", headers=header(c, "bob"))
+        assert seen["analysis"] == 90
+
+    def test_guest_cannot_force_gemini_refresh(self, client, seen):
+        c, _ = client
+
+        c.get("/api/analysis/keyword?keyword=x&force_refresh=true")
+        assert seen["force_refresh"] is False
+
+        c.get("/api/analysis/keyword?keyword=x&force_refresh=true", headers=header(c, "bob"))
+        assert seen["force_refresh"] is True
+
+    def test_qa_retrieval_capped_by_plan(self, client, seen):
+        c, _ = client
+
+        c.post("/api/qa/ask", json={"question": "近半年評價", "dashboard_context": {"keyword": "x", "days": 180}},
+               headers=header(c, "bob"))
+
+        assert seen["qa"]["max_days"] == 90
+        assert seen["qa"]["dashboard_context"]["days"] == 90
+
+
+def test_answer_question_caps_intent_days(monkeypatch):
+    """問題要求的期間超過方案上限時，檢索期間收斂到上限。"""
+    from app.services import rag_service
+
+    captured = {}
+    monkeypatch.setattr(rag_service, "get_cache", lambda key: None)
+    monkeypatch.setattr(rag_service, "set_cache", lambda *a, **k: None)
+    monkeypatch.setattr(rag_service, "parse_question_intent", lambda q: {"keywords": ["x"], "days": 180})
+    monkeypatch.setattr(rag_service, "retrieve_articles",
+                        lambda db, intent, question=None: captured.setdefault("days", intent["days"]) and [])
+    monkeypatch.setattr(rag_service, "generate_rag_answer", lambda *a, **k: {"answer": "ok"})
+
+    rag_service.answer_question(db=object(), question="近半年評價", max_days=90)
+
+    assert captured["days"] == 90

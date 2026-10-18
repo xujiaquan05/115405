@@ -141,6 +141,13 @@ watch(
           {{ state.errorMessage }}
         </p>
 
+        <p
+          v-if="state.hasSearched && state.appliedDays && state.appliedDays < state.days"
+          class="dashboard-plan-hint"
+        >
+          目前方案最多可查詢近 {{ state.appliedDays }} 天，以下資料已依方案調整為近 {{ state.appliedDays }} 天；登入或升級方案可查詢更長期間。
+        </p>
+
         <p v-if="!state.hasSearched" class="dashboard-empty-hint">
           請在上方輸入關鍵字並按下搜尋，Dashboard 才會開始查詢資料。
         </p>
@@ -218,6 +225,16 @@ watch(
   border-radius: 12px;
   color: var(--text-muted, #6b6880);
   text-align: center;
+}
+
+/* 查詢期間被方案收斂時的提示 */
+.dashboard-plan-hint {
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--warning-bg, #fff6e5);
+  color: var(--warning-text, #8a5a00);
+  font-size: 14px;
 }
 
 .dashboard-report-button:disabled {

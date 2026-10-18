@@ -45,6 +45,9 @@ const state = reactive({
   // 使用者是否已經按過搜尋；尚未搜尋時 Dashboard 只顯示提示，不查詢任何資料。
   hasSearched: false,
 
+  // 後端依方案實際採用的查詢天數（訪客與免費版最多 7 天）。
+  appliedDays: null,
+
   loadingDashboard: false,
   loadingInsight: false,
   loadingCrawler: false,
@@ -120,6 +123,7 @@ export function resetDashboard() {
   state.dashboardData = null;
   state.insightData = null;
   state.hasSearched = false;
+  state.appliedDays = null;
   state.errorMessage = "";
   state.analysisContextId = "";
 
@@ -146,6 +150,7 @@ export function useDashboard() {
       });
 
       state.dashboardData = response.data.data;
+      state.appliedDays = response.data.days ?? state.days;
     } catch (error) {
       console.error(error);
       state.errorMessage = "Dashboard API 載入失敗，請確認 backend 是否正在執行。";

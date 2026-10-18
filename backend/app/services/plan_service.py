@@ -70,11 +70,10 @@ def clamp_history_days(db: Session, user, days: int) -> int:
 
     刻意「收斂」而不是報錯：使用者只是看到較短的區間，
     畫面仍然可用，比直接擋掉友善。
+    訪客沒有方案，比照免費版（get_limits 對 None 會取預設方案）；
+    否則訪客能看的期間反而比免費帳號長。
     """
-    if user is None:
-        return days
-
-    if is_admin(user):
+    if user is not None and is_admin(user):
         return days
 
     limit = get_limits(db, user)["max_history_days"]

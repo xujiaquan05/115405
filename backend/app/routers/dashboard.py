@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.services import plan_service
+from app.services.auth_service import get_optional_user
 from app.services.cache_service import get_cache, set_cache
 from app.services.dashboard_service import (
     get_board_overview,
@@ -52,6 +54,7 @@ def dashboard_full(
         description="要包含的 PTT 看板，重複此參數可選多個看板。",
     ),
     db: Session = Depends(get_db),
+    current_user=Depends(get_optional_user),
 ):
     """
     說明：
@@ -66,6 +69,11 @@ def dashboard_full(
     # 用 normalize_filter_boards：沒選看板 = 不限平台。
     # 舊版用 normalize_boards，沒選看板時會被塞入 PTT 預設清單，
     # 導致 Dcard / Mobile01 / Threads 的文章在儀表板上被整批濾掉。
+    # 查詢天數依方案收斂（訪客比照免費版）；cache key 用收斂後的天數，
+    # 避免不同方案共用到超出額度的結果。
+    requested_days = days
+    days = plan_service.clamp_history_days(db, current_user, days)
+
     selected_boards = normalize_filter_boards(boards)
     boards_key = ",".join(selected_boards) or "all"
     cache_key = f"dashboard:{keyword}:{days}:{sort_by}:{boards_key}"
@@ -77,6 +85,8 @@ def dashboard_full(
             "status": "success",
             "cached": True,
             "cache_key": cache_key,
+            "days": days,
+            "requested_days": requested_days,
             "data": cached_data,
         }
 
@@ -96,5 +106,7 @@ def dashboard_full(
     return {
         "status": "success",
         "cached": False,
+        "days": days,
+        "requested_days": requested_days,
         "data": data,
     }

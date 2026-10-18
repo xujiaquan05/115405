@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.time_utils import taiwan_now
 from app.models.database_models import AnalysisHistory, Article
+from app.services import plan_service
 from app.services.audit_service import record_audit
 from app.services.auth_service import get_current_user, get_optional_user, require_admin
 from app.services.dashboard_service import (
@@ -64,6 +65,13 @@ def analyze_keyword(
     """
 
     selected_boards = normalize_filter_boards(boards) or None
+
+    # 分析期間依方案收斂（訪客比照免費版）。
+    days = plan_service.clamp_history_days(db, current_user, days)
+
+    # 強制重新分析會直接呼叫 Gemini、產生費用，訪客只能讀取既有快取。
+    if current_user is None:
+        force_refresh = False
 
     result = analyze_keyword_with_llm(
         db=db,
