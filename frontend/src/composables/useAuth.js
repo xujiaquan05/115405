@@ -2,6 +2,7 @@
 
 import { computed, reactive } from "vue";
 import api from "../services/api";
+import { resetDashboard } from "./useDashboard.js";
 
 // 說明：
 // 登入憑證放在 httpOnly cookie（由後端設定），JavaScript 讀不到，
@@ -41,6 +42,8 @@ async function login(username, password) {
     // 刻意不保存 access_token：憑證已在 httpOnly cookie 裡。
     state.user = response.data.user;
     state.guest = false;
+    // 新登入的使用者從空白的 Dashboard 開始，不沿用上一次的查詢結果。
+    resetDashboard();
 
     localStorage.setItem(USER_KEY, JSON.stringify(state.user));
     localStorage.removeItem(GUEST_KEY);
@@ -66,6 +69,7 @@ async function login(username, password) {
 function enterGuestMode() {
   state.guest = true;
   state.user = null;
+  resetDashboard();
 
   localStorage.setItem(GUEST_KEY, "1");
   localStorage.removeItem(USER_KEY);
@@ -81,6 +85,7 @@ async function logout() {
 
   state.user = null;
   state.guest = false;
+  resetDashboard();
 
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(GUEST_KEY);

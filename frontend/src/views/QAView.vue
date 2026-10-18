@@ -374,6 +374,9 @@ function updateConversationAfterQuestion(question) {
 }
 
 async function ensureDashboardContext() {
+  // 尚未在 Dashboard 搜尋任何關鍵字時，不查詢 Dashboard，改以全部資料檢索回答。
+  if (!dashboardState.keyword) return;
+
   if (!dashboardState.dashboardData) {
     await fetchDashboard();
   }
@@ -396,7 +399,7 @@ async function runAnswer(question, history, { noCache = false } = {}) {
 
     const response = await api.post("/api/qa/ask", {
       question,
-      dashboard_context: dashboardContext.value,
+      dashboard_context: dashboardState.keyword ? dashboardContext.value : null,
       history,
       no_cache: noCache,
     });
@@ -599,8 +602,11 @@ function handleDashboardContextCreated(event) {
         </button>
         <div class="qa-header-text">
           <h2>AI 問答</h2>
-          <p>
+          <p v-if="dashboardState.keyword">
             在 Dashboard「{{ dashboardState.keyword }}」的範圍內檢索相關文章回答，並附引用來源。
+          </p>
+          <p v-else>
+            從全部文章中檢索相關內容回答，並附引用來源；在 Dashboard 搜尋關鍵字後會改為該範圍。
           </p>
         </div>
       </div>

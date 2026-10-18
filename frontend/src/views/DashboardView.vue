@@ -26,7 +26,6 @@ const {
   hotArticles,
   keywords,
   dataStatus,
-  searchDashboard,
   fetchDashboard,
   changeSort,
   exportArticles,
@@ -86,10 +85,9 @@ function scrollToDashboardSection(sectionId) {
   });
 }
 
-// 第一次開啟 Dashboard 時，自動載入預設關鍵字。
+// 開啟 Dashboard 時不自動查詢，等使用者輸入關鍵字並按下搜尋。
 onMounted(() => {
   connect();
-  searchDashboard({ createConversation: false });
   updateActiveSection();
   window.addEventListener("scroll", updateActiveSection, { passive: true });
   window.addEventListener("resize", updateActiveSection);
@@ -103,7 +101,10 @@ onBeforeUnmount(() => {
 watch(
   () => websocketState.statsVersion,
   () => {
-    fetchDashboard();
+    // 爬蟲更新資料後只在已有查詢結果時重新整理，尚未搜尋時維持空白。
+    if (state.hasSearched) {
+      fetchDashboard();
+    }
   }
 );
 </script>
@@ -127,10 +128,10 @@ watch(
     <div class="dashboard-page">
       <div id="dashboard-overview" class="dashboard-section" data-dashboard-section>
         <div class="dashboard-report-bar">
-          <button class="dashboard-report-button" type="button" @click="exportArticles">
+          <button class="dashboard-report-button" type="button" :disabled="!state.hasSearched" @click="exportArticles">
             匯出 Excel
           </button>
-          <button class="dashboard-report-button" type="button" @click="goReport">
+          <button class="dashboard-report-button" type="button" :disabled="!state.hasSearched" @click="goReport">
             匯出報告
           </button>
         </div>
@@ -140,7 +141,11 @@ watch(
           {{ state.errorMessage }}
         </p>
 
-        <div id="dashboard-crawler" data-dashboard-section>
+        <p v-if="!state.hasSearched" class="dashboard-empty-hint">
+          請在上方輸入關鍵字並按下搜尋，Dashboard 才會開始查詢資料。
+        </p>
+
+        <div v-if="state.hasSearched" id="dashboard-crawler" data-dashboard-section>
           <DataStatusCard
             :status="dataStatus"
             :loading="state.loadingDashboard"
@@ -148,12 +153,14 @@ watch(
         </div>
 
         <MetricsRow
+          v-if="state.hasSearched"
           :overview="overview"
           :sentiment="sentiment"
           :loading="state.loadingDashboard"
         />
       </div>
 
+      <template v-if="state.hasSearched">
       <div id="dashboard-trend" class="dashboard-section" data-dashboard-section>
         <TrendChart
           :trend="trend"
@@ -197,6 +204,24 @@ watch(
           :loading="state.loadingDashboard"
         />
       </div>
+      </template>
     </div>
   </div>
 </template>
+
+<style scoped>
+/* 尚未搜尋時的提示文字 */
+.dashboard-empty-hint {
+  margin: 16px 0;
+  padding: 28px 20px;
+  border: 1px dashed var(--border, #d6d3e0);
+  border-radius: 12px;
+  color: var(--text-muted, #6b6880);
+  text-align: center;
+}
+
+.dashboard-report-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

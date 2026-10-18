@@ -30,8 +30,10 @@ function readStoredAnalysisContext() {
 
 const storedAnalysisContext = readStoredAnalysisContext();
 
+// 剛登入或剛開啟頁面時不預設任何關鍵字，也不自動查詢，
+// 等使用者自己輸入關鍵字並按下搜尋後才載入資料。
 const state = reactive({
-  keyword: "醫美 保養 粉底 痘痘 穿搭",
+  keyword: "",
   selectedBoards: [],
   days: 30,
   sortBy: "push_count",
@@ -39,6 +41,9 @@ const state = reactive({
 
   dashboardData: null,
   insightData: null,
+
+  // 使用者是否已經按過搜尋；尚未搜尋時 Dashboard 只顯示提示，不查詢任何資料。
+  hasSearched: false,
 
   loadingDashboard: false,
   loadingInsight: false,
@@ -105,6 +110,27 @@ function publishDashboardAnalysisContext() {
   return context;
 }
 
+// 清空 Dashboard 的查詢條件與結果（登入、登出、切換訪客時呼叫），
+// 避免上一位使用者的查詢結果留在畫面上，也讓新登入的使用者從空白狀態開始。
+export function resetDashboard() {
+  state.keyword = "";
+  state.selectedBoards = [];
+  state.days = 30;
+  state.sortBy = "push_count";
+  state.dashboardData = null;
+  state.insightData = null;
+  state.hasSearched = false;
+  state.errorMessage = "";
+  state.analysisContextId = "";
+
+  // 上一次搜尋留給 AI 問答的分析範圍也一併清除。
+  try {
+    localStorage.removeItem(DASHBOARD_ANALYSIS_CONTEXT_KEY);
+  } catch {
+    /* 無法存取 localStorage 時略過。 */
+  }
+}
+
 export function useDashboard() {
   async function fetchDashboard() {
     state.loadingDashboard = true;
@@ -158,6 +184,13 @@ export function useDashboard() {
   async function searchDashboard(options = {}) {
     const { createConversation = true } = options;
 
+    // 沒有關鍵字就不查詢，避免送出空白條件。
+    if (!state.keyword.trim()) {
+      state.errorMessage = "請先輸入至少一個關鍵字再搜尋。";
+      return;
+    }
+
+    state.hasSearched = true;
     await fetchDashboard();
 
     if (createConversation) {
@@ -176,11 +209,15 @@ export function useDashboard() {
           .map((board) => `${board.platform}:${board.board}`)
       : [];
 
+    // 尚未搜尋過時只記住平台選擇，等使用者按下搜尋再一起查詢。
+    if (!state.hasSearched) return;
+
     await searchDashboard({ createConversation: false });
   }
 
   async function changeSort(sortBy) {
     state.sortBy = sortBy;
+    if (!state.hasSearched) return;
     await fetchDashboard();
   }
 
@@ -269,6 +306,7 @@ export function useDashboard() {
     searchDashboard,
     fetchDashboard,
     fetchInsight,
+    resetDashboard,
     changeSort,
     triggerCrawler,
     exportArticles,
