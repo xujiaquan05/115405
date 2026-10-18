@@ -37,10 +37,30 @@ def get_gemini_model_name() -> str:
     從 .env 讀取 model 名稱。
 
     如果 .env 沒有設定 GEMINI_MODEL，
-    預設使用 gemini-2.5-flash。
+    預設使用 gemini-3.1-flash-lite（成本試算即以此模型計價）。
     """
 
-    return os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    return os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
+
+
+def get_thinking_config(model_name: str) -> types.ThinkingConfig | None:
+    """Gemini 3 系列的思考設定。
+
+    Gemini 3 系列無法關閉思考，思考 token 依輸出單價計費；
+    不指定時模型可能用較高的思考等級，實際費用會遠高於成本試算。
+    因此預設用最低的 minimal，可用 GEMINI_THINKING_LEVEL 調整
+    （minimal、low、medium、high）。2.5 系列沿用原本行為，不送出設定。
+    """
+    if not model_name.startswith("gemini-3"):
+        return None
+
+    level = os.getenv("GEMINI_THINKING_LEVEL", "minimal").strip().upper()
+    return types.ThinkingConfig(thinking_level=getattr(types.ThinkingLevel, level, types.ThinkingLevel.MINIMAL))
+
+
+def _is_thinking_config_rejected(error: errors.APIError) -> bool:
+    """模型不支援指定的思考等級時，Gemini 回 400 並在訊息中提到 thinking。"""
+    return error.code == 400 and "thinking" in str(error).lower()
 
 
 # 產生式任務（問答、洞察）留一點變化比較自然；
@@ -68,16 +88,27 @@ def generate_json_response(prompt: str, temperature: float = DEFAULT_TEMPERATURE
 
     client = get_gemini_client()
     model_name = get_gemini_model_name()
+    thinking_config = get_thinking_config(model_name)
 
-    try:
-        response = client.models.generate_content(
+    def call(thinking):
+        return client.models.generate_content(
             model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 temperature=temperature,
+                thinking_config=thinking,
             ),
         )
+
+    try:
+        try:
+            response = call(thinking_config)
+        except errors.APIError as error:
+            # 模型不接受這個思考等級時，改用模型預設值重送一次，避免整個 AI 功能失效。
+            if thinking_config is None or not _is_thinking_config_rejected(error):
+                raise
+            response = call(None)
     except errors.APIError as error:
         # 說明：
         # 429（rate limit / 額度用完）、402（預付額度用盡）和所有 5xx

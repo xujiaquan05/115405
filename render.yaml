@@ -12,7 +12,7 @@ services:
         sync: false
       - key: GEMINI_MODEL
         # 與本機 .env 一致；flash-lite 便宜很多，情緒評分用它就夠。
-        value: gemini-2.5-flash-lite
+        value: gemini-3.1-flash-lite
       # 一定要設成 production：程式以此決定 cookie 是否加 Secure、
       # 以及是否送出 HSTS。留空會被當成 development，等於關掉這兩項防護。
       - key: APP_ENV
