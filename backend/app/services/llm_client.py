@@ -80,11 +80,13 @@ def generate_json_response(prompt: str, temperature: float = DEFAULT_TEMPERATURE
         )
     except errors.APIError as error:
         # 說明：
-        # 429（rate limit / 額度用完）和所有 5xx 都屬於暫時性錯誤，
-        # 呼叫端應 fallback 或顯示「AI 忙碌中」，而不是回 500。
+        # 429（rate limit / 額度用完）、402（預付額度用盡）和所有 5xx
+        # 都屬於「現在無法使用 AI」的狀況，呼叫端應 fallback 或顯示
+        # 「AI 暫時無法使用」，而不是回 500 讓整個頁面出錯。
+        # 402 是 115/10/18 實際遇到：儲值用完後分析頁直接 500。
         # 其他錯誤（401 API key 錯誤、400 請求格式錯誤等）是設定問題，
         # 需要原樣拋出方便 debug。
-        if error.code == 429 or (error.code is not None and error.code >= 500):
+        if error.code in (402, 429) or (error.code is not None and error.code >= 500):
             raise LLMServiceUnavailableError(
                 "Gemini model is temporarily unavailable or overloaded."
             ) from error
