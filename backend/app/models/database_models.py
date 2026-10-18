@@ -1,4 +1,14 @@
-from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import (
+    JSON,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -337,6 +347,34 @@ class AnalysisHistory(Base):
     result_json = Column(JSON, nullable=False)
 
     created_at = Column(DateTime)
+
+
+class QAConversation(Base):
+    """每位使用者自己的 AI 問答對話紀錄。
+
+    過去對話只存在瀏覽器 localStorage 的同一個鍵，
+    同一台電腦換帳號登入會看到、甚至覆寫上一位使用者的對話。
+    改存資料庫並以 user_id 隔離，換電腦登入也能看到自己的紀錄。
+
+    client_id 由前端產生（建立對話時不必等待伺服器回應），
+    只在同一位使用者範圍內唯一；data 保存整段對話（標題、訊息、釘選等）。
+    """
+
+    __tablename__ = "qa_conversations"
+    __table_args__ = (UniqueConstraint("user_id", "client_id", name="uq_qa_conversations_user_client"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    client_id = Column(String(64), nullable=False)
+    title = Column(String(255), nullable=False, default="")
+    pinned = Column(Integer, nullable=False, default=0)
+
+    data = Column(JSON, nullable=False)
+
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime, index=True)
 
 
 class Setting(Base):

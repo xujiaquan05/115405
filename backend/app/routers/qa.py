@@ -1,13 +1,16 @@
 # backend/app/routers/qa.py
 
+import json
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Path
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.rate_limit import RateLimiter
+from app.core.time_utils import taiwan_now
+from app.models.database_models import QAConversation
 from app.services import plan_service
 from app.services.auth_service import get_current_user
 from app.services.rag_service import answer_question
@@ -71,3 +74,115 @@ def ask_question(
         "status": "success",
         "result": result,
     }
+
+
+# ── 個人對話紀錄 ──────────────────────────────────────────────
+# 每位使用者只能讀寫自己的對話；別人的對話一律回 404，不透露是否存在。
+
+# 每位使用者保留的未釘選對話上限，超過時刪除最舊的，避免資料表無限成長。
+MAX_CONVERSATIONS = 50
+# 單一對話的資料上限（約 512 KB），防止異常請求塞爆資料庫。
+MAX_CONVERSATION_BYTES = 512 * 1024
+CLIENT_ID_PATTERN = r"^[A-Za-z0-9_.-]{1,64}$"
+
+
+class ConversationPayload(BaseModel):
+    title: str = Field(default="", max_length=255)
+    keyword: str = Field(default="", max_length=255)
+    pinned: bool = False
+    manuallyRenamed: bool = False
+    dashboardContextId: str = Field(default="", max_length=64)
+    createdAt: str | None = None
+    updatedAt: str | None = None
+    messages: list[dict[str, Any]] = Field(default_factory=list, max_length=400)
+
+
+def _find_conversation(db: Session, user_id: int, client_id: str) -> QAConversation | None:
+    return (
+        db.query(QAConversation)
+        .filter(QAConversation.user_id == user_id, QAConversation.client_id == client_id)
+        .first()
+    )
+
+
+def _prune_conversations(db: Session, user_id: int) -> None:
+    """只保留最近的 MAX_CONVERSATIONS 筆未釘選對話。"""
+    stale = (
+        db.query(QAConversation)
+        .filter(QAConversation.user_id == user_id, QAConversation.pinned == 0)
+        .order_by(QAConversation.updated_at.desc(), QAConversation.id.desc())
+        .offset(MAX_CONVERSATIONS)
+        .all()
+    )
+    for conversation in stale:
+        db.delete(conversation)
+
+
+@router.get("/conversations")
+def list_conversations(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """取得目前使用者自己的對話（釘選優先，其餘依更新時間由新到舊）。"""
+    rows = (
+        db.query(QAConversation)
+        .filter(QAConversation.user_id == current_user.id)
+        .order_by(QAConversation.pinned.desc(), QAConversation.updated_at.desc(), QAConversation.id.desc())
+        .all()
+    )
+
+    return {
+        "status": "success",
+        "data": {"conversations": [{**row.data, "id": row.client_id} for row in rows]},
+    }
+
+
+@router.put("/conversations/{client_id}")
+def save_conversation(
+    payload: ConversationPayload,
+    client_id: str = Path(..., pattern=CLIENT_ID_PATTERN),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """建立或更新目前使用者的一段對話。"""
+    data = {**payload.model_dump(), "id": client_id}
+
+    if len(json.dumps(data, ensure_ascii=False).encode("utf-8")) > MAX_CONVERSATION_BYTES:
+        raise HTTPException(status_code=413, detail="對話內容過長，請開啟新對話。")
+
+    now = taiwan_now()
+    conversation = _find_conversation(db, current_user.id, client_id)
+
+    if conversation is None:
+        conversation = QAConversation(user_id=current_user.id, client_id=client_id, created_at=now)
+        db.add(conversation)
+
+    conversation.title = payload.title or "新的對話"
+    conversation.pinned = int(payload.pinned)
+    conversation.data = data
+    conversation.updated_at = now
+    db.flush()
+
+    _prune_conversations(db, current_user.id)
+    db.commit()
+
+    return {"status": "success"}
+
+
+@router.delete("/conversations/{client_id}")
+def delete_conversation(
+    client_id: str = Path(..., pattern=CLIENT_ID_PATTERN),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """刪除目前使用者自己的一段對話。"""
+    conversation = _find_conversation(db, current_user.id, client_id)
+
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="找不到這段對話。")
+
+    db.delete(conversation)
+    db.commit()
+
+    return {"status": "success"}
+

@@ -4,6 +4,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 
 import api from "../services/api.js";
+import { useAuth } from "../composables/useAuth.js";
 import { toHistory } from "../utils/qaHistory.js";
 import {
   DASHBOARD_ANALYSIS_CONTEXT_KEY,
@@ -11,8 +12,12 @@ import {
   useDashboard,
 } from "../composables/useDashboard.js";
 
-const STORAGE_KEY = "qa-conversations";
+// 舊版把所有帳號的對話存在同一個 localStorage 鍵，現在改存後端（依帳號隔離），
+// 開啟頁面時順手清掉這份共用的舊資料。
+const LEGACY_STORAGE_KEY = "qa-conversations";
 const DEFAULT_CONVERSATION_TITLE = "新的對話";
+// 連續修改時合併成一次儲存，避免每打一個動作就送一次請求。
+const SAVE_DELAY_MS = 400;
 
 const quickQuestions = [
   "根據目前 Dashboard，最大的負面風險是什麼？",
@@ -30,6 +35,8 @@ const {
   fetchDashboard,
   fetchInsight,
 } = useDashboard();
+
+const { isAuthenticated } = useAuth();
 
 const state = reactive({
   question: "",
@@ -208,9 +215,14 @@ function applyDashboardContextToState(context) {
   }
 }
 
+// 對話 id 由前端產生，建立對話時不必等伺服器回應；後端只在同一帳號內要求唯一。
+function newConversationId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function createConversation(title = DEFAULT_CONVERSATION_TITLE, dashboardContextId = "") {
   const conversation = {
-    id: Date.now() + Math.random(),
+    id: newConversationId(),
     title,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -242,16 +254,63 @@ function ensureConversationForDashboardContext(context = readDashboardAnalysisCo
   createConversation(DEFAULT_CONVERSATION_TITLE, context.id);
 }
 
+// 每段對話最後一次成功存到後端的內容，用來判斷哪些對話有變動需要上傳。
+const savedSnapshots = new Map();
+let saveTimer = null;
+
+// 對話改存後端並依帳號隔離；訪客沒有帳號，對話只留在這次開啟的頁面中。
 function saveConversations() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.conversations.slice(0, 30)));
+  if (!isAuthenticated.value) return;
+
+  window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(flushConversations, SAVE_DELAY_MS);
 }
 
-function loadConversations() {
+async function flushConversations() {
+  window.clearTimeout(saveTimer);
+  saveTimer = null;
+
+  if (!isAuthenticated.value) return;
+
+  const changed = state.conversations.filter((conversation) => {
+    return savedSnapshots.get(conversation.id) !== JSON.stringify(conversation);
+  });
+
+  await Promise.all(changed.map(async (conversation) => {
+    const snapshot = JSON.stringify(conversation);
+
+    try {
+      await api.put(`/api/qa/conversations/${encodeURIComponent(conversation.id)}`, conversation);
+      savedSnapshots.set(conversation.id, snapshot);
+    } catch (error) {
+      console.error(error);
+      state.errorMessage = error.response?.data?.detail || "對話紀錄儲存失敗，請稍後再試。";
+    }
+  }));
+}
+
+async function loadConversations() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    state.conversations = Array.isArray(saved) ? saved : [];
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
-    state.conversations = [];
+    /* 無法存取 localStorage 時略過。 */
+  }
+
+  state.conversations = [];
+  savedSnapshots.clear();
+
+  if (isAuthenticated.value) {
+    try {
+      const response = await api.get("/api/qa/conversations");
+      const saved = response.data.data?.conversations;
+      state.conversations = Array.isArray(saved) ? saved : [];
+      state.conversations.forEach((conversation) => {
+        savedSnapshots.set(conversation.id, JSON.stringify(conversation));
+      });
+    } catch (error) {
+      console.error(error);
+      state.errorMessage = "無法載入對話紀錄，請重新整理頁面。";
+    }
   }
 
   if (!state.conversations.length) {
@@ -274,6 +333,14 @@ function selectConversation(conversationId) {
 
 function deleteConversation(conversationId) {
   state.conversations = state.conversations.filter((conversation) => conversation.id !== conversationId);
+
+  // 曾經存到後端的對話才需要請後端刪除。
+  if (isAuthenticated.value && savedSnapshots.has(conversationId)) {
+    savedSnapshots.delete(conversationId);
+    api.delete(`/api/qa/conversations/${encodeURIComponent(conversationId)}`).catch((error) => {
+      console.error(error);
+    });
+  }
 
   if (!state.conversations.length) {
     createConversation();
@@ -494,8 +561,8 @@ async function retryLast() {
   await runAnswer(state.lastQuestion, history, { noCache: true });
 }
 
-onMounted(() => {
-  loadConversations();
+onMounted(async () => {
+  await loadConversations();
   ensureConversationForDashboardContext();
   ensureDashboardContext();
   window.addEventListener("dashboard-analysis-context-created", handleDashboardContextCreated);
@@ -503,6 +570,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("dashboard-analysis-context-created", handleDashboardContextCreated);
+  // 離開頁面前把尚未送出的修改存起來。
+  if (saveTimer) flushConversations();
 });
 
 watch(
