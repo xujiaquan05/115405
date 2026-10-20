@@ -37,6 +37,10 @@ JOB_ID = "daily_opinion_job"
 # 補跑用的一次性任務 id。
 CATCHUP_JOB_ID = "daily_opinion_catchup"
 
+# 每小時檢查「今天該跑卻還沒跑成」的任務 id。
+RETRY_JOB_ID = "daily_opinion_retry"
+RETRY_INTERVAL_MINUTES = 60
+
 # 記錄「每日任務最後成功執行的日期」（YYYY-MM-DD，台灣時間）。
 LAST_RUN_KEY = "last_daily_job_date"
 
@@ -252,6 +256,24 @@ def start_scheduler():
         minute=0,
         id=JOB_ID,
         replace_existing=True,
+        # 電腦在排程時間睡眠或忙碌時，APScheduler 預設只容許延遲 1 秒，
+        # 醒來後會直接略過當天的任務（115/10/19 實際發生：睡到晚上才醒，
+        # log 顯示 missed by 20:07:14，當天完全沒有收錄）。
+        # 改為不限延遲並合併多次錯過，醒來後補跑一次。
+        misfire_grace_time=None,
+        coalesce=True,
+    )
+    # 每小時檢查一次：過了排程時間、今天卻還沒成功跑完（例如中途睡眠導致租約過期而放棄），
+    # 就再跑一次。啟動補跑只在開機時檢查，後端一直開著時需要這個機制。
+    _scheduler.add_job(
+        retry_missed_daily_job,
+        trigger="interval",
+        minutes=RETRY_INTERVAL_MINUTES,
+        id=RETRY_JOB_ID,
+        replace_existing=True,
+        misfire_grace_time=None,
+        coalesce=True,
+        max_instances=1,
     )
     _scheduler.start()
     logger.info("Scheduler started: daily job at %02d:00 (Asia/Taipei)", hour)
@@ -296,6 +318,40 @@ def _schedule_startup_catchup() -> None:
         replace_existing=True,
     )
     logger.info("Daily job has not run today; catching up in %ds", CATCHUP_DELAY_SECONDS)
+
+
+def should_retry_daily_job(db, now=None) -> bool:
+    """過了今天的排程時間、自動任務仍開著，但今天還沒成功跑完。"""
+    if not get_setting(db, "auto_crawl_enabled"):
+        return False
+    if not get_setting(db, "startup_catchup_enabled"):
+        return False
+    if has_run_today(db):
+        return False
+
+    moment = now or taiwan_now()
+    return moment.hour >= int(get_setting(db, "auto_crawl_hour"))
+
+
+def retry_missed_daily_job() -> dict | None:
+    """每小時呼叫：今天該跑卻還沒跑成時補跑一次。
+
+    run_daily_job 本身會先取得爬取鎖，正在爬取時會直接略過，不會重複執行。
+    """
+    if stop_requested():
+        return None
+
+    db = SessionLocal()
+    try:
+        should_run = should_retry_daily_job(db)
+    finally:
+        db.close()
+
+    if not should_run:
+        return None
+
+    logger.info("Daily job has not completed today; retrying")
+    return run_daily_job()
 
 
 def reschedule_daily_job(hour: int) -> bool:

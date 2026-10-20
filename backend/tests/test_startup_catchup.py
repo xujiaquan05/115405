@@ -98,3 +98,67 @@ class _SchedulerStub:
 
     def add_job(self, func, **kwargs):
         self.jobs.append({"func": func, **kwargs})
+
+
+class TestRetryMissedDailyJob:
+    """後端一直開著、但當天任務被錯過或中途放棄時，每小時檢查並補跑。
+
+    115/10/19 實際情況：補跑在 01:01 開始，01:23 電腦睡眠；21:31 醒來時租約已過期，
+    該批結果被放棄，而 03:00 的排程也因睡眠被略過，整天沒有收錄。
+    """
+
+    SETTINGS = {"auto_crawl_enabled": True, "startup_catchup_enabled": True, "auto_crawl_hour": 3}
+
+    def _should(self, db, hour, settings=None):
+        values = {**self.SETTINGS, **(settings or {})}
+        now = taiwan_now().replace(hour=hour, minute=30)
+        with patch.object(scheduler, "get_setting", side_effect=lambda _db, key: values[key]):
+            return scheduler.should_retry_daily_job(db, now=now)
+
+    def test_retries_after_the_scheduled_hour_when_not_run_today(self, db):
+        assert self._should(db, hour=21) is True
+
+    def test_waits_until_the_scheduled_hour(self, db):
+        assert self._should(db, hour=1) is False
+
+    def test_skips_when_already_run_today(self, db):
+        set_internal_value(db, scheduler.LAST_RUN_KEY, taiwan_now().strftime("%Y-%m-%d"))
+
+        assert self._should(db, hour=21) is False
+
+    def test_respects_the_switches(self, db):
+        assert self._should(db, hour=21, settings={"auto_crawl_enabled": False}) is False
+        assert self._should(db, hour=21, settings={"startup_catchup_enabled": False}) is False
+
+    def test_runs_the_daily_job_only_when_needed(self, db):
+        calls = []
+        with patch.object(scheduler, "SessionLocal", return_value=db),              patch.object(scheduler, "should_retry_daily_job", return_value=True),              patch.object(scheduler, "run_daily_job", side_effect=lambda: calls.append(1) or {"ok": True}):
+            assert scheduler.retry_missed_daily_job() == {"ok": True}
+
+        with patch.object(scheduler, "SessionLocal", return_value=db),              patch.object(scheduler, "should_retry_daily_job", return_value=False),              patch.object(scheduler, "run_daily_job", side_effect=lambda: calls.append(1)):
+            assert scheduler.retry_missed_daily_job() is None
+
+        assert calls == [1]
+
+
+def test_daily_cron_runs_late_after_sleep_instead_of_being_skipped():
+    """排程時間電腦在睡眠時，醒來要補跑，而不是因為超過 1 秒寬限就略過。"""
+    jobs = {}
+
+    class _Recorder:
+        def __init__(self, **_kwargs):
+            pass
+
+        def add_job(self, func, **kwargs):
+            jobs[kwargs["id"]] = kwargs
+
+        def start(self):
+            pass
+
+    with patch.object(scheduler, "BackgroundScheduler", _Recorder),          patch.object(scheduler, "_scheduler", None),          patch.object(scheduler, "_read_schedule_hour", return_value=3),          patch.object(scheduler, "_schedule_startup_catchup"),          patch.object(scheduler, "clear_stop"):
+        scheduler.start_scheduler()
+        scheduler._scheduler = None
+
+    assert jobs[scheduler.JOB_ID]["misfire_grace_time"] is None
+    assert jobs[scheduler.JOB_ID]["coalesce"] is True
+    assert jobs[scheduler.RETRY_JOB_ID]["minutes"] == scheduler.RETRY_INTERVAL_MINUTES
